@@ -1,0 +1,1 @@
+g++ -O3 -lboost_system ssw.c ssw_cpp.cpp global_variables.cpp process_cigar.cpp parse_seed.cpp parse_smallmotif_seed.cpp merge_types.cpp parse_anchored_shiftxor.cpp parse_shiftxor.cpp bitseq_utils.cpp fasta_utils.cpp ribbit.cpp -o ribbit -lboost_program_options
