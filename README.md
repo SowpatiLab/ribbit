@@ -1,4 +1,4 @@
-<p align=center><img src="./lib/logo.jpeg" alt="ribbit-logo" style="width:260; border-radius: 20"/></p>
+<p align=center><img src="./lib/logo.jpeg" alt="ribbit-logo" style="width:260px; border-radius: 20%"/></p>
 
 <h1 align=center style="font-size: 45px">ribbit</h1>
 
