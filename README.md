@@ -1,5 +1,5 @@
 <p align=center>
-    <img src="./lib/logo.png" alt="ribbit-logo" style="width:260px; border-radius: 20%"/>
+    <img src="./lib/logo_rounded.png" alt="ribbit-logo" style="width:260px; border-radius: 20%"/>
 </p>
 
 <h1 align=left style="font-size: 45px; padding-left: 20px; padding-bottom: 0px">ribbit</h1>
