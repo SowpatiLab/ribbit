@@ -21,11 +21,15 @@ uint32_t *MOTIF_NEXT = nullptr;
 // Define rclasses matrix
 int MINIMUM_MLEN = 2;
 int MAXIMUM_MLEN = 100;
+int NMOTIFS;
+int MINIMUM_SHIFT = 2;
+int MAXIMUM_SHIFT = 100;
+int NSHIFTS = 100;
 
 int RANK_P = 5;
 int RANK_Q = 4;
 int RANK_S = 3;
-//int RANK_F = 2;
+int RANK_F = 2;
 int RANK_C = 1;
 int RANK_A = 0;
 int RANK_N = -1;
@@ -35,10 +39,8 @@ unordered_map<int, int> MINIMUM_UNITS;
 unordered_map<int, int> PERFECT_UNITS;
 
 bool LENGTH_CUTOFF_MODE = true;
-bool PURITY_CUTOFF_MODE = true;
 
 // cutoffs for different measures of purity
-float PURITY_THRESHOLD = 0.85; 
-int   MISMATCHES_THRESHOLD = 0;
+float PURITY_THRESHOLD = 0.85;
 int   INTERRUPTIONS_THRESHOLD = 0;
 time_t START_TIME = time(0);

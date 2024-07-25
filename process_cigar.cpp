@@ -204,17 +204,11 @@ tuple<vector<int>, string, float> processCIGARWithPruning(int seed_start, int se
     int mismatches = alignment_length - matches;
 
     bool trim = false;
-    if (PURITY_CUTOFF_MODE && purity < PURITY_THRESHOLD) {
-        trim = true;
-    }
-    else if ((!PURITY_CUTOFF_MODE) && mismatches > MISMATCHES_THRESHOLD) {
-        trim = true;
-    }
+    if (purity < PURITY_THRESHOLD) trim = true;
 
     if (trim) {
 
-        if (PURITY_CUTOFF_MODE)  trim_edges = calculateTrimEdges(PURITY_THRESHOLD, purity, ccigar_lengths, alignment_length, motif_length);
-        else trim_edges = calculateTrimEdges(MISMATCHES_THRESHOLD, purity, mismatches, ccigar_lengths, alignment_length, motif_length);
+        trim_edges = calculateTrimEdges(PURITY_THRESHOLD, purity, ccigar_lengths, alignment_length, motif_length);
 
         // based on the trim edges we adjust all the repeat parameters
         new_cigar = ""; matches = 0; match_units = 0; qpos = start_soft_clip;

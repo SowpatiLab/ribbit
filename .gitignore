@@ -1,0 +1,5 @@
+/data_simulation/*.fa
+/data_simulation/*.bed
+/data_simulation/*.ribbit
+/data_simulation/*.seeds
+/data_simulation/*.tsv

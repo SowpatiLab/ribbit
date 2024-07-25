@@ -12,7 +12,7 @@ namespace po = boost::program_options;
 using namespace std;
 
 
-bool is_number(const string &s) {
+bool isNumber(const string &s) {
     /*
      *  checks if a string is number or not
      *  @param s string to be checked if it is numeric
@@ -22,19 +22,19 @@ bool is_number(const string &s) {
 }
 
 
-bool parse_dualtype_args(po::variables_map &args, const string &option, unordered_map<int, int> &cutoff,
+bool parseDualtypeArgs(po::variables_map &args, const string &option, unordered_map<int, int> &cutoff,
                          int &minimum_motif_length, int &maximum_motif_length) {
     /*
-     *  parsing input for arguments with either an integer or file as an input
+     *  parsing input for arguments with either an integer or file options
      *  @param args arguments object from the program options object
      *  @param option name of the option
-     *  @param cutoff unordered_map options for each motif length
+     *  @param cutoff unordered_map the option to be updated for each motif length
      *  @param minimum_motif_length minimum length of the motif
      *  @param maximum_motif_length maximum length of the motif
      *  @return bool for successful completion of the function
     */
     int key, value;    
-    if (is_number(args[option].as<string>())) {
+    if (isNumber(args[option].as<string>())) {
         // if the input is just a number; set the same cutoff for all motif lengths
         value = stoi(args[option].as<string>());
         for (key = minimum_motif_length; key<=maximum_motif_length; key++) {
@@ -65,15 +65,15 @@ bool parse_dualtype_args(po::variables_map &args, const string &option, unordere
 
 
 
-bool parse_arguments(int &argc, char* argv[], string &fasta_file, string &out_file, int &window_length,
+bool parseArguments(int &argc, char* argv[], string &fasta_file, string &out_file, int &window_length,
                      int &window_bitcount_threshold, int &anchor_length, int &continuous_ones_threshold) {
     /*
      *  parsing input arguments for the program
      *  @param argc number of commandline arguments
      *  @param argv list of commandline arguments
-     *  @param fasta_file variable for input fasta file
-     *  @param run_mode programme running mode; currently anchor mode is default
-     *  @param out_file variable for output file path
+     *  @param fasta_file stores the name of the fasta file
+     *  @param out_file stores the name of the output file
+     *  @param window_length stores the length of the window
      *  @param window_bitcount_threshold bitcount threshold in the window; default: 4
      *  @param anchor_length minimum length of continuous ones to be considered in the neighboring shift; default 3
      *  @param continuous_ones_threshold minimum number of continuous set bits in the shift XOR
@@ -87,24 +87,26 @@ bool parse_arguments(int &argc, char* argv[], string &fasta_file, string &out_fi
         ("output-file,o", po::value<string>(), "File path for the input fasta file.")        
  
         ("min-motif-length,m", po::value<int>(), "The minimum length of the motif of the repeats to be identified. Default: 2")
-        ("max-motif-length,M", po::value<int>(), "The maximum length of the motif of the repeats to be identified, Default: 6")
-
-        // currently all are set to default parameters and non-accessible to the user
-        // ("anchor", "Run the identification in anchor mode.")        // should be on by default; making non-accessible to the user
-        // ("window-length,w", po::value<int>(), "The length of window to be considered during seed identification. Default: 8")
-        // ("window-threshold,t", po::value<int>(), "The threshold value for number of 1s in the window. Defaut: 4")        
-        // ("anchor-length,a", po::value<int>(), "If running in anchor mode the length of the anchor to be considered. Default: 3")
-        // ("cones-threshold,c", po::value<int>(), "Threshold value for cotinuous number of ones found in a seed. Default: 0")
+        ("max-motif-length,M", po::value<int>(), "The maximum length of the motif of the repeats to be identified, Default: 100")
 
         ("purity,p", po::value<float>(), "Threshold value for cotinuous number of ones found in a seed. Default: 0.85")
-        ("mis-matches,x", po::value<int>(), "Absolute cutoff of number of mismatches allowed for a repeat sequence.")
 
         ("min-length,l", po::value<string>(), "The minimum length of the repeat. Default: 12")
         ("min-units", po::value<string>(), "The minimum number of units of the repeat. Can be a integer value, for cutoff across all motif sizes.\
                                             Tab separated file with two columns, first is the motif size and second unit cutoff. Default: 2")
         ("perfect-units", po::value<string>(), "The minimum number of complete units of the repeat. Can be a integer value, for cutoff across all motif sizes.\
                                                 Tab separated file with two columns, first is the motif size and second unit cutoff. Default: 2")
+        
+        /*
+          currently all are set to default parameters and non-accessible to the user
+          ("anchor", "Run the identification in anchor mode.")        // should be on by default; making non-accessible to the user
+          ("window-length,w", po::value<int>(), "The length of window to be considered during seed identification. Default: 8")
+          ("window-threshold,t", po::value<int>(), "The threshold value for number of 1s in the window. Defaut: 4")        
+          ("anchor-length,a", po::value<int>(), "If running in anchor mode the length of the anchor to be considered. Default: 3")
+          ("cones-threshold,c", po::value<int>(), "Threshold value for cotinuous number of ones found in a seed. Default: 0")        
+        */
     ;
+
     po::variables_map args;
     po::store(po::parse_command_line(argc, argv, argparser), args);
     po::notify(args);
@@ -117,39 +119,34 @@ bool parse_arguments(int &argc, char* argv[], string &fasta_file, string &out_fi
     int default_perfect_units = 2;
     int default_minimum_length = 12;
 
-    if (args.count("input-file")) {
-        fasta_file = args["input-file"].as<string>();
-    } else {
+    if (args.count("input-file"))  fasta_file = args["input-file"].as<string>();
+    else {
         cerr << "ERROR: Please specify an input fasta file!\n";
         return 0;
     }
     
-    if (args.count("output-file")) out_file = args["output-file"].as<string>();    
+    if (args.count("output-file")) out_file = args["output-file"].as<string>();
     
     if (args.count("min-motif-length")) { MINIMUM_MLEN = args["min-motif-length"].as<int>(); }
     if (args.count("max-motif-length")) { MAXIMUM_MLEN = args["max-motif-length"].as<int>(); }
     
-    // if (args.count("anchor")) run_mode = "anchor";
-    // if (args.count("window-length")) window_length = args["window-length"].as<int>();
-    // if (args.count("window-threshold")) window_bitcount_threshold = args["window-threshold"].as<int>();
-    // if (args.count("anchor-length")) anchor_length = args["anchor-length"].as<int>();
-    // if (args.count("cones-threshold")) continuous_ones_threshold = args["cones-threshold"].as<int>();
-    
-    if (args.count("purity")) {
-        PURITY_THRESHOLD = args["purity"].as<float>();
-    }
-    else if (args.count("mis-matches")) {
-        PURITY_CUTOFF_MODE = false;
-        MISMATCHES_THRESHOLD = args["mis-matches"].as<int>();
-    } 
+    /*
+      currently all are set to default parameters and non-accessible to the user
+      if (args.count("anchor")) run_mode = "anchor";
+      if (args.count("window-length")) window_length = args["window-length"].as<int>();
+      if (args.count("window-threshold")) window_bitcount_threshold = args["window-threshold"].as<int>();
+      if (args.count("anchor-length")) anchor_length = args["anchor-length"].as<int>();
+      if (args.count("cones-threshold")) continuous_ones_threshold = args["cones-threshold"].as<int>();
+    */
+
     
     if (args.count("min-length")) {
         // either take minimum length as the input or minimum units
-        parse_dualtype_args(args, "min-length", MINIMUM_LENGTH, MINIMUM_MLEN, MAXIMUM_MLEN);
+        parseDualtypeArgs(args, "min-length", MINIMUM_LENGTH, MINIMUM_MLEN, MAXIMUM_MLEN);
     }
     else if (args.count("min-units")) {
         LENGTH_CUTOFF_MODE = false;
-        parse_dualtype_args(args, "min-units", MINIMUM_UNITS, MINIMUM_MLEN, MAXIMUM_MLEN);
+        parseDualtypeArgs(args, "min-units", MINIMUM_UNITS, MINIMUM_MLEN, MAXIMUM_MLEN);
     }
     else {
         // uses minimum length of 12 as default if no input for minimum length or units are provided
@@ -164,7 +161,7 @@ bool parse_arguments(int &argc, char* argv[], string &fasta_file, string &out_fi
 
     // input for minimum number of perfect units. Is set to 2 by default
     if (args.count("perfect-units")) {
-        parse_dualtype_args(args, "perfect-units", PERFECT_UNITS, MINIMUM_MLEN, MAXIMUM_MLEN);
+        parseDualtypeArgs(args, "perfect-units", PERFECT_UNITS, MINIMUM_MLEN, MAXIMUM_MLEN);
     } else {
         for (int m=1; m<=MAXIMUM_MLEN; m++) {
             switch (m) {
@@ -193,7 +190,7 @@ int main(int argc, char *argv[]) {
     // defaults which are not be changed
     int window_length = 8, window_bitcount_threshold = 7, anchor_length = 3, cones_threshold = 3;
 
-    bool success = parse_arguments(argc, argv, fasta_file, out_file, window_length,
+    bool success = parseArguments(argc, argv, fasta_file, out_file, window_length,
                                    window_bitcount_threshold, anchor_length, cones_threshold);
     if (!success) exit(1);
 
@@ -237,26 +234,15 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    cerr << "Minimum Motif Length: " << MINIMUM_MLEN << "\n";
-    cerr << "Maximum Motif Length: " << MAXIMUM_MLEN << "\n";
-    // cerr << "Minimum lengths\n";
-    // for (int m = MINIMUM_MLEN; m<=MAXIMUM_MLEN; m++) {
-    //     cerr << m << "\t" << MINIMUM_LENGTH[m] << "\n";
-    // }
-    
-    // cerr << "Perfect Units\n";
-    // for (int m = 1; m<=MAXIMUM_MLEN; m++) {
-    //     cerr << m << "\t" << PERFECT_UNITS[m] << "\n";
-    // }
-    
-    cerr << "Purity Mode: " << PURITY_CUTOFF_MODE << "\n";
-    
-    if (PURITY_CUTOFF_MODE) {
-        cerr << "Purity Threshold: " << PURITY_THRESHOLD << "\n";
-    }
-    else {
-        cerr << "Mismatches Threshold: " << MISMATCHES_THRESHOLD << "\n";
-    }
+    cerr << "Minimum motif:\t" << MINIMUM_MLEN << "\n";
+    cerr << "Maximum motif:\t" << MAXIMUM_MLEN << "\n";
+    // minimum shift XOR to be generated; should be one less than the minimum motif size
+    NMOTIFS = MAXIMUM_MLEN - MINIMUM_MLEN + 1;
+    MINIMUM_SHIFT = (MINIMUM_MLEN > 2) ? MINIMUM_MLEN-2 : 1;
+    MAXIMUM_SHIFT = MAXIMUM_MLEN + 2;
+    NSHIFTS = MAXIMUM_SHIFT - MINIMUM_SHIFT + 1;
+
+    cerr << "Purity threshold: " << PURITY_THRESHOLD << "\n";
 
     // Dynamically allocate memory for the matrix
     int SMALL_MLEN_LIMIT = 10;    // only save repeat classes for smaller motif sizes

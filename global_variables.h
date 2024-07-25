@@ -28,18 +28,19 @@ extern int RANK_N;
 
 extern int MINIMUM_MLEN;
 extern int MAXIMUM_MLEN;
+extern int NMOTIFS;
+extern int MINIMUM_SHIFT;
+extern int MAXIMUM_SHIFT;
+extern int NSHIFTS;
 
 extern unordered_map<int, int> MINIMUM_LENGTH;
 extern unordered_map<int, int> MINIMUM_UNITS;
 extern unordered_map<int, int> PERFECT_UNITS;
 
 extern bool LENGTH_CUTOFF_MODE;
-extern bool PURITY_CUTOFF_MODE;
     
 // cutoffs for different measures of purity
-extern float PURITY_THRESHOLD; 
-extern int   MISMATCHES_THRESHOLD;
-extern int   INTERRUPTIONS_THRESHOLD;
+extern float PURITY_THRESHOLD;
 extern time_t START_TIME;
 
 #endif // MATRIX_H
