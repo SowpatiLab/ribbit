@@ -73,7 +73,6 @@ void processSequence(string &sequence_id, string &sequence, int window_length, i
 
     START_TIME = time(0);
     double seconds_since_start;
-    cerr << "\nProcessing contig: "<< sequence_id <<"\n";
     
     // converting the sequencing to bitsets
     int sequence_length = sequence.length();
@@ -178,34 +177,35 @@ void processSequence(string &sequence_id, string &sequence, int window_length, i
     StripedSmithWaterman::Alignment alignment;
 
     // shift XORs for desired motif sizes; combination of shift XOR and anchor XOR
+    
+    tuple<int,int,int,int> seed;
     int seed_start, seed_end, seed_mlen, seed_type, seed_bset_size;
-    uint64_t smallest ;
+    uint64_t smallest; int smallest_type = -1;
     int spidx_p=0, spidx_s=0, spidx_a=0;
     int processed_seeds = 0;
-    tuple<int,int,int,int> seed;
 
     while (spidx_p < seed_positions_perfect.size() || spidx_s < seed_positions_substut.size() || spidx_a < seed_positions_anchored.size()) {
         smallest = -1;
         
         // Find the smallest element among the current elements of the three vectors
-        if (spidx_p < seed_positions_perfect.size()) {
-            smallest = (smallest > get<0> (seed_positions_perfect[spidx_p])) ? get<0> (seed_positions_perfect[spidx_p]) : smallest;
+        if (spidx_p < seed_positions_perfect.size() && (smallest > get<0> (seed_positions_perfect[spidx_p]))) {
+            smallest = get<0> (seed_positions_perfect[spidx_p]); smallest_type = RANK_P;
         }
-        if (spidx_s < seed_positions_substut.size()) {
-            smallest = (smallest > get<0> (seed_positions_substut[spidx_s])) ? get<0> (seed_positions_substut[spidx_s]) : smallest;
+        if (spidx_s < seed_positions_substut.size() && (smallest > get<0> (seed_positions_substut[spidx_s]))) {
+            smallest = get<0> (seed_positions_substut[spidx_s]); smallest_type = RANK_S;
         }
-        if (spidx_a < seed_positions_anchored.size()) {
-            smallest = (smallest > get<0> (seed_positions_anchored[spidx_a])) ? get<0> (seed_positions_anchored[spidx_a]) : smallest;
+        if (spidx_a < seed_positions_anchored.size() && (smallest > get<0> (seed_positions_anchored[spidx_a]))) {
+            smallest = get<0> (seed_positions_anchored[spidx_a]); smallest_type = RANK_A;
         }
 
         // Print the smallest element and move the corresponding pointer
-        if (spidx_p < seed_positions_perfect.size() && get<0>(seed_positions_perfect[spidx_p]) == smallest) {
+        if (smallest_type == RANK_P) {
             seed = seed_positions_perfect[spidx_p]; ++spidx_p;
         }
-        else if (spidx_s < seed_positions_substut.size() && get<0>(seed_positions_substut[spidx_s]) == smallest) {
+        else if (smallest_type == RANK_S) {
             seed = seed_positions_substut[spidx_s]; ++spidx_s;
         }
-        else if (spidx_s < seed_positions_anchored.size() && get<0>(seed_positions_anchored[spidx_a]) == smallest) {
+        else if (smallest_type == RANK_A) {
             seed = seed_positions_anchored[spidx_a]; ++spidx_a;
         }
 
@@ -214,7 +214,7 @@ void processSequence(string &sequence_id, string &sequence, int window_length, i
         seed_start = get<0> (seed);
         seed_end   = get<1> (seed);
         seed_mlen  = get<2> (seed);
-        cout << sequence_id << "\t" << seed_start << "\t" << seed_end << "\t" << "SEED-" << seed_type << "\t" << seed_mlen << "\n";
+        // cout << sequence_id << "\t" << seed_start << "\t" << seed_end << "\t" << "SEED-" << seed_type << "\t" << seed_mlen << "\n";
 
         seed_bset_size = seed_end - seed_start;
         boost::dynamic_bitset<> seed_bset(seed_bset_size, 0ull);
@@ -241,6 +241,10 @@ void processSequence(string &sequence_id, string &sequence, int window_length, i
             }
         }
     }
+
+    seed_positions_perfect.clear();
+    seed_positions_substut.clear();
+    seed_positions_anchored.clear();
 
     seconds_since_start = difftime( time(0), START_TIME);
     cerr << "Total number of seeds that are processed for alignment: " << processed_seeds << "\t Time elapsed: " << seconds_since_start << "secs\n";

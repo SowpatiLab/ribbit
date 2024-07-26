@@ -391,7 +391,8 @@ void processSeed(tuple<int, int> seed_position, int &motif_length, int &seed_typ
         atomicity = calculateAtomicityLongMotif(motif_unit, motif_length);
     }
 
-
+    if (motif_length % atomicity != 0) { return; }
+    
     // the repeat should be treated based on the atomicity
     motif = calculateMotif(motif_unit, motif_length);
     motif = motif.substr(0, atomicity);
@@ -431,7 +432,7 @@ void processSeed(tuple<int, int> seed_position, int &motif_length, int &seed_typ
         if (repeat_length >= MINIMUM_LENGTH[motif_length]) {
 
             out << sequence_id << "\t" << repeat_start << "\t" << repeat_end << "\t" << motif.substr(0, atomicity) << "\t" 
-                << atomicity << "\t" << repeat_end-repeat_start << "\t" << (repeat_end-repeat_start)/atomicity << "\t"
+                << atomicity << " | " << motif_length << "\t" << repeat_end-repeat_start << "\t" << (repeat_end-repeat_start)/atomicity << "\t"
                 << purity << "\t" << "+\tSEED-" << seed_type << "\t" << cigar_string << "\n";
         }
     }

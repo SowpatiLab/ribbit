@@ -13,8 +13,8 @@ GAAAAGGGACAGATCACTTAGACTGTCTTCAAAGGAGAACATAATTCTTCTGTTCATATGTCCTCTACTACTTAGGGTCT
 TTAGCAAAATCCTTTATAAGGCAAAAAACGTGCCTGTGTATCCACCTGTAGAATTTAGAGATAGTTTAAATACAGGAAGA\
 ATAGCTTCTGCTATAGAGAAAGCCAACACATTTCCTTATAGTTACAAAATGTGTTCGGTAATATCTTCCCATTATATGTG\
 TGTTTTATTTCAGCTTGCCTGAATGGAGAGCAAACAGCCTCAGAGGTGTCATAGGTTCTTTTAAGTCCCTTGACCATTTG\
-GGGACCAGCTACTCTTTATTGGAAGGAAGATATTTAAGAGAATTCTTTGTTTTTTTTCCAAGGAAACTAAATAGTTGTAA\
-AGGGACTTTTCTCCTAGGAATTAAATCTTACATAGCAACTGCATACGAATTAAAAGCAGAGTCAAAATTA'
+GGGACCAGCTACTCTTTATTGGAAGGAAGATATTTAAGAGAATTCTTTGTTATTCCAAGGAAACTAAATAGTTGTAAAGG\
+GACTTTTCTCCTAGGAATTAAATCTTACATAGCAACTGCATACGAATTAAAAGCAGAGTCAAAATTA'
 
 
 def choose_num_units(motif_size):
@@ -82,7 +82,7 @@ if __name__ == "__main__":
     
     print(f"File prefix: {args.out_prefix}")
 
-    proportions_file = 'proportions.tsv' 
+    proportions_file = './proportions.tsv' 
     proportions_df = pd.read_csv(proportions_file, sep='\t')
     
     motif_sizes = []
@@ -91,7 +91,7 @@ if __name__ == "__main__":
         motif_sizes.extend([int(row['Motif_size'])] * count)
 
     rmotifs = defaultdict(list)
-    with open('HG38_2-100_motifs_d2d.tsv') as fh:
+    with open('./HG38_2-100_motifs_d2d.tsv') as fh:
         for line in fh:
             motif, kmer = line.strip().split('\t')
             kmer = int(kmer)
@@ -184,6 +184,7 @@ if __name__ == "__main__":
             if len(fasta_seq) > 0: print(fasta_seq, file=faout)
             fasta_seq = ''
             seq_length = 0
+            position = 0
             chrom_num += 1
             print(f'>{args.out_prefix}_{chrom_num}', file=faout)
 
