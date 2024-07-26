@@ -85,7 +85,7 @@ bool parseArguments(int &argc, char* argv[], string &fasta_file, string &out_fil
 
         ("input-file,i", po::value<string>(), "File path for the input fasta file.")
         ("output-file,o", po::value<string>(), "File path for the input fasta file.")        
- 
+
         ("min-motif-length,m", po::value<int>(), "The minimum length of the motif of the repeats to be identified. Default: 2")
         ("max-motif-length,M", po::value<int>(), "The maximum length of the motif of the repeats to be identified, Default: 100")
 
@@ -96,7 +96,7 @@ bool parseArguments(int &argc, char* argv[], string &fasta_file, string &out_fil
                                             Tab separated file with two columns, first is the motif size and second unit cutoff. Default: 2")
         ("perfect-units", po::value<string>(), "The minimum number of complete units of the repeat. Can be a integer value, for cutoff across all motif sizes.\
                                                 Tab separated file with two columns, first is the motif size and second unit cutoff. Default: 2")
-        
+
         /*
           currently all are set to default parameters and non-accessible to the user
           ("anchor", "Run the identification in anchor mode.")        // should be on by default; making non-accessible to the user
@@ -124,12 +124,12 @@ bool parseArguments(int &argc, char* argv[], string &fasta_file, string &out_fil
         cerr << "ERROR: Please specify an input fasta file!\n";
         return 0;
     }
-    
+
     if (args.count("output-file")) out_file = args["output-file"].as<string>();
-    
+
     if (args.count("min-motif-length")) { MINIMUM_MLEN = args["min-motif-length"].as<int>(); }
     if (args.count("max-motif-length")) { MAXIMUM_MLEN = args["max-motif-length"].as<int>(); }
-    
+
     /*
       currently all are set to default parameters and non-accessible to the user
       if (args.count("anchor")) run_mode = "anchor";
@@ -139,7 +139,7 @@ bool parseArguments(int &argc, char* argv[], string &fasta_file, string &out_fil
       if (args.count("cones-threshold")) continuous_ones_threshold = args["cones-threshold"].as<int>();
     */
 
-    
+
     if (args.count("min-length")) {
         // either take minimum length as the input or minimum units
         parseDualtypeArgs(args, "min-length", MINIMUM_LENGTH, MINIMUM_MLEN, MAXIMUM_MLEN);
@@ -186,7 +186,7 @@ int main(int argc, char *argv[]) {
 
     // exception for handling missing fasta index files handling gzip inputs
     string fasta_file = "", out_file = "";
-    
+
     // defaults which are not be changed
     int window_length = 8, window_bitcount_threshold = 7, anchor_length = 3, cones_threshold = 3;
 

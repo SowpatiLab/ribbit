@@ -38,7 +38,7 @@ extern unordered_map<int, int> MINIMUM_UNITS;
 extern unordered_map<int, int> PERFECT_UNITS;
 
 extern bool LENGTH_CUTOFF_MODE;
-    
+
 // cutoffs for different measures of purity
 extern float PURITY_THRESHOLD;
 extern time_t START_TIME;

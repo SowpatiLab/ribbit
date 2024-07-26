@@ -179,7 +179,7 @@ uint256_t mostFrequentLongerMotif(boost::dynamic_bitset<> &left_bset, boost::dyn
     for (int row_start = seed_start; row_start < seed_end - motif_length + 1; row_start++) {
         row_count = 0; 
         int iterations = 0;
-        
+
         dstream_index = row_start + motif_length;
         while (dstream_index < seed_end) {
             max_dindex = -2, max_dcount = 0;
@@ -193,7 +193,7 @@ uint256_t mostFrequentLongerMotif(boost::dynamic_bitset<> &left_bset, boost::dyn
 
                 if (dcount > max_dcount) { max_dcount = dcount; max_dindex = x; }
             }
-            
+
             row_count += max_dcount;
             dstream_index += max_dindex;
             dstream_index += motif_length;
@@ -211,7 +211,7 @@ uint256_t mostFrequentLongerMotif(boost::dynamic_bitset<> &left_bset, boost::dyn
                 }
                 if (dcount > max_dcount) { max_dcount = dcount; max_dindex = x; }
             }
-            
+
             row_count += max_dcount;
             ustream_index += max_dindex;
             ustream_index -= motif_length;
@@ -392,7 +392,7 @@ void processSeed(tuple<int, int> seed_position, int &motif_length, int &seed_typ
     }
 
     if (motif_length % atomicity != 0) { return; }
-    
+
     // the repeat should be treated based on the atomicity
     motif = calculateMotif(motif_unit, motif_length);
     motif = motif.substr(0, atomicity);

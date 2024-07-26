@@ -50,11 +50,11 @@ void addSeedToSeedPositionsPerfect(int seed_start, int seed_end, int motif_lengt
 
     int last_start, last_end, last_mlen;       // coordinate variables for existing seeds
     int seed_length = seed_end-seed_start, seed_rlen = seed_end - seed_start + motif_length;
-    
+
     // indices for different shifts in motif_bsets
     int seed_midx = motif_length - MINIMUM_SHIFT;
     int last_length, last_rlen, overlap_length;
-    
+
     vector<int> remove_seeds;   // the indeices of seeds that need to be removed
 
     for (int i=seed_positions.size()-1; i>=0; i--) {
@@ -98,7 +98,7 @@ void addSeedToSeedPositionsPerfect(int seed_start, int seed_end, int motif_lengt
                                                motif_bsets, bset_size);
                 return;
             }
-            
+
             else if (last_mlen < motif_length) {
                 // if the overlap length is at least 1 less than the larger motif size
                 //  the longer motif repeat with more than 3 units is retained
@@ -111,7 +111,7 @@ void addSeedToSeedPositionsPerfect(int seed_start, int seed_end, int motif_lengt
                     return;
                 }
             }
-            
+
             else if (motif_length < last_mlen) {
                 // if the overlap length is at least 1 less than the larger motif size
                 if (last_mlen - overlap_length <= 1 && last_rlen/last_mlen < 3) {

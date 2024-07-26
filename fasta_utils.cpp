@@ -73,7 +73,7 @@ void processSequence(string &sequence_id, string &sequence, int window_length, i
 
     START_TIME = time(0);
     double seconds_since_start;
-    
+
     // converting the sequencing to bitsets
     int sequence_length = sequence.length();
     boost::dynamic_bitset<> left_bset(sequence_length, 0ull);
@@ -128,16 +128,16 @@ void processSequence(string &sequence_id, string &sequence, int window_length, i
     vector<tuple<int, int, int, int>> seed_positions_substut;
     vector<tuple<int, int, int, int>> seed_positions_anchored;
     int failed_seeds = 0;
-    
+
     seed_positions_perfect = processShiftXORsPerfect(lshift_xor_bsets, N_bset, window_length, window_bitcount_threshold);
     seconds_since_start = difftime( time(0), START_TIME);
     cerr << "Total number of perfect seeds: " << seed_positions_perfect.size() << "\t Time elapsed: " << seconds_since_start << "secs\n";
-    
+
     seed_positions_substut = processShiftXORswithSubstitutions(lshift_xor_bsets, N_bset, window_length, window_bitcount_threshold, seed_positions_perfect);
     failed_seeds = failedSeeds(seed_positions_perfect); failed_seeds += failedSeeds(seed_positions_substut);
     seconds_since_start = difftime( time(0), START_TIME);
     cerr << "Total number of seeds considering substitutions: " << seed_positions_perfect.size() + seed_positions_substut.size() - failed_seeds << "\t Time elapsed: " << seconds_since_start << "secs\n";
-    
+
 
     // generating the anchor bitsets for all shift sizes
     vector<boost::dynamic_bitset<>> lsxor_anchor_bsets;     // vector of dynamic bitsets for anchor bitsets
@@ -177,7 +177,7 @@ void processSequence(string &sequence_id, string &sequence, int window_length, i
     StripedSmithWaterman::Alignment alignment;
 
     // shift XORs for desired motif sizes; combination of shift XOR and anchor XOR
-    
+
     tuple<int,int,int,int> seed;
     int seed_start, seed_end, seed_mlen, seed_type, seed_bset_size;
     uint64_t smallest; int smallest_type = -1;
@@ -186,7 +186,7 @@ void processSequence(string &sequence_id, string &sequence, int window_length, i
 
     while (spidx_p < seed_positions_perfect.size() || spidx_s < seed_positions_substut.size() || spidx_a < seed_positions_anchored.size()) {
         smallest = -1;
-        
+
         // Find the smallest element among the current elements of the three vectors
         if (spidx_p < seed_positions_perfect.size() && (smallest > get<0> (seed_positions_perfect[spidx_p]))) {
             smallest = get<0> (seed_positions_perfect[spidx_p]); smallest_type = RANK_P;
