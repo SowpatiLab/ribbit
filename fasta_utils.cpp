@@ -214,7 +214,6 @@ void processSequence(string &sequence_id, string &sequence, int window_length, i
         seed_start = get<0> (seed);
         seed_end   = get<1> (seed);
         seed_mlen  = get<2> (seed);
-        // cout << sequence_id << "\t" << seed_start << "\t" << seed_end << "\t" << "SEED-" << seed_type << "\t" << seed_mlen << "\n";
 
         seed_bset_size = seed_end - seed_start;
         boost::dynamic_bitset<> seed_bset(seed_bset_size, 0ull);

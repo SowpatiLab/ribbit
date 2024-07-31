@@ -3,3 +3,4 @@
 /data_simulation/*.ribbit
 /data_simulation/*.seeds
 /data_simulation/*.tsv
+/data_simulation/results/*

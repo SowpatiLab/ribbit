@@ -6,9 +6,9 @@
 #include <iostream>
 #include <fstream>
 #include <unordered_map>
-#include <unordered_set>
 #include <bitset>
 #include <boost/dynamic_bitset.hpp>
+#include <algorithm>
 
 #include "global_variables.h"
 #include "parse_anchored_shiftxor.h"
@@ -16,8 +16,6 @@
 #include "merge_types.h"
 
 using namespace std;
-
-
 
 void generateAnchoredShiftXORs(vector<boost::dynamic_bitset<>> &lshift_xor_bsets, boost::dynamic_bitset<> &N_bset,
                                vector<boost::dynamic_bitset<>> &lsxor_anchor_bsets, int anchor_size) {
@@ -114,7 +112,7 @@ int clearSeedsAnchored(int from_index, vector<tuple<int, int, int, int>> &seed_p
 
 tuple<int,int> addSeedToSeedPositionsAnchored(int seed_start, int seed_end, int motif_length, vector<tuple<int, int, int, int>> &seed_positions_perfect,
                                               vector<tuple<int, int, int, int>> &seed_positions_substut, vector<tuple<int, int, int, int>> &seed_positions_anchored,
-                                              int* seedlen_cutoff, vector<boost::dynamic_bitset<>> &motif_bsets, int bset_size, tuple<int,int> from_indices, int seed_type) {
+                                              int* seedlen_cutoffs, vector<boost::dynamic_bitset<>> &motif_bsets, int bset_size, tuple<int,int> from_indices, int seed_type) {
     /*
      *  add seed to the existing seed positions list
      *  @param seed_start start position of the seed
@@ -126,7 +124,6 @@ tuple<int,int> addSeedToSeedPositionsAnchored(int seed_start, int seed_end, int 
      *  @param bset_size the total size of a shift XOR bitset
      *  @return none add the seed to seed_position
     */
-
 
     int last_start, last_end, last_rend, last_mlen;
     int last_length, last_rlen, last_type;       // coordinate variables for existing seeds
@@ -153,11 +150,11 @@ tuple<int,int> addSeedToSeedPositionsAnchored(int seed_start, int seed_end, int 
         else { from_index_substut += 1;  }
     }
 
-    if (seed_end-seed_start < seedlen_cutoff[motif_length-MINIMUM_MLEN]) { return tuple<int,int>{from_index_perfect, from_index_substut}; }
+    if (seed_end-seed_start < seedlen_cutoffs[motif_length-MINIMUM_MLEN]) { return tuple<int,int>{from_index_perfect, from_index_substut}; }
 
     vector<int> last_types, last_indices;
     mergeAllLists(seed_positions_perfect, seed_positions_substut, seed_positions_anchored,
-                  from_index_perfect, from_index_substut, last_types, last_indices, seed_start);
+                  from_index_perfect, from_index_substut, last_types, last_indices, seed_start);   
 
     int seed_rend   = seed_end + motif_length;
     int seed_length = seed_end - seed_start;
@@ -170,9 +167,10 @@ tuple<int,int> addSeedToSeedPositionsAnchored(int seed_start, int seed_end, int 
 
     vector<int> identical, nestedin, overlap;
     vector<int> parentof_subperf_factor, parentof_subperf_multiple, parentof_subperf_nonfactor;
-    vector<int> parentof_subperf_factorsizes;
-    vector<int> parentof_subperf_factortypes, parentof_subperf_multiple_types, parentof_subperf_nonfactor_types;
+    vector<int> parentof_subperf_factorsizes, parentof_subperf_nonfactorsizes;
+    vector<int> parentof_subperf_factortypes, parentof_subperf_multipletypes, parentof_subperf_nonfactortypes;
     vector<int> parentof_anchored_factor, parentof_anchored_nonfactor;
+    tuple<int,int> from_indices_new = {0, 0};
 
     for (int _=0; _<last_indices.size(); _++) {
 
@@ -207,7 +205,7 @@ tuple<int,int> addSeedToSeedPositionsAnchored(int seed_start, int seed_end, int 
         if (last_type == RANK_N) { continue; }
 
         // if the from_index is much ahead we skip the seeds that do not overlap
-        if (seed_end < last_start) { continue; }
+        if (seed_end < last_start) { continue; }        
 
         last_length = last_end - last_start;
         last_rlen  = last_rend - last_start;
@@ -236,10 +234,7 @@ tuple<int,int> addSeedToSeedPositionsAnchored(int seed_start, int seed_end, int 
             if (last_type > seed_type) {
                 return tuple<int,int> { from_index_perfect, from_index_substut };
             }
-
-            else if (seed_type == RANK_C && last_type == RANK_A) {
-
-            }
+            else if (seed_type == RANK_C && last_type == RANK_A) { }
 
             else if ((seed_type == RANK_A && last_type == RANK_A) || (seed_type == RANK_C && last_type == RANK_C)) {
                 // if new (nested) seed's motif length is a multiple of old (parent) seed's motif length ~ do not add new seed
@@ -251,10 +246,9 @@ tuple<int,int> addSeedToSeedPositionsAnchored(int seed_start, int seed_end, int 
                 else if (last_mlen % motif_length == 0 && (last_mlen != 4)) {
                     if (seed_rlen >= last_mlen - 1 || seed_rlen >= last_length) {
                         seed_positions_anchored[i] = tuple<int, int, int, int> { last_start, last_end, last_mlen, RANK_N };
-                        addSeedToSeedPositionsAnchored(last_start, last_end, motif_length, seed_positions_perfect, seed_positions_substut,
-                                                       seed_positions_anchored, seedlen_cutoff, motif_bsets, bset_size, from_indices, seed_type);
-
-                        return tuple<int,int> { from_index_perfect, from_index_substut };
+                        from_indices_new = addSeedToSeedPositionsAnchored(last_start, last_end, motif_length, seed_positions_perfect, seed_positions_substut,
+                                                       seed_positions_anchored, seedlen_cutoffs, motif_bsets, bset_size, from_indices, seed_type);
+                        return from_indices_new;
                     }
                     else { nestedin.push_back(i); continue; }
                 }
@@ -275,9 +269,10 @@ tuple<int,int> addSeedToSeedPositionsAnchored(int seed_start, int seed_end, int 
                     if ((last_rlen >= motif_length - 2) || (last_rlen >= seed_length - 2)) {
                         if (last_type == RANK_P) { seed_positions_perfect[i] = tuple<int, int, int, int> {last_start, last_end, last_mlen, RANK_N}; }
                         else if (last_type == RANK_S || last_type == RANK_Q) { seed_positions_substut[i] = tuple<int, int, int, int> {last_start, last_end, last_mlen, RANK_N}; }
-                        addSeedToSeedPositionsAnchored(seed_start, seed_end, last_mlen, seed_positions_perfect, seed_positions_substut,
-                                                       seed_positions_anchored, seedlen_cutoff, motif_bsets, bset_size, from_indices, RANK_C);
-                        return tuple<int,int>{ from_index_perfect, from_index_substut };
+                        from_indices_new = addSeedToSeedPositionsAnchored(seed_start, seed_end, last_mlen, seed_positions_perfect, seed_positions_substut,
+                                                       seed_positions_anchored, seedlen_cutoffs, motif_bsets, bset_size, from_indices, RANK_C);
+                        return from_indices_new;
+                        // return tuple<int,int>{ from_index_perfect, from_index_substut };
                     }
 
                     else {
@@ -288,13 +283,36 @@ tuple<int,int> addSeedToSeedPositionsAnchored(int seed_start, int seed_end, int 
                 }
 
                 else if (last_mlen % motif_length == 0) {
-                    parentof_subperf_multiple.push_back(i);
-                    parentof_subperf_multiple_types.push_back(last_type);
+                    if (last_mlen >= 4*motif_length || last_length >= 4*motif_length) {
+                        if (last_type == RANK_P) { seed_positions_perfect[i] = tuple<int, int, int, int> {last_start, last_end, last_mlen, RANK_N}; }
+                        else if (last_type == RANK_S || last_type == RANK_Q) { seed_positions_substut[i] = tuple<int, int, int, int> {last_start, last_end, last_mlen, RANK_N}; }
+                        from_indices_new = addSeedToSeedPositionsAnchored(seed_start, seed_end, motif_length, seed_positions_perfect, seed_positions_substut,
+                                                       seed_positions_anchored, seedlen_cutoffs, motif_bsets, bset_size, from_indices, RANK_C);
+                        return from_indices_new;
+                        // return tuple<int,int>{ from_index_perfect, from_index_substut };
+                    }
+
+                    else {
+                        parentof_subperf_multiple.push_back(i);
+                        parentof_subperf_multipletypes.push_back(last_type);
+                    }
+                }
+
+                else if (last_mlen > motif_length) {
+                    if (last_mlen >= 4*motif_length || last_length >= 4*motif_length) {
+                        if (last_type == RANK_P) { seed_positions_perfect[i] = tuple<int, int, int, int> {last_start, last_end, last_mlen, RANK_N}; }
+                        else if (last_type == RANK_S || last_type == RANK_Q) { seed_positions_substut[i] = tuple<int, int, int, int> {last_start, last_end, last_mlen, RANK_N}; }
+                        from_indices_new = addSeedToSeedPositionsAnchored(seed_start, seed_end, motif_length, seed_positions_perfect, seed_positions_substut,
+                                                       seed_positions_anchored, seedlen_cutoffs, motif_bsets, bset_size, from_indices, RANK_C);
+                        return from_indices_new;
+                        // return tuple<int,int>{ from_index_perfect, from_index_substut };
+                    }
                 }
 
                 else {
                     parentof_subperf_nonfactor.push_back(i);
-                    parentof_subperf_nonfactor_types.push_back(last_type);
+                    parentof_subperf_nonfactorsizes.push_back(last_mlen);
+                    parentof_subperf_nonfactortypes.push_back(last_type);
                 }
             }
 
@@ -313,9 +331,10 @@ tuple<int,int> addSeedToSeedPositionsAnchored(int seed_start, int seed_end, int 
                     else {
                         if (motif_length % last_mlen == 0) {
                             if ((last_rlen >= motif_length - 2) || (last_rlen >= seed_length - 2)) {
-                                seed_positions_anchored[i] = tuple<int, int, int, int> {last_start, last_end, last_mlen, RANK_N}; 
-                                addSeedToSeedPositionsAnchored(seed_start, seed_end, last_mlen, seed_positions_perfect, seed_positions_substut,
-                                                               seed_positions_anchored, seedlen_cutoff, motif_bsets, bset_size, from_indices, seed_type);
+                                seed_positions_anchored[i] = tuple<int, int, int, int> {last_start, last_end, last_mlen, RANK_N};
+                                from_indices_new = addSeedToSeedPositionsAnchored(seed_start, seed_end, last_mlen, seed_positions_perfect, seed_positions_substut,
+                                                               seed_positions_anchored, seedlen_cutoffs, motif_bsets, bset_size, from_indices, seed_type);
+                                return from_indices_new;                                
                             }
                             else { parentof_anchored_factor.push_back(i); }
                         }
@@ -356,7 +375,18 @@ tuple<int,int> addSeedToSeedPositionsAnchored(int seed_start, int seed_end, int 
 
             if (seed_type == RANK_A && last_type > RANK_C) {
 
-                if ((motif_length % last_mlen == 0) || (last_mlen % motif_length == 0)) { overlap.push_back(i); }
+                if (motif_length == last_mlen) {
+                    if (overlap_length >= 4*motif_length) {
+                        if (last_type == RANK_P) { seed_positions_perfect[i] = tuple<int, int, int, int> {last_start, last_end, last_mlen, RANK_N}; }
+                        else if (last_type == RANK_S || last_type == RANK_Q) { seed_positions_substut[i] = tuple<int, int, int, int> {last_start, last_end, last_mlen, RANK_N}; }
+                        from_indices_new = addSeedToSeedPositionsAnchored(merge_start, merge_end, motif_length, seed_positions_perfect, seed_positions_substut,
+                                                       seed_positions_anchored, seedlen_cutoffs, motif_bsets, bset_size, from_indices, RANK_C);
+                        return from_indices_new;
+                        // return tuple<int,int>{ from_index_perfect, from_index_substut };
+                    }
+                }
+
+                if ((motif_length % last_mlen == 0) || (last_mlen % motif_length == 0)) { }
 
                 else {
                     if ((overlap_length >= motif_length-1) || (overlap_length >= seed_length-1)) {
@@ -365,34 +395,42 @@ tuple<int,int> addSeedToSeedPositionsAnchored(int seed_start, int seed_end, int 
                 }
             }
 
-            else {
+            else if ((seed_type == RANK_A && last_type == RANK_A) || (seed_type == RANK_C && last_type == RANK_C) || (seed_type == RANK_A && last_type == RANK_C) || (seed_type == RANK_C && last_type == RANK_A)) {
                 if (motif_length == last_mlen) {
                     if (last_length >= seed_length) {
                         if ((seed_length >= 3*motif_length) && ((overlap_length >= 3*motif_length-1) || (overlap_length >= seed_length-1))) {
-                            seed_positions_anchored[i] = tuple<int, int, int, int> {last_start, last_end, last_mlen, RANK_N}; 
-                            addSeedToSeedPositionsAnchored(merge_start, merge_end, last_mlen, seed_positions_perfect, seed_positions_substut,
-                                                           seed_positions_anchored, seedlen_cutoff, motif_bsets, bset_size, from_indices, seed_type);
-                            return tuple<int,int>{from_index_perfect, from_index_substut};
+                            seed_type == (seed_type == RANK_C || last_type == RANK_C) ? RANK_C : RANK_A;
+                            seed_positions_anchored[i] = tuple<int, int, int, int> {last_start, last_end, last_mlen, RANK_N};
+                            from_indices_new = addSeedToSeedPositionsAnchored(merge_start, merge_end, last_mlen, seed_positions_perfect, seed_positions_substut,
+                                                           seed_positions_anchored, seedlen_cutoffs, motif_bsets, bset_size, from_indices, seed_type);
+                            return from_indices_new;
+                            // return tuple<int,int>{from_index_perfect, from_index_substut};
                         }
                         else if ((seed_length < 3*motif_length) && ((overlap_length >= motif_length-1) || (overlap_length >= seed_length-1))) {
-                            seed_positions_anchored[i] = tuple<int, int, int, int> {last_start, last_end, last_mlen, RANK_N}; 
-                            addSeedToSeedPositionsAnchored(merge_start, merge_end, last_mlen, seed_positions_perfect, seed_positions_substut,
-                                                           seed_positions_anchored, seedlen_cutoff, motif_bsets, bset_size, from_indices, seed_type);
-                            return tuple<int,int>{from_index_perfect, from_index_substut};
+                            seed_type == (seed_type == RANK_C || last_type == RANK_C) ? RANK_C : RANK_A;
+                            seed_positions_anchored[i] = tuple<int, int, int, int> {last_start, last_end, last_mlen, RANK_N};
+                            from_indices_new = addSeedToSeedPositionsAnchored(merge_start, merge_end, last_mlen, seed_positions_perfect, seed_positions_substut,
+                                                           seed_positions_anchored, seedlen_cutoffs, motif_bsets, bset_size, from_indices, seed_type);
+                            return from_indices_new;
+                            // return tuple<int,int>{from_index_perfect, from_index_substut};
                         }
                     }
                     else {
                         if ((last_length >= 3*last_mlen) && ((overlap_length >= 3*last_mlen-1) || (overlap_length >= last_length-1))) {
-                            seed_positions_anchored[i] = tuple<int, int, int, int> {last_start, last_end, last_mlen, RANK_N}; 
-                            addSeedToSeedPositionsAnchored(merge_start, merge_end, last_mlen, seed_positions_perfect, seed_positions_substut,
-                                                           seed_positions_anchored, seedlen_cutoff, motif_bsets, bset_size, from_indices, seed_type);
-                            return tuple<int,int>{from_index_perfect, from_index_substut};
+                            seed_type == (seed_type == RANK_C || last_type == RANK_C) ? RANK_C : RANK_A;
+                            seed_positions_anchored[i] = tuple<int, int, int, int> {last_start, last_end, last_mlen, RANK_N};
+                            from_indices_new = addSeedToSeedPositionsAnchored(merge_start, merge_end, last_mlen, seed_positions_perfect, seed_positions_substut,
+                                                           seed_positions_anchored, seedlen_cutoffs, motif_bsets, bset_size, from_indices, seed_type);
+                            return from_indices_new;
+                            // return tuple<int,int>{from_index_perfect, from_index_substut};
                         }
                         else if ((seed_length < 3*last_mlen) && ((overlap_length >= last_mlen-1) || (overlap_length >= last_length-1))) {
-                            seed_positions_anchored[i] = tuple<int, int, int, int> {last_start, last_end, last_mlen, RANK_N}; 
-                            addSeedToSeedPositionsAnchored(merge_start, merge_end, last_mlen, seed_positions_perfect, seed_positions_substut,
-                                                           seed_positions_anchored, seedlen_cutoff, motif_bsets, bset_size, from_indices, seed_type);
-                            return tuple<int,int>{from_index_perfect, from_index_substut};
+                            seed_type == (seed_type == RANK_C || last_type == RANK_C) ? RANK_C : RANK_A;
+                            seed_positions_anchored[i] = tuple<int, int, int, int> {last_start, last_end, last_mlen, RANK_N};
+                            from_indices_new = addSeedToSeedPositionsAnchored(merge_start, merge_end, last_mlen, seed_positions_perfect, seed_positions_substut,
+                                                           seed_positions_anchored, seedlen_cutoffs, motif_bsets, bset_size, from_indices, seed_type);
+                            return from_indices_new;
+                            // return tuple<int,int>{from_index_perfect, from_index_substut};
                         }
                     }
                 }
@@ -406,7 +444,7 @@ tuple<int,int> addSeedToSeedPositionsAnchored(int seed_start, int seed_end, int 
     if (parentof_subperf_nonfactor.size() > 0) {
         for (int j=0; j < parentof_subperf_nonfactor.size(); j++) {
             int k = parentof_subperf_nonfactor[j];
-            int ktype = parentof_subperf_nonfactor_types[j];
+            int ktype = parentof_subperf_nonfactortypes[j];
             if (ktype == RANK_P) {
                 last_start = get<0> (seed_positions_perfect[j]);
                 last_mlen  = get<2> (seed_positions_perfect[j]);
@@ -491,11 +529,9 @@ tuple<int,int> addSeedToSeedPositionsAnchored(int seed_start, int seed_end, int 
     if (seed_end > bset_size-motif_length) {
         seed_end = bset_size-motif_length;
     }
-
-    seed_positions_anchored.push_back(tuple<int, int, int, int> { seed_start, seed_end, motif_length, seed_type});
+    seed_positions_anchored.push_back({seed_start, seed_end, motif_length, seed_type});
     return tuple<int,int> { from_index_perfect, from_index_substut };
 }
-
 
 
 
@@ -559,7 +595,6 @@ vector<tuple<int,int,int,int>> processShiftXORsAnchored(vector<boost::dynamic_bi
                         from_indices = addSeedToSeedPositionsAnchored(last_starts[didx], last_ends[didx], motif_length, seed_positions_perfect,
                                                                       seed_positions_substut, seed_positions_anchored, seedlen_cutoffs,
                                                                       motif_bsets, bset_size, from_indices, RANK_A);
-
                         last_starts[didx] = -1; last_ends[didx] = -1;
                     }
                 }
@@ -599,8 +634,6 @@ vector<tuple<int,int,int,int>> processShiftXORsAnchored(vector<boost::dynamic_bi
                                 from_indices = addSeedToSeedPositionsAnchored(last_starts[didx], last_ends[didx], motif_length, seed_positions_perfect,
                                                                               seed_positions_substut, seed_positions_anchored, seedlen_cutoffs,
                                                                               motif_bsets, bset_size, from_indices, RANK_A);
-
-
                                 last_starts[didx] = -1; last_ends[didx] = -1;
                             }
                         }
@@ -635,7 +668,6 @@ vector<tuple<int,int,int,int>> processShiftXORsAnchored(vector<boost::dynamic_bi
                                 from_indices = addSeedToSeedPositionsAnchored(last_starts[didx], last_ends[didx], motif_length, seed_positions_perfect,
                                                                               seed_positions_substut, seed_positions_anchored, seedlen_cutoffs,
                                                                               motif_bsets, bset_size, from_indices, RANK_A);
-
                                 // the last seed is reset
                                 last_starts[didx] = -1; last_ends[didx] = -1;
                             }
@@ -653,7 +685,7 @@ vector<tuple<int,int,int,int>> processShiftXORsAnchored(vector<boost::dynamic_bi
         if (last_ends[didx] == -1) {
             if (current_starts[didx] != -1) {
                 // presently not scanning through a passed window ~ save last record
-                from_indices = addSeedToSeedPositionsAnchored(current_starts[didx], (bset_size - (xor_idx + 1)), motif_length, seed_positions_perfect,
+                addSeedToSeedPositionsAnchored(current_starts[didx], (bset_size - (xor_idx + 1)), motif_length, seed_positions_perfect,
                                                               seed_positions_substut, seed_positions_anchored, seedlen_cutoffs,
                                                               motif_bsets, bset_size, from_indices, RANK_A);
             }
@@ -662,7 +694,7 @@ vector<tuple<int,int,int,int>> processShiftXORsAnchored(vector<boost::dynamic_bi
         else {
             if (current_starts[didx] == -1) {
                 // presently not scanning through a passed window ~ save last record
-                from_indices = addSeedToSeedPositionsAnchored(last_starts[didx], last_ends[didx], motif_length, seed_positions_perfect,
+                addSeedToSeedPositionsAnchored(last_starts[didx], last_ends[didx], motif_length, seed_positions_perfect,
                                                               seed_positions_substut, seed_positions_anchored, seedlen_cutoffs,
                                                               motif_bsets, bset_size, from_indices, RANK_A);
             }
@@ -671,7 +703,7 @@ vector<tuple<int,int,int,int>> processShiftXORsAnchored(vector<boost::dynamic_bi
                 if (last_ends[didx] >= current_starts[didx] - motif_length) {
                     // current passed window overlaps with last record ~ merge both and save
                     last_ends[didx] = bset_size - (xor_idx + 1); // reassign end
-                    from_indices = addSeedToSeedPositionsAnchored(last_starts[didx], last_ends[didx], motif_length, seed_positions_perfect,
+                    addSeedToSeedPositionsAnchored(last_starts[didx], last_ends[didx], motif_length, seed_positions_perfect,
                                                                   seed_positions_substut, seed_positions_anchored, seedlen_cutoffs,
                                                                   motif_bsets, bset_size, from_indices, RANK_A);
                 }
@@ -682,7 +714,7 @@ vector<tuple<int,int,int,int>> processShiftXORsAnchored(vector<boost::dynamic_bi
                                                                   seed_positions_substut, seed_positions_anchored, seedlen_cutoffs,
                                                                   motif_bsets, bset_size, from_indices, RANK_A);
 
-                    from_indices = addSeedToSeedPositionsAnchored(current_starts[didx], (bset_size - (xor_idx + 1)), motif_length, seed_positions_perfect,
+                    addSeedToSeedPositionsAnchored(current_starts[didx], (bset_size - (xor_idx + 1)), motif_length, seed_positions_perfect,
                                                                   seed_positions_substut, seed_positions_anchored, seedlen_cutoffs,
                                                                   motif_bsets, bset_size, from_indices, RANK_A);
                 }
@@ -692,5 +724,3 @@ vector<tuple<int,int,int,int>> processShiftXORsAnchored(vector<boost::dynamic_bi
 
     return seed_positions_anchored;
 }
-
-
