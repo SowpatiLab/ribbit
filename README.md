@@ -97,13 +97,13 @@ cd ribbit
 
 </p>
 
-```-m or --min-motif-length ```
-The minimum length of the motif of the repeats to be identified.
-##Default 2
+``` -m or --min-motif-length ```
 </p>
-```-M or --max-motif-length ```
-##Default 100
-The maximum length of the motif of the repeats to be identified.
+    The minimum length of the motif of the repeats to be identified.
+    
+``` -M or --max-motif-length ```
 </p>
-```-p or --purity ```
-TEXT
+    The maximum length of the motif of the repeats to be identified.
+
+``` -p or --purity ```
+    TEXT
