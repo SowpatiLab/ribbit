@@ -112,8 +112,11 @@ cd ribbit
 <h2 style="font-size: 35px; padding-left: 20px;">Citation</h2>
 <p style="font-size: 18px; padding-left: 20px;">
     Please cite as follows :
+</p>
     Ribbit: Accurate identification and annotation of imperfect tandem repeat sequences in genomes
+</p>
     Akshay Kumar Avvaru, Anukrati Sharma, Divya Tej Sowpati
+    
     Journal:
     doi:
 
