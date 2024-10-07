@@ -82,17 +82,6 @@ cd ribbit
     </div>
 </p>
 <h2 style="font-size: 10px; padding-top: 10px;">output bed file columns</h2>
-
-<table style="width: 100%; border-collapse: collapse;">
-    <thead>
-        <tr>
-            <th style="border: 1px solid #333; padding: 8px; text-align: left;">S.No</th>
-            <th style="border: 1px solid #333; padding: 8px; text-align: left;">Column</th>
-            <th style="border: 1px solid #333; padding: 8px; text-align: left;">Description</th>
-        </tr>
-    </thead>
-    <tbody>
-
 </p>
 
 
