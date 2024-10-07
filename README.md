@@ -68,18 +68,31 @@ cd ribbit
 <p style="font-size: 18px; padding-left: 20px;">
 </p>
 
-<h2 style="font-size: 15px; padding-top: 10px;">-i or --input</h2>
+<h2 style="font-size: 10px; padding-top: 10px;">-i or --input</h2>
 <div style="border: 1px solid #333; padding: 15px; background-color: #f8f8f8; border-radius: 5px;">
     <p><strong>Expects:</strong> <code>STRING</code> (to be used as filename)</p>
     <p><strong>Default:</strong> None</p>
     <p>The input file must be a valid FASTA file.</p>
 </div>
 
-<h2 style="font-size: 15px; padding-top: 10px;">-o or --output</h2>
+<h2 style="font-size: 10px; padding-top: 10px;">-o or --output</h2>
 <div style="border: 1px solid #333; padding: 15px; background-color: #f8f8f8; border-radius: 5px;">
     <p><strong>Expects:</strong> <code>STRING</code> (to be used as filename)</p>
     <p>The output for ribbit is <code>.bed</code> file.</p>
     </div>
-    
+</p>
+<h2 style="font-size: 10px; padding-top: 10px;">output bed file columns</h2>
+    | S.No | Column           | Description                                                                                  |
+|------|------------------|----------------------------------------------------------------------------------------------|
+| 1    | Chromosome       | Chromosome or Sequence Name as specified by the first word in the FASTA header               |
+| 2    | Repeat Start     | 0-based start position of SSR in the Chromosome                                              |
+| 3    | Repeat Stop      | End position of SSR in the Chromosome                                                        |
+| 4    | Repeat Class     | Class of repeat as grouped by their cyclical variations                                      |
+| 5    | Repeat Length    | Total length of identified repeat in nt                                                      |
+| 6    | Motif count      | Number of complete motifs in the STR                                                         |
+| 7    | Purity           | Purity of STR region (perfect STR = 1)                                                       |
+| 7    | Repeat Strand    | Strand of SSR based on their cyclical variation                                              |
+| 8    | CIGAR            | Representing type of imperfections.                                                          | 
+
     
     
