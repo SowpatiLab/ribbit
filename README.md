@@ -68,7 +68,7 @@ cd ribbit
 <p style="font-size: 18px; padding-left: 20px;">
 </p>
 
-<h2 style="font-size: 10px; padding-top: 10px;">-i or --input</h2>
+```-i or --input```
 <div style="border: 1px solid #333; padding: 15px; background-color: #f8f8f8; border-radius: 5px;">
     <p><strong>Expects:</strong> <code>STRING</code> (to be used as filename)</p>
     <p><strong>Default:</strong> None</p>
