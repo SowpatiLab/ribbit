@@ -71,7 +71,6 @@ cd ribbit
 ```-i or --input```
 <div style="border: 1px solid #333; padding: 15px; background-color: #f8f8f8; border-radius: 5px;">
     <p><strong>Expects:</strong> <code>STRING</code> (to be used as filename)</p>
-    <p><strong>Default:</strong> None</p>
     <p>The input file must be a valid FASTA file.</p>
 </div>
 
@@ -96,3 +95,15 @@ cd ribbit
 | 7    | Repeat Strand    | Strand of SSR based on their cyclical variation                                              |
 | 8    | CIGAR            | Representing type of imperfections.                                                          | 
 
+</p>
+
+```-m or --min-motif-length ```
+The minimum length of the motif of the repeats to be identified.
+##Default 2
+</p>
+```-M or --max-motif-length ```
+##Default 100
+The maximum length of the motif of the repeats to be identified.
+</p>
+```-p or --purity ```
+TEXT
