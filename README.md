@@ -75,7 +75,7 @@ cd ribbit
     <p>The input file must be a valid FASTA file.</p>
 </div>
 
-<h2 style="font-size: 10px; padding-top: 10px;">-o or --output</h2>
+```-o or --output```
 <div style="border: 1px solid #333; padding: 15px; background-color: #f8f8f8; border-radius: 5px;">
     <p><strong>Expects:</strong> <code>STRING</code> (to be used as filename)</p>
     <p>The output for ribbit is <code>.bed</code> file.</p>
