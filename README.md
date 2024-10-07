@@ -91,4 +91,22 @@ cd ribbit
             <th style="border: 1px solid #333; padding: 8px; text-align: left;">Description</th>
         </tr>
     </thead>
-    
+    <tbody>
+
+</p>
+
+
+## Output for fasta
+
+| S.No | Column           | Description                                                                                  |
+|------|------------------|----------------------------------------------------------------------------------------------|
+| 1    | Chromosome       | Chromosome or Sequence Name as specified by the first word in the FASTA header               |
+| 2    | Repeat Start     | 0-based start position of SSR in the Chromosome                                              |
+| 3    | Repeat Stop      | End position of SSR in the Chromosome                                                        |
+| 4    | Repeat Class     | Class of repeat as grouped by their cyclical variations                                      |
+| 5    | Repeat Length    | Total length of identified repeat in nt                                                      |
+| 6    | Motif count      | Number of complete motifs in the STR                                                         |
+| 7    | Purity           | Purity of STR region (perfect STR = 1)                                                       |
+| 7    | Repeat Strand    | Strand of SSR based on their cyclical variation                                              |
+| 8    | CIGAR            | Representing type of imperfections.                                                          | 
+
