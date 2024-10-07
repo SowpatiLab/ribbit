@@ -14,7 +14,6 @@ converts DNA sequences to 2-bit format and uses basic bit operations to identify
 <ol style="font-size: 18px; padding-left: 40px;">
     <li><a href="#installation">Installation</a></li>
     <li><a href="#usage">Usage</a></li>
-    <li><a href="#features">Features</a></li>
     <li><a href="#inputs-and-outputs">Inputs and Outputs</a></li>
     <li><a href="#faq">FAQ</a></li>
     <li><a href="#license">License</a></li>
