@@ -36,7 +36,10 @@ cd ribbit
 </p>
 <pre><code> ./ribbit [options] -i sequence.fasta --output results.bed</code></pre>
 </p>
-
+    To view detailed help information
+<pre><code> ./ribbit -h </code></pre>
+    The output would be given as folllowing.
+</p>
 <pre style="font-size: 16px; padding-left: 20px; background-color: #f8f8f8; padding: 10px; border-radius: 5px;">
   -h [ --help ]                 Ribbit tool identifies short tandem repeats 
                                 with allowed levels of impurity.
