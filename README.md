@@ -34,4 +34,34 @@ cd ribbit
 <p style="font-size: 18px; padding-left: 20px;">
     Here’s a basic usage example:
 </p>
+<h2 style="font-size: 35px; padding-left: 20px;">Usage</h2>
+<p style="font-size: 18px; padding-left: 20px;">
+    Below are the running options for the tool:
+</p>
 <pre><code> ./ribbit [options] -i sequence.fasta --output results.bed</code></pre>
+</p>
+
+<pre style="font-size: 16px; padding-left: 20px; background-color: #f8f8f8; padding: 10px; border-radius: 5px;">
+  -h [ --help ]                 Ribbit tool identifies short tandem repeats 
+                                with allowed levels of impurity.
+  -i [ --input-file ] arg       File path for the input fasta file.
+  -o [ --output-file ] arg      File path for the output file.
+  -m [ --min-motif-length ] arg The minimum length of the motif of the repeats 
+                                to be identified. Default: 2
+  -M [ --max-motif-length ] arg The maximum length of the motif of the repeats 
+                                to be identified. Default: 100
+  -p [ --purity ] arg           Threshold value for the continuous number of 
+                                ones found in a seed. Default: 0.85
+  -l [ --min-length ] arg       The minimum length of the repeat. Default: 12
+  --min-units arg               The minimum number of units of the repeat. Can 
+                                be an integer value for cutoff across all motif
+                                sizes, or a tab-separated file with two columns: 
+                                the first is the motif size and the second is 
+                                the unit cutoff. Default: 2
+  --perfect-units arg           The minimum number of complete units of the 
+                                repeat. Can be an integer value for cutoff 
+                                across all motif sizes, or a tab-separated file 
+                                with two columns: the first is the motif size and 
+                                the second is the unit cutoff. Default: 2
+</pre>
+
