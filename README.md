@@ -20,4 +20,4 @@ cd ribbit
 <p style="font-size: 18px; padding-left: 20px;">
     Here’s a basic usage example:
 </p>
-<pre><code>python ./ribbit <options> -i sequence.fasta --output results.bed</code></pre>
+<pre><code>python ./ribbit [options] -i sequence.fasta --output results.bed</code></pre>
