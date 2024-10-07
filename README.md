@@ -68,14 +68,14 @@ cd ribbit
 <p style="font-size: 18px; padding-left: 20px;">
 </p>
 
-<h2 style="font-size: 25px; padding-top: 20px;"> <code>-i or --input<code></h2>
+<h2 style="font-size: 25px; padding-top: 20px;">-i or --input</h2>
 <div style="border: 1px solid #333; padding: 15px; background-color: #f8f8f8; border-radius: 5px;">
     <p><strong>Expects:</strong> <code>STRING</code> (to be used as filename)</p>
     <p><strong>Default:</strong> None</p>
     <p>The input file must be a valid FASTA file.</p>
 </div>
 
-<h2 style="font-size: 25px; padding-top: 20px;"><code>-o or --output<code></h2>
+<h2 style="font-size: 25px; padding-top: 20px;">-o or --output</h2>
 <div style="border: 1px solid #333; padding: 15px; background-color: #f8f8f8; border-radius: 5px;">
     <p><strong>Expects:</strong> <code>STRING</code> (to be used as filename)</p>
     <p><strong>Default:</strong> Input Filename + <code>.bed</code> (see below)</p>
