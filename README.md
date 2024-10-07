@@ -116,7 +116,6 @@ cd ribbit
     Ribbit: Accurate identification and annotation of imperfect tandem repeat sequences in genomes
 </p>
     Akshay Kumar Avvaru, Anukrati Sharma, Divya Tej Sowpati
-    
     Journal:
     doi:
 
