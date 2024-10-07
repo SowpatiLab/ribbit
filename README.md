@@ -81,11 +81,8 @@ cd ribbit
     <p>The output for ribbit is <code>.bed</code> file.</p>
     </div>
 </p>
-<h2 style="font-size: 10px; padding-top: 10px;">output bed file columns</h2>
-</p>
 
-
-## Output for fasta
+### Output for fasta
 
 | S.No | Column           | Description                                                                                  |
 |------|------------------|----------------------------------------------------------------------------------------------|
