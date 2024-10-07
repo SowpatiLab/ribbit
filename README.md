@@ -81,6 +81,20 @@ cd ribbit
     </div>
 </p>
 
+``` -m or --min-motif-length ```
+</p>
+    The minimum length of the motif of the repeats to be identified.
+    
+``` -M or --max-motif-length ```
+</p>
+    The maximum length of the motif of the repeats to be identified.
+
+``` -p or --purity ```
+</p>
+    TEXT
+
+</p>
+
 ### bed file output columns
 
 | S.No | Column           | Description                                                                                  |
@@ -95,15 +109,3 @@ cd ribbit
 | 7    | Repeat Strand    | Strand of SSR based on their cyclical variation                                              |
 | 8    | CIGAR            | Representing type of imperfections.                                                          | 
 
-</p>
-
-``` -m or --min-motif-length ```
-</p>
-    The minimum length of the motif of the repeats to be identified.
-    
-``` -M or --max-motif-length ```
-</p>
-    The maximum length of the motif of the repeats to be identified.
-
-``` -p or --purity ```
-    TEXT
