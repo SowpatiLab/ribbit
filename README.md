@@ -34,10 +34,6 @@ cd ribbit
 <p style="font-size: 18px; padding-left: 20px;">
     Here’s a basic usage example:
 </p>
-<h2 style="font-size: 35px; padding-left: 20px;">Usage</h2>
-<p style="font-size: 18px; padding-left: 20px;">
-    Below are the running options for the tool:
-</p>
 <pre><code> ./ribbit [options] -i sequence.fasta --output results.bed</code></pre>
 </p>
 
