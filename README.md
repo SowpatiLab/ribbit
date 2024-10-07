@@ -15,8 +15,7 @@ converts DNA sequences to 2-bit format and uses basic bit operations to identify
     <li><a href="#installation">Installation</a></li>
     <li><a href="#usage">Usage</a></li>
     <li><a href="#inputs-and-outputs">Inputs and Outputs</a></li>
-    <li><a href="#faq">FAQ</a></li>
-    <li><a href="#license">License</a></li>
+    <li><a href="#license">Citation</a></li>
     <li><a href="#contact">Contact</a></li>
 </ol>
 
@@ -64,9 +63,8 @@ cd ribbit
                                 the second is the unit cutoff. Default: 2
 </pre>
 
-<h2 style="font-size: 35px; padding-left: 20px;">Usage</h2>
+<h2 style="font-size: 35px; padding-left: 20px;">Inputs and Outputs</h2>
 <p style="font-size: 18px; padding-left: 20px;">
-</p>
 
 ```-i or --input```
 <div style="border: 1px solid #333; padding: 15px; background-color: #f8f8f8; border-radius: 5px;">
@@ -79,6 +77,22 @@ cd ribbit
     <p><strong>Expects:</strong> <code>STRING</code> (to be used as filename)</p>
     <p>The output for ribbit is <code>.bed</code> file.</p>
     </div>
+</p>
+
+### bed file output columns
+
+| S.No | Column           | Description                                                                                  |
+|------|------------------|----------------------------------------------------------------------------------------------|
+| 1    | Chromosome       | Chromosome or Sequence Name as specified by the first word in the FASTA header               |
+| 2    | Repeat Start     | 0-based start position of SSR in the Chromosome                                              |
+| 3    | Repeat Stop      | End position of SSR in the Chromosome                                                        |
+| 4    | Repeat Class     | Class of repeat as grouped by their cyclical variations                                      |
+| 5    | Repeat Length    | Total length of identified repeat in nt                                                      |
+| 6    | Motif count      | Number of complete motifs in the STR                                                         |
+| 7    | Purity           | Purity of STR region (perfect STR = 1)                                                       |
+| 7    | Repeat Strand    | Strand of SSR based on their cyclical variation                                              |
+| 8    | CIGAR            | Representing type of imperfections.                                                          | 
+
 </p>
 
 ``` -m or --min-motif-length ```
@@ -95,17 +109,18 @@ cd ribbit
 
 </p>
 
-### bed file output columns
+<h2 style="font-size: 35px; padding-left: 20px;">Citation</h2>
+<p style="font-size: 18px; padding-left: 20px;">
+    Please cite as follows :
+    Ribbit: Accurate identification and annotation of imperfect tandem repeat sequences in genomes
+    Akshay Kumar Avvaru, Anukrati Sharma, Divya Tej Sowpati
+    Journal:
+    doi:
 
-| S.No | Column           | Description                                                                                  |
-|------|------------------|----------------------------------------------------------------------------------------------|
-| 1    | Chromosome       | Chromosome or Sequence Name as specified by the first word in the FASTA header               |
-| 2    | Repeat Start     | 0-based start position of SSR in the Chromosome                                              |
-| 3    | Repeat Stop      | End position of SSR in the Chromosome                                                        |
-| 4    | Repeat Class     | Class of repeat as grouped by their cyclical variations                                      |
-| 5    | Repeat Length    | Total length of identified repeat in nt                                                      |
-| 6    | Motif count      | Number of complete motifs in the STR                                                         |
-| 7    | Purity           | Purity of STR region (perfect STR = 1)                                                       |
-| 7    | Repeat Strand    | Strand of SSR based on their cyclical variation                                              |
-| 8    | CIGAR            | Representing type of imperfections.                                                          | 
+</p>
+<h2 style="font-size: 35px; padding-left: 20px;">Contact</h2>
+<p style="font-size: 18px; padding-left: 20px;">
+    For queries or suggestions, please contact:
+    Akshay Kumar Avvaru - avvaru@ccmb.res.in
+    Divya Tej Sowpati - tej@ccmb.res.in
 
