@@ -107,6 +107,19 @@ cd ribbit
 </p>
     TEXT
 
+## Bed file output example
+
+| Chromosome   | Start   | End     | Motif                           | Motif Size | Location Size | Purity     | Strand | CIGAR  |
+|--------------|---------|---------|---------------------------------|------------|---------------|-----------|--------|-----------------------------------------------------|
+| Test_Seq | 90196   | 90393   | AC                              | 2       | 197           | 0.949495  | +       | 3=1X3=1X5=1D82=1X17=1X19=1X31=1I2=1X3=1X21=1I2=   |
+| Test_Seq | 137451  | 137470  | CCCGCT                          | 6       | 19            | 1         | +      | 19=                                        |
+| Test_Seq | 136254  | 136401  | GT                              | 2       | 147           | 0.912752  | +  |6=1X9=1D20=1D15=1X12=1X5=1X25=1X9=1X7=1X5=1X9=1X10=1X2=1X2= |
+| Test_Seq | 139286  | 139306  | AGTTGCTT                        | 8       | 20            | 0.95      | +      |   8=1X11=                                   |
+| Test_Seq | 3538110 | 3538168 | AATAGCAAGAGCCAGAGCTAGAGCAAAG    | 8     | 58            | 0.881356  | +      |    4=1X1=2I30=1X9=1X5=1X1=1D2=               |
+| Test_Seq | 4197438 | 4197487 | CACAGCCAGCT                     | 11     | 49            | 0.959184  | +      |      26=1X12=1X9=                               |
+| Test_Seq | 4858037 | 4858050 | CTCTTT                          | 6       | 13            | 0.923077  | +      |    6=1I6=                                    
+| Test_Seq | 5000704 | 5000745 | TATTCGTATGCGTATTC               | 17     | 41            | 0.902439  | +      |   4=1I22=1X4=2X7=                            |
+
 </p>
 
 <h2 style="font-size: 35px; padding-left: 20px;">Citation</h2>
