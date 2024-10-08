@@ -79,7 +79,7 @@ cd ribbit
     </div>
 </p>
 
-### bed file output columns
+#### bed file output columns
 
 | S.No | Column           | Description                                                                                  |
 |------|------------------|----------------------------------------------------------------------------------------------|
