@@ -3,6 +3,8 @@
 #include <unordered_map>
 #include <bitset>
 #include <boost/dynamic_bitset.hpp>
+#include <numeric>
+#include <utility>
 
 #include "global_variables.h"
 #include "ssw_cpp.h"
@@ -30,17 +32,28 @@ tuple<vector<int>, vector<char>> cigarSplit(const char* cigar) {
     return tuple<vector<int>, vector<char>> {clens, ctypes};
 }
 
+double calculateMedian(std::vector<double>& numbers) {
+    int size = numbers.size();
+    std::sort(numbers.begin(), numbers.end());
+    
+    if (size % 2 == 0) {
+        return (numbers[size / 2 - 1] + numbers[size / 2]) / 2.0;
+    } else {
+        return numbers[size / 2];
+    }
+}
 
-pair<int, int> calculateTrimEdges(float &purity_threshold, float &purity, vector<int> &ccigar_lengths,
+
+pair<int, int> calculateTrimEdges(double &purity_threshold, double &purity, vector<int> &ccigar_lengths,
                                   int &alignment_length, int &motif_length) {
 
     int trim_length = 0;        // length of the trim
     pair<int, int> trim_edges;  // the final pair of trim lengths 
 
     // parameters for a certain pair of trim lengths
-    int pair_match, pair_alignment; float pair_purity;
+    int pair_match, pair_alignment; double pair_purity;
     // keeping track of the maximum purity and alignment length for all the trim combinations
-    float max_purity = 0; int max_alength = 0;
+    double max_purity = 0; int max_alength = 0;
 
 
     // iteratively trim till the purity threshold is reached
@@ -60,7 +73,7 @@ pair<int, int> calculateTrimEdges(float &purity_threshold, float &purity, vector
                 if (j%2 == 0) pair_match += ccigar_lengths[j];    // for even indices increase the repeat length
                 pair_alignment += ccigar_lengths[j];
             }
-            pair_purity = float(pair_match)/float(pair_alignment);
+            pair_purity = (double)pair_match/(double)pair_alignment;
 
             // among all the trim combinations that pass the purity threshold
             // we take the one with the highest alignment length
@@ -86,7 +99,7 @@ pair<int, int> calculateTrimEdges(float &purity_threshold, float &purity, vector
 }
 
 
-pair<int, int> calculateTrimEdges(int &mismatches_threshold, float &purity, int &mismatches,
+pair<int, int> calculateTrimEdges(int &mismatches_threshold, double &purity, int &mismatches,
                                   vector<int> &ccigar_lengths, int &alignment_length, int &motif_length) {
 
     int trim_length = 0;        // length of the trim
@@ -123,8 +136,110 @@ pair<int, int> calculateTrimEdges(int &mismatches_threshold, float &purity, int 
 }
 
 
-tuple<vector<int>, string, float> processCIGARWithPruning(int seed_start, int seed_sequence_length, string &cigar,
-                                                          string &seed_sequence, int motif_length) {
+void motifwiseParameters(string &cigar, int motif_length, double &avg_motifpurity, int &avg_motifindels) {
+    
+    tuple<vector<int>, vector<char>> csplit = cigarSplit(cigar.c_str());
+    vector<int>  clens = get<0> (csplit);
+    vector<char> ctypes = get<1> (csplit);
+
+    char ctype; int clength, cidx = 0;
+    int qpos = 0;
+
+    bool mismatch_continue = false;         // to check if there are contiguous mismatches
+
+    int motif_covered = 0, motif_matches = 0, motif_mismatches = 0, motif_indels = 0;
+    int excess = 0;
+    vector<double> motifwise_matchpercent;
+    vector<int> motifwise_indels;
+
+    for ( ; cidx < clens.size(); cidx++) {
+        clength = clens[cidx]; ctype = ctypes[cidx];
+
+        switch (ctype) {
+            case 'S':
+                // soft clip: edit the repeat start and end 
+                qpos += clength;
+                break;
+
+            case 'X':
+                qpos += clength;
+                mismatch_continue = true;
+                
+                if ((motif_covered+clength) >= motif_length) {
+                    excess = (motif_covered+clength) % motif_length;
+                    motif_covered += clength - excess;
+                    motif_mismatches += clength - excess;
+                    motifwise_matchpercent.push_back((double) motif_matches/ (double) (motif_matches + motif_mismatches + motif_indels));
+                    motifwise_indels.push_back(motif_indels);
+                    motif_covered = excess, motif_matches = 0, motif_mismatches = excess, motif_indels = 0;
+                }
+                else {
+                    motif_covered += clength;
+                    motif_mismatches += clength;
+                }
+                break;
+            case 'I':
+                qpos += clength;
+                mismatch_continue = true;
+                
+                motif_indels += clength;
+                break;
+            case 'D':                
+                mismatch_continue = true;
+                
+                if ((motif_covered+clength) >= motif_length) {
+                    excess = (motif_covered+clength) % motif_length;
+                    motif_covered += clength - excess;
+                    motif_indels += clength - excess;
+                    motifwise_matchpercent.push_back((double) motif_matches/ (double) (motif_matches + motif_mismatches + motif_indels));
+                    motifwise_indels.push_back(motif_indels);
+                    motif_covered = excess, motif_matches = 0, motif_mismatches = 0, motif_indels = excess;
+                }
+                else {
+                    motif_covered += clength;
+                    motif_indels += clength;
+                }
+                break;
+            case '=': case 'M':
+                qpos += clength;
+                mismatch_continue = false;
+
+                if ((motif_covered+clength) >= motif_length) {
+                    excess = (motif_covered+clength) % motif_length;
+                    motif_covered += clength - excess;
+                    motif_matches += clength - excess;
+                    motifwise_matchpercent.push_back((double) motif_matches/ (double) (motif_matches + motif_mismatches + motif_indels));
+                    motifwise_indels.push_back(motif_indels);
+                    motif_covered = excess, motif_matches = excess, motif_mismatches = 0, motif_indels = 0;
+                }
+                else {
+                    motif_covered += clength;
+                    motif_matches += clength;
+                }
+                break;
+            default: break;
+        }
+    }
+
+    if (motif_covered > 0) {
+        motifwise_matchpercent.push_back((double) motif_matches/ (double) (motif_matches + motif_mismatches + motif_indels));
+        motifwise_indels.push_back(motif_indels);
+    }
+
+    avg_motifpurity = 0;
+    avg_motifindels = 0;
+
+    if (motifwise_matchpercent.size() > 0) {
+        avg_motifpurity = (double)(std::reduce(motifwise_matchpercent.begin(), motifwise_matchpercent.end(), 0)) / (double)motifwise_matchpercent.size();
+        // avg_motifpurity = calculateMedian(motifwise_matchpercent);
+        avg_motifindels = std::reduce(motifwise_indels.begin(), motifwise_indels.end()) / motifwise_indels.size();
+    }
+}
+
+
+void processCIGARWithPruning(int seed_start, int seed_sequence_length, string &cigar, string &seed_sequence, int motif_length, 
+                             int &repeat_start, int &repeat_end, int &alignment_length, int &match_units, string &new_cigar,
+                             double &purity, double &avg_motifpurity, int &avg_motifindels) {
     /*
      * processes the CIGAR string and returns the repeat based on the purity threshold
      * @param seed_start position of the start of the seed sequence
@@ -138,12 +253,12 @@ tuple<vector<int>, string, float> processCIGARWithPruning(int seed_start, int se
     vector<char> ctypes = get<1> (csplit);    
 
     // initialise the repeat coordinates to the seed coordinates
-    int repeat_start = seed_start, repeat_end = seed_start + seed_sequence_length;
-    int alignment_length = 0;
+    repeat_start = seed_start; repeat_end = seed_start + seed_sequence_length;
+    alignment_length = 0;
 
     char ctype; int clength, cidx = 0;
-    int qpos = 0, j = 0;
-    int matches = 0, match_units = 0;    
+    int qpos = 0;
+    int matches = 0; match_units = 0;
 
     // ccigar attributes denote the vectors regarding the compressed cigar notation
     vector<int> ccigar_indices;         // index mapping from actual cigar to compressed cigar
@@ -152,7 +267,7 @@ tuple<vector<int>, string, float> processCIGARWithPruning(int seed_start, int se
     bool mismatch_continue = false;         // to check if there are contiguous mismatches
     int  start_soft_clip = 0;
     pair<int, int> trim_edges = {0, 0};
-    string new_cigar = "";
+    new_cigar = "";
 
     for ( ; cidx < clens.size(); cidx++) {
         clength = clens[cidx]; ctype = ctypes[cidx];
@@ -200,7 +315,7 @@ tuple<vector<int>, string, float> processCIGARWithPruning(int seed_start, int se
         }
     }
 
-    float purity = float(matches)/float(alignment_length);
+    purity = (double)matches / (double)alignment_length;
     int mismatches = alignment_length - matches;
 
     bool trim = false;
@@ -246,13 +361,13 @@ tuple<vector<int>, string, float> processCIGARWithPruning(int seed_start, int se
         }
     }
 
-    tuple<vector<int>, string, float> result = { { repeat_start, repeat_end, alignment_length, match_units }, new_cigar, purity };
-    return result;
+    motifwiseParameters(new_cigar, motif_length, avg_motifpurity, avg_motifindels);
 }
 
 
-tuple<vector<int>, string, float> processCIGARMotifWise(int seed_start, int seed_sequence_length, string &cigar,
-                                                          string &seed_sequence, int motif_length) {
+void processCIGARMotifWise(int seed_start, int seed_sequence_length, string &cigar, string &seed_sequence, int motif_length,
+                           int &repeat_start, int&repeat_end, int &alignment_length, string &new_cigar, double &purity,
+                           double &avg_motifpurity, int &avg_motifindels) {
     /*
      * processes the CIGAR string and returns the repeat based on the purity threshold
      * @param seed_start position of the start of the seed sequence
@@ -266,11 +381,11 @@ tuple<vector<int>, string, float> processCIGARMotifWise(int seed_start, int seed
     vector<char> ctypes = get<1> (csplit);    
 
     // initialise the repeat coordinates to the seed coordinates
-    int repeat_start = seed_start, repeat_end = seed_start + seed_sequence_length;
-    int alignment_length = 0;
+    repeat_start = seed_start, repeat_end = seed_start + seed_sequence_length;
+    alignment_length = 0;
 
     char ctype; int clength, cidx = 0;
-    int qpos = 0, j = 0;
+    int qpos = 0;
     int matches = 0, match_units = 0;    
 
     // ccigar attributes denote the vectors regarding the compressed cigar notation
@@ -280,7 +395,12 @@ tuple<vector<int>, string, float> processCIGARMotifWise(int seed_start, int seed
     bool mismatch_continue = false;         // to check if there are contiguous mismatches
     int  start_soft_clip = 0;
     pair<int, int> trim_edges = {0, 0};
-    string new_cigar = "";
+    new_cigar = "";
+
+    int motif_covered = 0, motif_matches = 0, motif_mismatches = 0, motif_indels = 0;
+    int excess = 0;
+    vector<double> motifwise_matchpercent;
+    vector<int> motifwise_indels;
 
     for ( ; cidx < clens.size(); cidx++) {
         clength = clens[cidx]; ctype = ctypes[cidx];
@@ -300,6 +420,19 @@ tuple<vector<int>, string, float> processCIGARMotifWise(int seed_start, int seed
                 else { ccigar_lengths.push_back(clength); } 
                 ccigar_indices.push_back(ccigar_lengths.size() - 1);
                 mismatch_continue = true; new_cigar += to_string(clength) + ctype;
+                
+                if ((motif_covered+clength) >= motif_length) {
+                    excess = (motif_covered+clength) % motif_length;
+                    motif_covered += clength - excess;
+                    motif_mismatches += clength - excess;
+                    motifwise_matchpercent.push_back((double) motif_matches/ (double) (motif_matches + motif_mismatches + motif_indels));
+                    motifwise_indels.push_back(motif_indels);
+                    motif_covered = excess, motif_matches = 0, motif_mismatches = excess, motif_indels = 0;
+                }
+                else {
+                    motif_covered += clength;
+                    motif_mismatches += clength;
+                }
                 break;
             case 'I':
                 qpos += clength; alignment_length += clength;
@@ -308,6 +441,8 @@ tuple<vector<int>, string, float> processCIGARMotifWise(int seed_start, int seed
                 else { ccigar_lengths.push_back(clength); } 
                 ccigar_indices.push_back(ccigar_lengths.size() - 1);
                 mismatch_continue = true; new_cigar += to_string(clength) + ctype;
+                
+                motif_indels += clength;
                 break;
             case 'D':
                 alignment_length += clength;
@@ -316,6 +451,19 @@ tuple<vector<int>, string, float> processCIGARMotifWise(int seed_start, int seed
                 else { ccigar_lengths.push_back(clength); } 
                 ccigar_indices.push_back(ccigar_lengths.size() - 1);
                 mismatch_continue = true; new_cigar += to_string(clength) + ctype;
+                
+                if ((motif_covered+clength) >= motif_length) {
+                    excess = (motif_covered+clength) % motif_length;
+                    motif_covered += clength - excess;
+                    motif_indels += clength - excess;
+                    motifwise_matchpercent.push_back((double) motif_matches/ (double) (motif_matches + motif_mismatches + motif_indels));
+                    motifwise_indels.push_back(motif_indels);
+                    motif_covered = excess, motif_matches = 0, motif_mismatches = 0, motif_indels = excess;
+                }
+                else {
+                    motif_covered += clength;
+                    motif_indels += clength;
+                }
                 break;
             case '=': case 'M':
                 qpos += clength; alignment_length += clength;
@@ -323,14 +471,36 @@ tuple<vector<int>, string, float> processCIGARMotifWise(int seed_start, int seed
 
                 ccigar_lengths.push_back(clength); ccigar_indices.push_back(ccigar_lengths.size() - 1);
                 mismatch_continue = false; new_cigar += to_string(clength) + ctype;
+
+                if ((motif_covered+clength) >= motif_length) {
+                    excess = (motif_covered+clength) % motif_length;
+                    motif_covered += clength - excess;
+                    motif_matches += clength - excess;
+                    motifwise_matchpercent.push_back((double) motif_matches/ (double) (motif_matches + motif_mismatches + motif_indels));
+                    motifwise_indels.push_back(motif_indels);
+                    motif_covered = excess, motif_matches = excess, motif_mismatches = 0, motif_indels = 0;
+                }
+                else {
+                    motif_covered += clength;
+                    motif_matches += clength;
+                }
                 break;
             default: break;
         }
     }
 
-    float purity = float(matches)/float(alignment_length);
-    int mismatches = alignment_length - matches;
+    if (motif_covered > 0) {
+        motifwise_matchpercent.push_back((double) motif_matches/ (double) (motif_matches + motif_mismatches + motif_indels));
+        motifwise_indels.push_back(motif_indels);
+    }
 
-    tuple<vector<int>, string, float> result = { { repeat_start, repeat_end, alignment_length, match_units }, new_cigar, purity };
-    return result;
+    purity = double(matches)/double(alignment_length);
+    
+    avg_motifpurity = 0;
+    avg_motifindels = 0;
+    if (motifwise_matchpercent.size() > 0) {
+        avg_motifpurity = (double)(std::reduce(motifwise_matchpercent.begin(), motifwise_matchpercent.end())) / (double)motifwise_matchpercent.size();
+        // avg_motifpurity = calculateMedian(motifwise_matchpercent);
+        avg_motifindels = std::reduce(motifwise_indels.begin(), motifwise_indels.end()) / motifwise_indels.size();
+    }
 }

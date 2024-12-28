@@ -2,15 +2,17 @@
 #include <fstream>
 #include <iostream>
 #include <unordered_map>
+#include <thread>
+#include <mutex>
 
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
 #include "global_variables.h"
 #include "fasta_utils.h"
+#include "concatenate_output.h"
 
 using namespace std;
-
 
 bool isNumber(const string &s) {
     /*
@@ -81,7 +83,7 @@ bool parseArguments(int &argc, char* argv[], string &fasta_file, string &out_fil
     */
     po::options_description argparser("Below are the running options for the tool.");
     argparser.add_options()
-        ("help,h", "Ribbit tool identifies short tandem repeats with allowed levels of inpurity.")
+        ("help,h", "Ribbit tool identifies short tandem repeats with allowed levels of impurity.")
 
         ("input-file,i", po::value<string>(), "File path for the input fasta file.")
         ("output-file,o", po::value<string>(), "File path for the input fasta file.")        
@@ -89,13 +91,16 @@ bool parseArguments(int &argc, char* argv[], string &fasta_file, string &out_fil
         ("min-motif-length,m", po::value<int>(), "The minimum length of the motif of the repeats to be identified. Default: 2")
         ("max-motif-length,M", po::value<int>(), "The maximum length of the motif of the repeats to be identified, Default: 100")
 
-        ("purity,p", po::value<float>(), "Threshold value for cotinuous number of ones found in a seed. Default: 0.85")
+        ("purity,p", po::value<double>(), "The purity of complete repeat. Default: 0.85")
+        ("motif-purity,q", po::value<double>(), "Average match of each motif with consensus motif. Default: 0.8")
 
         ("min-length,l", po::value<string>(), "The minimum length of the repeat. Default: 12")
         ("min-units", po::value<string>(), "The minimum number of units of the repeat. Can be a integer value, for cutoff across all motif sizes.\
                                             Tab separated file with two columns, first is the motif size and second unit cutoff. Default: 2")
         ("perfect-units", po::value<string>(), "The minimum number of complete units of the repeat. Can be a integer value, for cutoff across all motif sizes.\
                                                 Tab separated file with two columns, first is the motif size and second unit cutoff. Default: 2")
+
+        ("threads,t", po::value<int>(), "Number of threads to be used for running. default: 1")
 
         /*
           currently all are set to default parameters and non-accessible to the user
@@ -129,6 +134,9 @@ bool parseArguments(int &argc, char* argv[], string &fasta_file, string &out_fil
 
     if (args.count("min-motif-length")) { MINIMUM_MLEN = args["min-motif-length"].as<int>(); }
     if (args.count("max-motif-length")) { MAXIMUM_MLEN = args["max-motif-length"].as<int>(); }
+    if (args.count("purity")) { PURITY_THRESHOLD = args["purity"].as<double>(); }
+    if (args.count("motif-purity")) { MOTIFPURITY_THRESHOLD = args["motif-purity"].as<double>(); }
+    if (args.count("threads")) { THREADS = args["threads"].as<int>(); }
 
     /*
       currently all are set to default parameters and non-accessible to the user
@@ -194,16 +202,6 @@ int main(int argc, char *argv[]) {
                                    window_bitcount_threshold, anchor_length, cones_threshold);
     if (!success) exit(1);
 
-    // assigns the output to either a file or standard output
-    streambuf * buf; ofstream outstream;
-    if (out_file != "") {
-        outstream.open(out_file);
-        buf = outstream.rdbuf();    // output file buffer is created
-    }
-    // if output file is not provided the default is set at stdout
-    else { buf = std::cerr.rdbuf(); }
-    ostream out(buf);
-
     ifstream fastain(fasta_file);
     string line, seq_name, sequence="";
 
@@ -243,6 +241,7 @@ int main(int argc, char *argv[]) {
     NSHIFTS = MAXIMUM_SHIFT - MINIMUM_SHIFT + 1;
 
     cerr << "Purity threshold: " << PURITY_THRESHOLD << "\n";
+    cerr << "Motif purity threshold: " << MOTIFPURITY_THRESHOLD << "\n";
 
     // Dynamically allocate memory for the matrix
     int SMALL_MLEN_LIMIT = 10;    // only save repeat classes for smaller motif sizes
@@ -266,18 +265,87 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    while (getline(fastain, line)) {
-        if (line[0] == '>') {
-            if (sequence != "") {
-                cerr << "Processing sequence " << seq_name << "\n";
-                processSequence(seq_name, sequence, window_length, window_bitcount_threshold, anchor_length, cones_threshold, out);
-            }
-            seq_name = line.substr(1, line.find(' ') - 1);
-            sequence = "";
+    vector<string> seq_names;
+
+    if (THREADS == 1) {
+        // assigns the output to either a file or standard output
+        streambuf * buf; ofstream outstream;
+        if (out_file != "") {
+            outstream.open(out_file);
+            buf = outstream.rdbuf();    // output file buffer is created
         }
-        else { sequence += line; }
+        // if output file is not provided the default is set at stdout
+        else { buf = std::cerr.rdbuf(); }
+        ostream out(buf);
+        while (getline(fastain, line)) {
+            if (line[0] == '>') {
+                if (sequence != "") {
+                    cerr << "Processing sequence " << seq_name << "\n";
+                    processSequence(seq_name, sequence, window_length, window_bitcount_threshold, anchor_length, cones_threshold, out);
+                }
+                seq_name = line.substr(1, line.find(' ') - 1);
+                seq_names.push_back(seq_name);
+                sequence = "";
+            }
+            else { sequence += line; }
+        }
+        processSequence(seq_name, sequence, window_length, window_bitcount_threshold, anchor_length, cones_threshold, out);
+        fastain.close(); outstream.close();
     }
-    processSequence(seq_name, sequence, window_length, window_bitcount_threshold, anchor_length, cones_threshold, out);
+
+    else {
+        unordered_map<string, int> seq_lens; int nseqs = 0;
+        parseFai(fasta_file+".fai", nseqs, seq_lens);
+        if (nseqs == 0) {
+            cerr << "ERROR: Index for fasta file missing! Required when running in threads mode.\n";
+            cerr << "NOTE: Index can generated using `samtools faidx [fasta_file]`\n";
+            return 0;
+        }
+        int chunk_size = 0;
+        int tnum = 1;
+        int toverlap = 100000;
+        int seq_start = 0;
+
+        std::vector<std::thread> threads;
+        string output_name = "";
+        
+        while (getline(fastain, line)) {
+            if (line[0] == '>') {
+                if (sequence != "") {
+                    threads.clear();
+                    cerr << "Processing sequence " << seq_name << "\n";
+                    output_name = out_file + "_" + seq_name + "_" + to_string(tnum);
+                    threads.emplace_back(processSequenceThread, seq_name, sequence, seq_start, window_length, window_bitcount_threshold,
+                                         anchor_length, cones_threshold, tnum, output_name);
+                    for (int _=0; _<THREADS; _++) { threads[_].join(); }                    
+                }
+                tnum = 1; seq_start = 0;
+                seq_name = line.substr(1, line.find(' ') - 1);
+                seq_names.push_back(seq_name);
+                chunk_size = ((seq_lens[seq_name] + (THREADS*toverlap))/THREADS) + 10;
+                sequence = "";
+            }
+            else {
+                sequence += line;
+                if (sequence.length() >= chunk_size) {
+                    output_name = out_file + "_" + seq_name + "_" + to_string(tnum);
+                    cerr << "Writing thread "<< tnum << " output to " << output_name << "\n";
+                    threads.emplace_back(processSequenceThread, seq_name, sequence, seq_start, window_length, window_bitcount_threshold,
+                                         anchor_length, cones_threshold, tnum, output_name);
+                    seq_start += sequence.length() - toverlap;
+                    sequence = "" + sequence.substr(sequence.length() - (toverlap + 1), toverlap);
+                    tnum += 1;
+                }
+            }
+        }
+        if (sequence != "") {
+            output_name = out_file + "_" + seq_name + "_" + to_string(tnum);
+            cerr << "Writing thread "<< tnum << " output to " << output_name << "\n";
+            threads.emplace_back(processSequenceThread, seq_name, sequence, seq_start, window_length, window_bitcount_threshold,
+                                 anchor_length, cones_threshold, tnum, output_name);
+            for (int _=0; _<THREADS; _++) { threads[_].join(); }
+        }
+    }
 
     // Don't forget to free the memory when done
     for (int i = 0; i < SMALL_MLEN_LIMIT; ++i) {
@@ -292,6 +360,13 @@ int main(int argc, char *argv[]) {
     delete[] MOTIF_GAPSIZE;
     delete[] MOTIF_NEXT;
 
-    fastain.close(); outstream.close();
+    START_TIME = time(0);
+    double seconds_since_start;
+    if (THREADS > 1) {
+        concatenateOutputs(out_file, seq_names, THREADS);
+    }
+    seconds_since_start = difftime(time(0), START_TIME);
+    std::cerr << "Concatenated all outputs.\t Time elapsed: " << seconds_since_start << "secs\n";
+
     return 0;
 }

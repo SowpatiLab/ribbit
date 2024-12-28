@@ -25,8 +25,11 @@ void mergeAllLists(vector<tuple<int,int,int,int>> &seed_positions_perfect,
         perfect_start_bool = true;
     }
 
+    if (seed_positions_substut.size() == 0) {
+        substut_start_bool = true;
+    }
+
     while (!(perfect_start_bool && substut_start_bool)) {
-        // cout << "Loop-1: " << perfect_index << "\t" << substut_index << "\n";
         if (substut_start_bool) {
             while (perfect_index >= 0 || !perfect_start_bool) {
                 perfect_end = get<1> (seed_positions_perfect[perfect_index]);
@@ -63,6 +66,7 @@ void mergeAllLists(vector<tuple<int,int,int,int>> &seed_positions_perfect,
 
         else {
             perfect_end = get<1> (seed_positions_perfect[perfect_index]);
+            cout << perfect_start_bool << "\t" << substut_start_bool << "\t" << seed_positions_substut.size() << "\t" << substut_index << "\n";
             substut_end = get<1> (seed_positions_substut[substut_index]);
             perfect_type = get<3> (seed_positions_perfect[perfect_index]);
             substut_type = get<3> (seed_positions_substut[substut_index]);
@@ -187,6 +191,3 @@ void mergeAllLists(vector<tuple<int,int,int,int>> &seed_positions_perfect,
         }
     }
 }
-
-
-

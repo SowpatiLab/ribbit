@@ -158,9 +158,16 @@ vector<tuple<int, int, int, int>> processShiftXORsPerfect(vector<boost::dynamic_
     vector<tuple<int, int, int, int>> seed_positions;    // the vector of seed_positions // bool for perfect and imperfect
 
     int min_idx = MINIMUM_MLEN-MINIMUM_SHIFT, cutoff, didx, motif_length;
-    int last_starts[NMOTIFS] = {-1};  // initialising a last record
-    int last_ends[NMOTIFS] = {-1};  // initialising a last record
-    int current_starts[NMOTIFS] = {-1};  // initialising a last record
+    
+    int *last_starts = new int[NMOTIFS];
+    for (int _ = 0; _ < NMOTIFS; _++) { last_starts[_] = -1; }
+    int *last_ends = new int[NMOTIFS];
+    for (int _ = 0; _ < NMOTIFS; _++) { last_ends[_] = -1; }
+    int *current_starts = new int[NMOTIFS];
+    for (int _ = 0; _ < NMOTIFS; _++) { current_starts[_] = -1; } 
+    // int last_starts[NMOTIFS] = {-1};  // initialising a last record
+    // int last_ends[NMOTIFS] = {-1};  // initialising a last record
+    // int current_starts[NMOTIFS] = {-1};  // initialising a last record
 
     vector<boost::dynamic_bitset<>> window_bsets;
     for (int midx=0; midx < NMOTIFS; midx++) {

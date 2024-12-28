@@ -1,6 +1,7 @@
 #include <cstdint>
 #include <unordered_map>
 #include <time.h>
+#include <mutex>
 
 #include "global_variables.h"
 
@@ -25,6 +26,8 @@ int NMOTIFS;
 int MINIMUM_SHIFT = 2;
 int MAXIMUM_SHIFT = 100;
 int NSHIFTS = 100;
+int THREADS = 1;
+std::mutex MTX;
 
 int RANK_P = 5;
 int RANK_Q = 4;
@@ -41,6 +44,7 @@ unordered_map<int, int> PERFECT_UNITS;
 bool LENGTH_CUTOFF_MODE = true;
 
 // cutoffs for different measures of purity
-float PURITY_THRESHOLD = 0.85;
+double PURITY_THRESHOLD = 0.85;
+double MOTIFPURITY_THRESHOLD = 0.8;
 int   INTERRUPTIONS_THRESHOLD = 0;
 time_t START_TIME = time(0);
