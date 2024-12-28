@@ -25,6 +25,10 @@ void mergeAllLists(vector<tuple<int,int,int,int>> &seed_positions_perfect,
         perfect_start_bool = true;
     }
 
+    if (seed_positions_substut.size() == 0) {
+        substut_start_bool = true;
+    }
+
     while (!(perfect_start_bool && substut_start_bool)) {
         // cout << "Loop-1: " << perfect_index << "\t" << substut_index << "\n";
         if (substut_start_bool) {
