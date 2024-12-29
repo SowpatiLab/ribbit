@@ -5,3 +5,4 @@
 /data_simulation/*.tsv
 /data_simulation/results/*
 /data_simulation/*test*
+*py
