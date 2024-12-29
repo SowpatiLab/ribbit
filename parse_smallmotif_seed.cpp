@@ -279,7 +279,7 @@ void processSeedMotifWise(tuple<int, int> seed_position, int &motif_length, int 
         repeat_length = repeat_end - repeat_start;
         match_units = calculateMotifUnits(left_bset, right_bset, repeat_start, repeat_length, atomicity, sequence_length, motif_unit);
 
-        if (match_units >= PERFECT_UNITS[atomicity] && repeat_length >= MINIMUM_LENGTH[atomicity]) {
+        if (match_units >= PERFECT_UNITS[atomicity] && repeat_length >= MINIMUM_LENGTH[atomicity] && atomicity >= MINIMUM_MLEN && atomicity <= MAXIMUM_MLEN) {
             out << sequence_id << "\t" << repeat_start << "\t" << repeat_end << "\t" << motif.substr(0, atomicity) << "\t" 
                 << atomicity << " | " << motif_length << "\t" << repeat_end-repeat_start << "\t" << (repeat_end-repeat_start)/atomicity << "\t"
                 << purity << "\t" << "+\tSEED-" << seed_type << "\t" << cigar_string << "\n";
