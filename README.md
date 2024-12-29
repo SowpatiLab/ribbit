@@ -5,8 +5,15 @@
 <h1 align=left style="font-size: 45px; padding-left: 20px; padding-bottom: 0px">ribbit</h1>
 
 <p style="font-size: 20px">
-Ribbit is a tool to identify tandem repeats of variable motif sizes. The algorithm
-converts DNA sequences to 2-bit format and uses basic bit operations to identify  tandem repeat sequences. <br>
+Ribbit comprehensively identifies tandem repeats of variable motif sizes. 
+
+```
+Compiling ribbit
+
+bash compile.sh
+```
+
+The algorithm converts DNA sequences to 2-bit format and uses basic bit operations to identify  tandem repeat sequences. <br>
 </p>
 
 
