@@ -66,7 +66,6 @@ void mergeAllLists(vector<tuple<int,int,int,int>> &seed_positions_perfect,
 
         else {
             perfect_end = get<1> (seed_positions_perfect[perfect_index]);
-            cout << perfect_start_bool << "\t" << substut_start_bool << "\t" << seed_positions_substut.size() << "\t" << substut_index << "\n";
             substut_end = get<1> (seed_positions_substut[substut_index]);
             perfect_type = get<3> (seed_positions_perfect[perfect_index]);
             substut_type = get<3> (seed_positions_substut[substut_index]);
