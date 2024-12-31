@@ -8,3 +8,12 @@
 Ribbit is a tool to identify tandem repeats of variable motif sizes. The algorithm
 converts DNA sequences to 2-bit format and uses basic bit operations to identify  tandem repeat sequences. <br>
 </p>
+
+
+<h2>Install dependencies</h1>
+
+```zsh
+foo@bar % brew install boost
+foo@bar % conda install libcxx
+foo@bar % conda install pybedtools
+```
