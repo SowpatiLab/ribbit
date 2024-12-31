@@ -20,45 +20,54 @@ def parse_args():
 
 
 def expected_diff(parent_motif, parent_purity, child_motif, child_len, child_purity):
-    if len(parent_motif) < len(child_motif):
-        least_d = float('inf')
-        least_m = 0
-        for i in range(1, (len(parent_motif) // len(child_motif)) + 2):
-            d = distance(parent_motif * i, child_motif)
-            if d < least_d:
-                least_d = d
-                least_m = i
-        parent_motif = parent_motif * least_m
-    elif len(child_motif) < len(parent_motif):
-        least_d = float('inf')
-        least_m = 0
-        for i in range(1, (len(child_motif) // len(parent_motif)) + 2):
-            d = distance(child_motif * i, parent_motif)
-            if d < least_d:
-                least_d = d
-                least_m = i
-        child_motif = child_motif * least_m
+    
+    if len(parent_motif) < len(child_motif):    # motif length of parent STR is shorter than motif length of nested STR
+        least_d = float('inf')      # least edit distance
+        parent_units = 0            # number of parent units
 
-    d = float('inf')
+        # identifying length of perfect parent STR that has least edit distance with one motif of nested STR
+        for i in range(1, (len(parent_motif) // len(child_motif)) + 2):
+            edit_d = distance(parent_motif * i, child_motif)
+            if edit_d < least_d:
+                least_d = edit_d
+                parent_units = i
+        parent_motif = parent_motif * parent_units
+    
+    elif len(child_motif) < len(parent_motif):  # motif length of the nested STR is shorter than motif length of parent STR
+        least_d = float('inf')      # least edit distance
+        nested_units = 0            # number of nested units
+
+        # identifying the length of nested STR that has least edit distance with one motif of parent STR
+        for i in range(1, (len(child_motif) // len(parent_motif)) + 2):
+            edit_d = distance(child_motif * i, parent_motif)
+            if edit_d < least_d:
+                least_d = edit_d
+                nested_units = i
+        child_motif = child_motif * nested_units
+
+    # identifying the least edit distance between different cyclical variations of motifs of parent and nested STRs
+    edit_d = float('inf')
     for i in range(len(parent_motif)):
         pm = parent_motif[i:] + parent_motif[:i]
         for j in range(len(child_motif)):
             cm = child_motif[j:] + child_motif[:j]
-            if distance(pm, cm) < d:
-                d = distance(pm, cm)
+            if distance(pm, cm) < edit_d:
+                edit_d = distance(pm, cm)
 
-    parent_imp = int((1 - parent_purity) * child_len)
-    total_d = int(child_len // len(child_motif) * d)
+    parent_imperfections = int((1 - parent_purity) * child_len)       # number of imperfections in the parent STR based on the length of nested STR
+    total_edit_d = int(child_len // len(child_motif) * edit_d)   # possible total edit distance between parent STR and nested STR for length of nested STR
 
-    return not (child_purity > (1 - (abs(parent_imp - total_d) / child_len)))
+    # if the purity of nested STR is greater than the edit distance between parent and nested STR
+    # retain the nested STR
+    return not (child_purity > (1 - (abs(parent_imperfections - total_edit_d) / child_len)))
 
 def distance(s1, s2):
-    return sum(1 for a, b in zip(s1, s2) if a != b)
+    return sum(1 for str_start_i, str_end_i in zip(s1, s2) if str_start_i != str_end_i)
 
 
 def process_bed(bed_file, gff_file):
     bed = pybedtools.BedTool(bed_file)
-    sorted_merged_bed = bed.sort().merge(c=[2,3,4,5,6,7,8], o=['collapse', 'collapse', 'collapse', 'collapse', 'collapse', 'collapse', 'collapse'])
+    sorted_merged_bed = bed.sort().merge(str_start_j=list(range(2,12)), o=['collapse']*10)
 
     out = open(gff_file, 'w')
 
@@ -69,65 +78,88 @@ def process_bed(bed_file, gff_file):
     str_num = 0
 
     for region in tqdm(sorted_merged_bed):
-        region_num += 1
+        region_num += 1     # counting the number of regions
 
         chrom = region.chrom
         start = region.start
         end = region.end
+        
+        # splitting the attributes for individual regions in str_start_i merged region
         str_starts = [int(x) for x in region[3].split(',')]
         str_ends = [int(x) for x in region[4].split(',')]
         str_motifs = region[5].split(',')
-        str_purities = [float(x) for x in region[6].split(',')]
-        str_ids = ["S%09d" % (str_num+(i+1)) for i in range(len(str_starts))]
-        str_lens = [str_ends[i] - str_starts[i] for i in range(len(str_starts))]
-        seed_type = region[8].split(',')
-        str_cigars = region[9].split(',')
+        str_motif_lengths = region[6].split(',')
+        str_lengths = [int(x) for x in region[7].split(',')]
+        str_units = region[8].split(',')
+        str_purities = [float(x) for x in region[9].split(',')]
+        seed_orientations = region[10].split(',')
+        seed_type = region[11].split(',')
+        str_cigars = region[12].split(',')
+        
         region_id = "R%09d" %(region_num)
+        str_ids = ["S%09d" % (str_num+(i+1)) for i in range(len(str_starts))]
 
         del_strs = []
         nested_relations = {}
         overlap_relations = defaultdict(set)
 
-        for i in range(len(str_starts)):
-            a = str_starts[i]
-            b = str_ends[i]
-            m = str_motifs[i]
-            p = str_purities[i]
+        nmerge = len(str_starts)
+        for i in range(nmerge):
+
+            str_start_i = str_starts[i]
+            str_end_i = str_ends[i]
+            str_motif_i = str_motifs[i]
+            str_purity_i = str_purities[i]
 
             for j in range(len(str_starts)):
-                if i == j:
-                    continue
+                
+                if i == j: continue     # skip comparison of region with itself
 
-                c = str_starts[j]
-                d = str_ends[j]
+                str_start_j = str_starts[j]
+                str_end_j = str_ends[j]
 
-                if a >= c and b <= d: # existing location is nested within the new location.
-                    if p <= str_purities[j] or str_motifs[i] == str_motifs[j] or expected_diff(str_motifs[j], str_purities[j], str_motifs[i], str_lens[i], str_purities[i]):
+                if str_start_i >= str_start_j and str_end_i <= str_end_j: # location-i is nested within location-j
+                    if str_purity_i <= str_purities[j] or \
+                       str_motifs[i] == str_motifs[j] or \
+                       expected_diff(str_motifs[j], str_purities[j], str_motifs[i], str_lengths[i], str_purities[i]):
                         del_strs.append(i) #lower purity, similar motif size, 
                     else:
                         nested_relations[i] = j
+                
                 else:
-                    if c <= a and a <= d:
-                        if (str_lens[i] < str_lens[j]) and ((b - d) < len(m) or ((b - d) < 3)):
+                    if str_start_j <= str_start_i and str_start_i <= str_end_j:     # STR-j upstream of STR-i and overlapping
+                        # STR-i is shorter than STR-j ~ Unique length of STR-i is shorter than STR-i motif length or less than 3 bp
+                        if (str_lengths[i] < str_lengths[j]) and ((str_end_i - str_end_j) < len(str_motif_i) or ((str_end_i - str_end_j) < 3)):
+                            del_strs.append(i)      # filter out STR
+                        
+                        # STR-i length equals STR-j length ~ choose repeat with higher purity
+                        elif (str_lengths[i] == str_lengths[j]) and str_purities[i] < str_purities[j]:
                             del_strs.append(i)
-                        elif (str_lens[i] == str_lens[j]) and str_purities[i] < str_purities[j]:
-                            del_strs.append(i)
+                        
+                        # retain if both top conditions are false
                         else:
                             overlap_relations[i].add(j)
                             overlap_relations[j].add(i)
-                    elif c <= b and b <= d:
-                        if (str_lens[i] < str_lens[j]) and (((c - a) < len(m)) or ((c - a) < 3)):
+                    
+                    elif str_start_j <= str_end_i and str_end_i <= str_end_j:       # STR-i upstream of STR-j and overlapping
+                        
+                        # STR-i is shorter than STR-j ~ Unique length of STR-i is shorter than STR-i motif length or less than 3 bp
+                        if (str_lengths[i] < str_lengths[j]) and (((str_start_j - str_start_i) < len(str_motif_i)) or ((str_start_j - str_start_i) < 3)):
                             del_strs.append(i)
-                        elif (str_lens[i] == str_lens[j]) and str_purities[i] < str_purities[j]:
+                        
+                        # STR-i length equals STR-j length ~ choose repeat with higher purity
+                        elif (str_lengths[i] == str_lengths[j]) and str_purities[i] < str_purities[j]:
                             del_strs.append(i)
+                        
+                        # retain if both top conditions are false
                         else:
                             overlap_relations[i].add(j)
                             overlap_relations[j].add(i)
 
-                if b < str_starts[j]:
+                if str_end_i < str_starts[j]:   # if STR-j is beyond STR-i
                     break
 
-        if len(str_starts) - len(set(del_strs)) > 1:
+        if nmerge - len(set(del_strs)) > 1:     # if more than 1 STRs is retained
             print(chrom, 'ribbit', 'REGION', start, end, '.', '+', '.', f'id={region_id}', sep='\t', file=out)
 
             for i in range(len(str_starts)):
@@ -156,7 +188,7 @@ def process_bed(bed_file, gff_file):
                         f'id={str_id};purity={str_purities[i]};motif={str_motifs[i]};cigar={str_cigars[i]};seed_type={seed_type[i]};parent={parent};children={children};overlaps={overlaps}',
                         sep='\t', file=out)
 
-        elif len(str_starts) - len(set(del_strs)) == 1:
+        elif len(str_starts) - len(set(del_strs)) == 1:     #if only 1 STR is retained
             for i in range(len(str_starts)):
                 str_id = str_ids[i]
                 if i in del_strs:

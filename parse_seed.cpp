@@ -431,10 +431,10 @@ void processSeed(tuple<int, int> seed_position, int seq_start, int &motif_length
     if (alignment_length >= MINIMUM_LENGTH[atomicity]) {
         repeat_length = repeat_end - repeat_start;
         if (match_units >= PERFECT_UNITS[atomicity] && repeat_length >= MINIMUM_LENGTH[atomicity] && motifwise_purity >= MOTIFPURITY_THRESHOLD
-            && atomicity >= MINIMUM_MLEN && atomicity <= MAXIMUM_MLEN) {
-            out << sequence_id << "\t" << seq_start + repeat_start << "\t" << seq_start + repeat_end << "\t" << motif.substr(0, atomicity) << "\t" 
-                << atomicity << "\t" << repeat_end-repeat_start << "\t" << (repeat_end-repeat_start)/atomicity << "\t"
-                << purity << "\t" << motifwise_purity << "\t" << motifwise_indels << "\t" << cigar_string << "\n";
+            && atomicity >= MINIMUM_MLEN && atomicity <= MAXIMUM_MLEN) {            
+            out << sequence_id << "\t" << repeat_start << "\t" << repeat_end << "\t" << motif.substr(0, atomicity) << "\t" 
+                << atomicity << " | " << motif_length << "\t" << repeat_end-repeat_start << "\t" << (repeat_end-repeat_start)/atomicity << "\t"
+                << purity << "\t" << "+\tSEED-" << seed_type << "\t" << cigar_string << "\n";
         }
     }
 
