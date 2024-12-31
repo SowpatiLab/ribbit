@@ -5,6 +5,20 @@ import os
 import argparse
 from tqdm import tqdm
 
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Process ribbit's output BED file to merge overlapping repeats and generate GFF file")
+    parser.add_argument("-bed", type=str, required=True, help="Input BED file")
+    parser.add_argument("-gff", type=str, help="Output GFF file")
+
+    args = parser.parse_args()
+
+    if args.gff == "":
+        args.gff = '.'.join((args.bed).split('.')[:-1]) + '.gff'
+
+    return args
+
+
 def expected_diff(parent_motif, parent_purity, child_motif, child_len, child_purity):
     if len(parent_motif) < len(child_motif):
         least_d = float('inf')
@@ -41,11 +55,14 @@ def expected_diff(parent_motif, parent_purity, child_motif, child_len, child_pur
 def distance(s1, s2):
     return sum(1 for a, b in zip(s1, s2) if a != b)
 
-def process_bed(input_bed_file, output_gff_file):
-    bed = pybedtools.BedTool(input_bed_file)
+
+def process_bed(bed_file, gff_file):
+    bed = pybedtools.BedTool(bed_file)
     sorted_merged_bed = bed.sort().merge(c=[2,3,4,5,6,7,8], o=['collapse', 'collapse', 'collapse', 'collapse', 'collapse', 'collapse', 'collapse'])
 
-    out = open(output_gff_file, 'w')
+    out = open(gff_file, 'w')
+
+    # the chosen gff format is gff3
     print('#gff-version 3', file=out)
 
     region_num = 0
@@ -154,13 +171,9 @@ def process_bed(input_bed_file, output_gff_file):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Process a single BED file and generate a corresponding GFF file")
-    parser.add_argument("input_bed_file", help="Input BED file")
-    parser.add_argument("output_gff_file", help="Output GFF file")
+    args = parse_args()
 
-    args = parser.parse_args()
+    bed_file = args.bed
+    gff_file = args.gff
 
-    input_bed_file = args.input_bed_file
-    output_gff_file = args.output_gff_file
-
-    process_bed(input_bed_file, output_gff_file)
+    process_bed(bed_file, gff_file)
