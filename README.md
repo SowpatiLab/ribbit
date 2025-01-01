@@ -2,19 +2,12 @@
     <img src="./lib/logo_rounded.png" alt="ribbit-logo" style="width:220px; border-radius: 20%"/>
 </p>
 
-<h1 align=left style="font-size: 45px; padding-left: 20px; padding-bottom: 0px">ribbit</h1>
+<h1 align=left style="font-size: 45px; padding-left: 10px; padding-bottom: 0px">ribbit</h1>
 
-<p style="font-size: 20px">
-Ribbit comprehensively identifies tandem repeats of variable motif sizes. 
-
-```
-Compiling ribbit
-
-bash compile.sh
-```
-
-The algorithm converts DNA sequences to 2-bit format and uses basic bit operations to identify  tandem repeat sequences. <br>
+<p style="font-size: 18px">
+Ribbit is a tool to identify tandem repeats of variable motif sizes from genomes. This tools is specialised to resolve complex TR structures and accurately define the priodicity and consensus motif of the tandem repeat. The algorithm converts DNA sequences to 2-bit format and uses basic bit operations to identify  tandem repeat sequences. <br>
 </p>
+
 
 
 <h2 style="font-size: 35px; padding-left: 20px;">Table of Contents</h2>
@@ -28,25 +21,54 @@ The algorithm converts DNA sequences to 2-bit format and uses basic bit operatio
 
 
 
-<h2 style="font-size: 35px; padding-left: 20px;">Installation</h2>
-<p style="font-size: 18px; padding-left: 20px;">
-    To install Ribbit, clone the repository and install the dependencies using the following commands:
+## Installation
+<p style="font-size: 18px">
+To install Ribbit, clone the repository and install the dependencies using the following commands:
 </p>
-<pre><code>git clone https://github.com/SowpatiLab/ribbit
-cd ribbit
-</code></pre>
 
-<h2 style="font-size: 35px; padding-left: 20px;">Usage</h2>
-<p style="font-size: 18px; padding-left: 20px;">
+### Installing dependencies
+
+#### 1. Install boost library
+```
+sudo apt-get install boost
+```
+#### 2. Installing bedtools
+```
+conda install pybedtools
+```
+<p style="align: center">OR</p>
+
+```
+pip install pybedtools
+```
+
+<br>
+
+### Compiling ribbit
+
+```
+git clone https://github.com/SowpatiLab/ribbit.git
+cd ribbit
+make
+```
+<br>
+
+## Usage
+<p style="font-size: 18px">
     Here’s a basic usage example:
 </p>
-<pre><code> ./ribbit [options] -i sequence.fasta --output results.bed</code></pre>
-</p>
+
+```
+./ribbit [options] -i sequence.fasta --output results.bed
+```
+
+<p style="font-size: 18px">
     To view detailed help information
-<pre><code> ./ribbit -h </code></pre>
-    The output would be given as folllowing.
 </p>
-<pre style="font-size: 16px; padding-left: 20px; background-color: #f8f8f8; padding: 10px; border-radius: 5px;">
+
+```
+./ribbit -h
+
   -h [ --help ]                 Ribbit tool identifies short tandem repeats 
                                 with allowed levels of impurity.
   -i [ --input-file ] arg       File path for the input fasta file.
@@ -68,9 +90,9 @@ cd ribbit
                                 across all motif sizes, or a tab-separated file 
                                 with two columns: the first is the motif size and 
                                 the second is the unit cutoff. Default: 2
-</pre>
+```
 
-<h2 style="font-size: 35px; padding-left: 20px;">Inputs and Outputs</h2>
+## Inputs and Outputs
 <p style="font-size: 18px; padding-left: 20px;">
 
 ```-i or --input```
@@ -129,20 +151,9 @@ cd ribbit
 
 </p>
 
-<h2 style="font-size: 35px; padding-left: 20px;">Citation</h2>
-<p style="font-size: 18px; padding-left: 20px;">
-    Please cite as follows :
-</p>
-    Ribbit: Accurate identification and annotation of imperfect tandem repeat sequences in genomes
-</p>
-    Akshay Kumar Avvaru, Anukrati Sharma, Divya Tej Sowpati
-    Journal:
-    doi:
-
-</p>
-<h2 style="font-size: 35px; padding-left: 20px;">Contact</h2>
-<p style="font-size: 18px; padding-left: 20px;">
+## Contact
+<p style="font-size: 16px">
     For queries or suggestions, please contact:
-    Akshay Kumar Avvaru - avvaru@ccmb.res.in
-    Divya Tej Sowpati - tej@ccmb.res.in
-
+    <br>Akshay Kumar Avvaru - avvaruakshay@gmail.com
+    <br>Divya Tej Sowpati - tej@ccmb.res.in
+</p>
