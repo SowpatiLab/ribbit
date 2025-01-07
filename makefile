@@ -14,5 +14,5 @@ INCLUDE    = -I/opt/homebrew/Cellar/boost/1.86.0_2/include/
 BOOST_LIB  = -L/opt/homebrew/Cellar/boost/1.86.0_2/lib
 BOOST_PROGRAM_OPTIONS_LIB = -lboost_program_options
 
-ribbit:
+ribbit: $(SRC_RIBBIT)
 	$(CXX) $(CXXFLAGS) $(INCLUDE) $(BOOST_LIB) $(SRC_SSW) $(SRC_RIBBIT) $(BOOST_PROGRAM_OPTIONS_LIB) -o ribbit

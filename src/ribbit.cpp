@@ -196,10 +196,12 @@ int main(int argc, char *argv[]) {
     string fasta_file = "", out_file = "";
 
     // defaults which are not be changed
-    int window_length = 8, window_bitcount_threshold = 7, anchor_length = 3, cones_threshold = 3;
+    int window_length = 8;
+    int window_bitcount_threshold = 7;  // initialised for identifying repeats with substitutions
+    int anchor_length = 3, cones_threshold = 3;
 
     bool success = parseArguments(argc, argv, fasta_file, out_file, window_length,
-                                   window_bitcount_threshold, anchor_length, cones_threshold);
+                                  window_bitcount_threshold, anchor_length, cones_threshold);
     if (!success) exit(1);
 
     ifstream fastain(fasta_file);

@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include <bitset>
 #include <boost/dynamic_bitset.hpp>
+#include <cmath>
 
 #include "global_variables.h"
 #include "parse_perfect_shiftxor.h"
@@ -43,7 +44,6 @@ bool retainIdenticalSeeds(vector<boost::dynamic_bitset<>> &motif_bsets, int star
 }
 
 
-
 void addSeedToSeedPositionsPerfect(int seed_start, int seed_end, int motif_length,
                                    vector<tuple<int, int, int, int>> &seed_positions,
                                    vector<boost::dynamic_bitset<>> &motif_bsets, int bset_size) {
@@ -55,7 +55,7 @@ void addSeedToSeedPositionsPerfect(int seed_start, int seed_end, int motif_lengt
     int seed_midx = motif_length - MINIMUM_SHIFT;
     int last_length, last_rlen, overlap_length;
 
-    vector<int> remove_seeds;   // the indeices of seeds that need to be removed
+    vector<int> remove_seeds;   // the indices of seeds that need to be removed
 
     for (int i=seed_positions.size()-1; i>=0; i--) {
         // starting from the last seed and decrementing in indices
@@ -142,15 +142,101 @@ void addSeedToSeedPositionsPerfect(int seed_start, int seed_end, int motif_lengt
 }
 
 
+void addPerfectRepeatPositions(int seed_start, int seed_end, int motif_length,
+                               vector<tuple<int, int, int, int>> &repeat_positions,
+                               vector<boost::dynamic_bitset<>> &motif_bsets, int bset_size) {
+
+    int last_start, last_end, last_mlen;       // coordinate variables for existing seeds
+    int seed_length = seed_end-seed_start, seed_rlen = seed_end - seed_start + motif_length;
+
+    // indices for different shifts in motif_bsets
+    int seed_midx = motif_length - MINIMUM_SHIFT;
+    int last_length, last_rlen, overlap_length;
+
+    vector<int> remove_seeds;   // the indices of seeds that need to be removed
+
+    for (int i=repeat_positions.size()-1; i>=0; i--) {
+        // starting from the last seed and decrementing in indices
+        last_start = get<0> (repeat_positions[i]);
+        last_end   = get<1> (repeat_positions[i]);
+        last_mlen  = get<2> (repeat_positions[i]);
+        last_length = last_end - last_start;
+        last_rlen = last_length + last_mlen;
+
+        // seed positions are sorted based on the end position
+        // once we encounter a seed that is beyond the start of the current seed
+        if (last_end < seed_start) break;
+
+        // identical
+        if (last_start == seed_start && last_end == seed_end) {
+            if (last_mlen < motif_length) { return; }
+            else { remove_seeds.push_back(i); }
+        }
+
+        // nested
+        else if (last_start <= seed_start && last_end >= seed_end) {
+            if (seed_rlen < last_mlen/3) { continue; }
+            else { return; }
+        }
+
+        // parent
+        else if (seed_start <= last_start && seed_end >= last_end) {
+            if (last_rlen < motif_length/3) { continue; }
+            else { remove_seeds.push_back(i); }
+        }
+
+        // overlap
+        else {
+            if (last_start < seed_start) { overlap_length = last_end - seed_start + last_mlen; }
+            else { overlap_length = seed_end - last_start + motif_length; }
+
+            if (last_mlen < motif_length) {
+                // if the overlap length is at least 1 less than the larger motif size
+                //  the longer motif repeat with more than 3 units is retained
+                if (motif_length - overlap_length <= 1 && seed_rlen/motif_length < 3) {
+                    return;
+                }
+                else if (seed_rlen - motif_length - overlap_length <= last_mlen) {
+                    return;
+                }
+            }
+
+            else if (motif_length < last_mlen) {
+                // if the overlap length is at least 1 less than the larger motif size
+                if (last_mlen - overlap_length <= 1 && last_rlen/last_mlen < 3) {
+                    remove_seeds.push_back(i);
+                }
+                else if (last_rlen - last_mlen - overlap_length <= motif_length) {
+                    remove_seeds.push_back(i);
+                }
+            }
+        }
+    }
+
+    for (int i=0; i<remove_seeds.size(); i++) {
+        // removing the redundant seeds
+        // because the seeds are being removed in reverse order the index of the next
+        // seed to be removed is not changed
+        repeat_positions.erase(repeat_positions.begin() + remove_seeds[i]);
+    }
+
+    // limiting the seeds to the edge
+    if (seed_end > bset_size-motif_length) {
+        seed_end = bset_size-motif_length;
+    }
+
+    repeat_positions.push_back(tuple<int, int, int, int> { seed_start, seed_end, motif_length, RANK_P});
+}
+
+
 // function to identify windows based on the threshold of window bit counts
 vector<tuple<int, int, int, int>> processShiftXORsPerfect(vector<boost::dynamic_bitset<>> &motif_bsets, boost::dynamic_bitset<> &N_bset,
-                                                          int &window_length, int &window_bitcount_threshold) {
+                                                          int &window_length) {
     /*
      *  parsing the shift XORs of all shift sizes and picking seeds from each shift
      *  @param motif_bsets shift XOR bsets of all shift sizes
      *  @param N_bset N position bitset
      *  @param window_length length of the window to be scanned
-     *  @param window_bitcount_threshold the threshold number of set bits in the window
      *  @return vector<tuple<int, int, int>> vector of end position sorted seeds from all motif sizes
     */
 
@@ -183,10 +269,11 @@ vector<tuple<int, int, int, int>> processShiftXORsPerfect(vector<boost::dynamic_
             // N is present at this position reset the window
             for (int midx=min_idx; midx < min_idx+NMOTIFS; midx++) {
                 didx = midx-min_idx; motif_length = MINIMUM_SHIFT + midx;
-                cutoff = (motif_length <= 6) ? 12-motif_length : motif_length+midx;
+                cutoff = (motif_length <= 6) ? 12-motif_length : motif_length;
                 if (last_starts[didx] != -1) {
                     if (window_position - last_starts[didx] >= cutoff) {
-                        addSeedToSeedPositionsPerfect(last_starts[didx], window_position, motif_length, seed_positions, motif_bsets, bset_size);
+                        if (PURITY_THRESHOLD == 1) { addPerfectRepeatPositions(last_starts[didx], window_position, motif_length, seed_positions, motif_bsets, bset_size); }
+                        else { addSeedToSeedPositionsPerfect(last_starts[didx], window_position, motif_length, seed_positions, motif_bsets, bset_size); }
                     }
                     last_starts[didx] = -1;
                 }
@@ -206,7 +293,8 @@ vector<tuple<int, int, int, int>> processShiftXORsPerfect(vector<boost::dynamic_
                 else {
                     if (last_starts[didx] != -1) {
                         if (window_position - last_starts[didx] >= cutoff) {
-                            addSeedToSeedPositionsPerfect(last_starts[didx], window_position, motif_length, seed_positions, motif_bsets, bset_size);
+                            if (PURITY_THRESHOLD == 1) { addPerfectRepeatPositions(last_starts[didx], window_position, motif_length, seed_positions, motif_bsets, bset_size); }
+                            else { addSeedToSeedPositionsPerfect(last_starts[didx], window_position, motif_length, seed_positions, motif_bsets, bset_size); }
                         }
                     }
                     last_starts[didx] = -1;
@@ -223,7 +311,8 @@ vector<tuple<int, int, int, int>> processShiftXORsPerfect(vector<boost::dynamic_
         cutoff = (motif_length <= 6) ? 12-motif_length : motif_length;
         if (last_starts[didx] != -1) {
             if (window_position - last_starts[didx] >= cutoff) {
-                addSeedToSeedPositionsPerfect(last_starts[didx], window_position, motif_length, seed_positions, motif_bsets, bset_size);
+                if (PURITY_THRESHOLD == 1) { addPerfectRepeatPositions(last_starts[didx], window_position, motif_length, seed_positions, motif_bsets, bset_size); }
+                else { addSeedToSeedPositionsPerfect(last_starts[didx], window_position, motif_length, seed_positions, motif_bsets, bset_size); }
             }
             last_starts[didx] = -1;
         }
