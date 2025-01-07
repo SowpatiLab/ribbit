@@ -12,6 +12,12 @@ using namespace boost;
 
 
 tuple<vector<int>, vector<char>> cigarSplit(const char* cigar) {
+    /*
+     * processes the CIGAR string to return list of cigar operations and lengths
+     * @param cigar character string of cigar
+     * @returns tuple<vector<int>, vector<char>> two vectors with ordered cigar operations and lengths
+    */
+    
     const char * t; // first copy the pointer to not change the original
     string length = "";
     vector<int> clens; vector<char> ctypes;
@@ -33,6 +39,15 @@ tuple<vector<int>, vector<char>> cigarSplit(const char* cigar) {
 
 pair<int, int> calculateTrimEdges(float &purity_threshold, float &purity, vector<int> &ccigar_lengths,
                                   int &alignment_length, int &motif_length) {
+    /*
+     * optimal trimming length for a repeat to meet the threshold purity
+     * @param prity_threshold the allowed purity threshold
+     * @param purity current purity of the repeat
+     * @param ccigar_lengths the compressed cigar operations and lengths
+     * @param alignment_length total alignment length used to calculate the purity of the repeat
+     * @param motif_length motif length of the repeat
+     * @returns pair<int, int> left and right trim lengths for the repeat
+    */
 
     int trim_length = 0;        // length of the trim
     pair<int, int> trim_edges;  // the final pair of trim lengths 
@@ -88,6 +103,16 @@ pair<int, int> calculateTrimEdges(float &purity_threshold, float &purity, vector
 
 pair<int, int> calculateTrimEdges(int &mismatches_threshold, float &purity, int &mismatches,
                                   vector<int> &ccigar_lengths, int &alignment_length, int &motif_length) {
+    /*
+     * optimal trimming length for a repeat to meet the threshold mismatches
+     * @param mismatches_threshold the threshold number of mismatches allowed
+     * @param purity current purity of the repeat
+     * @param mismatches current number of mismatches in the repeat
+     * @param ccigar_lengths the compressed cigar operations and lengths
+     * @param alignment_length total alignment length used to calculate the purity of the repeat
+     * @param motif_length motif length of the repeat
+     * @returns pair<int, int> left and right trim lengths for the repeat
+    */
 
     int trim_length = 0;        // length of the trim
     pair<int, int> trim_edges;  // the final pair of trim lengths 
@@ -261,6 +286,7 @@ tuple<vector<int>, string, float> processCIGARMotifWise(int seed_start, int seed
      * @param seed_sequence sequence of the seed
      * @returns vector having corrected attributes of the repeat sequence
     */
+
     tuple<vector<int>, vector<char>> csplit = cigarSplit(cigar.c_str());
     vector<int>  clens = get<0> (csplit);
     vector<char> ctypes = get<1> (csplit);    

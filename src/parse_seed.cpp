@@ -23,11 +23,12 @@ using namespace boost;
 
 using namespace boost::multiprecision;
 
+
 int longestContinuousMatches(boost::dynamic_bitset<> &bset) {
     /*
-       * calculates the longest continuous stretch of 1s in a bitset
-       * @param bset input bitset
-       * @return int length of the longest continuous stretch of 1s
+     * calculates the longest continuous stretch of 1s in a bitset
+     * @param bset input bitset
+     * @return int length of the longest continuous stretch of 1s
     */
 
     int nseq = bset.size(), l = 0, maxl = 0;
@@ -254,6 +255,7 @@ uint256_t mostFrequentLongerMotif(boost::dynamic_bitset<> &left_bset, boost::dyn
 
     return motif_unit;
 }
+
 
 // with seed seq and known motif length here we are applying KMP algorithm to know the frequenct motifs. 
 uint256_t mostFrequentMotif(boost::dynamic_bitset<> &left_bset, boost::dynamic_bitset<> &right_bset, int &seed_start,

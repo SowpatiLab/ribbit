@@ -15,38 +15,19 @@
 using namespace std;
 
 
-bool retainNestedSeed(vector<boost::dynamic_bitset<>> &motif_bsets, int start, int end,
-                      int nested_midx, int parent_midx, int bset_size) {
-
-    int nested_count = 0, parent_count = 0;
-    for(int i=start; i<end; i++) {
-        if (motif_bsets[nested_midx][bset_size - 1 - i] == 1) nested_count += 1;
-        if (motif_bsets[parent_midx][bset_size - 1 - i] == 1) parent_count += 1;
-    }
-
-    if (nested_count < parent_count) { return false; }
-    else { return true; }
-}
-
-bool retainIdenticalSeeds(vector<boost::dynamic_bitset<>> &motif_bsets, int start, int end,
-                           int nested_midx, int parent_midx, int bset_size) {
-
-    int nested_count = 0, parent_count = 0;
-    for(int i=start; i<end; i++) {
-        if (motif_bsets[nested_midx][bset_size - 1 - i] == 1) nested_count += 1;
-        if (motif_bsets[parent_midx][bset_size - 1 - i] == 1) parent_count += 1;
-    }
-
-    if (nested_count < parent_count) { return false; }
-    else if (nested_count == parent_count) { return nested_midx < parent_midx; }
-    else { return true; }
-}
-
-
-
-void addSeedToSeedPositionsPerfect(int seed_start, int seed_end, int motif_length,
+void addSeedToSeedPositionsPerfect(int seed_start, int seed_end, int motif_length, 
                                    vector<tuple<int, int, int, int>> &seed_positions,
                                    vector<boost::dynamic_bitset<>> &motif_bsets, int bset_size) {
+    /*
+     *  add seed for a perfect repeat to the existing seed positions list
+     *  @param seed_start start position of the seed
+     *  @param seed_end end position of the seed
+     *  @param motif_length motif length of the TR seed
+     *  @param seed_positions vector of existing seed positions
+     *  @param motif_bsets shift XOR bitsets of all the motif sizes
+     *  @param bset_size the total size of a shift XOR bitset
+     *  @return none add the seed to seed_position
+    */
 
     int last_start, last_end, last_mlen;       // coordinate variables for existing seeds
     int seed_length = seed_end-seed_start, seed_rlen = seed_end - seed_start + motif_length;
@@ -145,6 +126,17 @@ void addSeedToSeedPositionsPerfect(int seed_start, int seed_end, int motif_lengt
 void addPerfectRepeatPositions(int seed_start, int seed_end, int motif_length,
                                vector<tuple<int, int, int, int>> &repeat_positions,
                                vector<boost::dynamic_bitset<>> &motif_bsets, int bset_size) {
+    /*
+     *  add position for perfect repeat in repeat positions. function to identify
+     *  perfect repeats when the PURITY_THRESHOLD is 1
+     *  @param seed_start start position of the seed
+     *  @param seed_end end position of the seed
+     *  @param motif_length motif length of the TR seed
+     *  @param repeat_positions vector of existing seed positions
+     *  @param motif_bsets shift XOR bitsets of all the motif sizes
+     *  @param bset_size the total size of a shift XOR bitset
+     *  @return none add the seed to seed_position
+    */
 
     int last_start, last_end, last_mlen;       // coordinate variables for existing seeds
     int seed_length = seed_end-seed_start, seed_rlen = seed_end - seed_start + motif_length;
@@ -167,7 +159,7 @@ void addPerfectRepeatPositions(int seed_start, int seed_end, int motif_length,
         // once we encounter a seed that is beyond the start of the current seed
         if (last_end < seed_start) break;
 
-        // identical
+        // identical - repeat with lower motif size is retained
         if (last_start == seed_start && last_end == seed_end) {
             if (last_mlen < motif_length) { return; }
             else { remove_seeds.push_back(i); }
@@ -185,7 +177,8 @@ void addPerfectRepeatPositions(int seed_start, int seed_end, int motif_length,
             else { remove_seeds.push_back(i); }
         }
 
-        // overlap
+        // overlap - difference between adding perfect repeat seeds and perfect repeat positions
+        // no overlapping repeats are merged
         else {
             if (last_start < seed_start) { overlap_length = last_end - seed_start + last_mlen; }
             else { overlap_length = seed_end - last_start + motif_length; }

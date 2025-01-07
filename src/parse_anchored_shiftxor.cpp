@@ -19,7 +19,6 @@ using namespace std;
 
 void generateAnchoredShiftXORs(vector<boost::dynamic_bitset<>> &lshift_xor_bsets, boost::dynamic_bitset<> &N_bset,
                                vector<boost::dynamic_bitset<>> &lsxor_anchor_bsets, int anchor_size) {
-
     /*
      *  generates shift XOR bitsets only retaining the anchors
      *  @param lshift_xor_bsets vector of left shift XOR bitsets of all shifts
@@ -58,7 +57,16 @@ void generateAnchoredShiftXORs(vector<boost::dynamic_bitset<>> &lshift_xor_bsets
 
 bool retainNestedSeedAnchored(vector<boost::dynamic_bitset<>> &motif_bsets, int start, int end,
                               int nested_midx, int parent_midx, int bset_size) {
-
+    /*
+     *  decides if the nested repeat should be retained or not based on the bitcount comparison
+     *  @param motif_bsets bitsets of all motif size shifts
+     *  @param start start position of the nested seed
+     *  @param end end position of the nested seed
+     *  @param nested_midx motif index of the nested seed
+     *  @param motif_bsets motif index of the parent seed
+     *  @param bset_size the total size of a shift XOR bitset
+     *  @return bool boolean value if the nested seed should be retained or not
+    */
     int nested_count = 0, parent_count = 0;
     for(int i=start; i<end; i++) {
         if (motif_bsets[nested_midx][bset_size - 1 - i] == 1) nested_count += 1;
@@ -69,9 +77,19 @@ bool retainNestedSeedAnchored(vector<boost::dynamic_bitset<>> &motif_bsets, int 
     else { return true; }
 }
 
+
 bool retainIdeniticalSeedAnchored(vector<boost::dynamic_bitset<>> &motif_bsets, int start, int end,
                               int nested_midx, int parent_midx, int bset_size) {
-
+    /*
+     *  decides if the nested repeat should be retained or not based on the bitcount comparison
+     *  @param motif_bsets bitsets of all motif size shifts
+     *  @param start start position of the nested seed
+     *  @param end end position of the nested seed
+     *  @param nested_midx motif index of the nested seed
+     *  @param motif_bsets motif index of the parent seed
+     *  @param bset_size the total size of a shift XOR bitset
+     *  @return bool boolean value if the nested seed should be retained or not
+    */
     int nested_count = 0, parent_count = 0;
     for(int i=start; i<end; i++) {
         if (motif_bsets[nested_midx][bset_size - 1 - i] == 1) nested_count += 1;
@@ -85,6 +103,13 @@ bool retainIdeniticalSeedAnchored(vector<boost::dynamic_bitset<>> &motif_bsets, 
 
 
 int clearSeedsAnchored(int from_index, vector<tuple<int, int, int, int>> &seed_positions, int seed_start) {
+    /*
+     *  removes redundant seeds from anchored seed positions
+     *  @param from_index the index from which seed with RANK_N should be searched for
+     *  @param seed_positions vector of all anchored seed_positions
+     *  @param seed_start the position of current seed added to stop searching for redundant seeds\
+     *  @return from_index updated from_index for next redundant search
+    */
 
     vector<int> remove_seeds;
     int last_end, last_type;
@@ -532,7 +557,6 @@ tuple<int,int> addSeedToSeedPositionsAnchored(int seed_start, int seed_end, int 
     seed_positions_anchored.push_back({seed_start, seed_end, motif_length, seed_type});
     return tuple<int,int> { from_index_perfect, from_index_substut };
 }
-
 
 
 vector<tuple<int,int,int,int>> processShiftXORsAnchored(vector<boost::dynamic_bitset<>> &motif_bsets, boost::dynamic_bitset<> &N_bset,
