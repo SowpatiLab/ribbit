@@ -129,46 +129,53 @@ void processSequence(string &sequence_id, string &sequence, int window_length, i
     vector<tuple<int, int, int, int>> seed_positions_anchored;
     int failed_seeds = 0;
 
-    seed_positions_perfect = processShiftXORsPerfect(lshift_xor_bsets, N_bset, window_length, window_bitcount_threshold);
-    seconds_since_start = difftime( time(0), START_TIME);
-    cerr << "Total number of perfect seeds: " << seed_positions_perfect.size() << "\t Time elapsed: " << seconds_since_start << "secs\n";
-
-    seed_positions_substut = processShiftXORswithSubstitutions(lshift_xor_bsets, N_bset, window_length, window_bitcount_threshold, seed_positions_perfect);
-    failed_seeds = failedSeeds(seed_positions_perfect); failed_seeds += failedSeeds(seed_positions_substut);
-    seconds_since_start = difftime( time(0), START_TIME);
-    cerr << "Total number of seeds considering substitutions: " << seed_positions_perfect.size() + seed_positions_substut.size() - failed_seeds << "\t Time elapsed: " << seconds_since_start << "secs\n";
-
-
-    // generating the anchor bitsets for all shift sizes
-    vector<boost::dynamic_bitset<>> lsxor_anchor_bsets;     // vector of dynamic bitsets for anchor bitsets
-    generateAnchoredShiftXORs(lshift_xor_bsets, N_bset, lsxor_anchor_bsets, anchor_size);
-    boost::dynamic_bitset<> anchor_bset(sequence_length, 0ull);
-    int motif_length = MINIMUM_MLEN;
-    for (; motif_length <= MAXIMUM_MLEN; motif_length++) {
-        anchor_bset.reset();
-
-        int i = (motif_length > 2) ? motif_length - 2 : 1;
-        for (; i <= motif_length + 2; i++) {
-            int shift_idx = i - MINIMUM_SHIFT;
-            // OR with actual shift XOR for same motif size
-            if (i == motif_length) { anchor_bset |= lshift_xor_bsets[shift_idx]; }
-            // OR with anchor bitset for neigboring shifts
-            else { anchor_bset |= lsxor_anchor_bsets[shift_idx]; }
-        }
-
-        lshift_xor_bsets[motif_length-MINIMUM_SHIFT] = anchor_bset;
+    if (PURITY_THRESHOLD == 1) {
+        seed_positions_perfect = processShiftXORsPerfect(lshift_xor_bsets, N_bset, window_length, window_bitcount_threshold);
+        seconds_since_start = difftime( time(0), START_TIME);
+        cerr << "Total number of perfect seeds: " << seed_positions_perfect.size() << "\t Time elapsed: " << seconds_since_start << "secs\n";
     }
-    lsxor_anchor_bsets.clear();
-    seconds_since_start = difftime( time(0), START_TIME);
-    cerr << "Generated anchored shift XORs!\t Time elapsed: " << seconds_since_start << "secs\n";
 
-    window_bitcount_threshold = 6;
-    seed_positions_anchored = processShiftXORsAnchored(lshift_xor_bsets, N_bset, window_length, window_bitcount_threshold,
-                                                       seed_positions_perfect, seed_positions_substut);
-    seconds_since_start = difftime( time(0), START_TIME);
-    failed_seeds = failedSeeds(seed_positions_perfect); failed_seeds += failedSeeds(seed_positions_substut); failed_seeds += failedSeeds(seed_positions_anchored);
-    cerr << "Total number of seeds considering indels: " << seed_positions_perfect.size() + seed_positions_substut.size() + seed_positions_anchored.size() - failed_seeds << "\t Time elapsed: " << seconds_since_start << "secs\n";
+    else {
+        seed_positions_perfect = processShiftXORsPerfect(lshift_xor_bsets, N_bset, window_length, window_bitcount_threshold);
+        seconds_since_start = difftime( time(0), START_TIME);
+        cerr << "Total number of perfect seeds: " << seed_positions_perfect.size() << "\t Time elapsed: " << seconds_since_start << "secs\n";
 
+        seed_positions_substut = processShiftXORswithSubstitutions(lshift_xor_bsets, N_bset, window_length, window_bitcount_threshold, seed_positions_perfect);
+        failed_seeds = failedSeeds(seed_positions_perfect); failed_seeds += failedSeeds(seed_positions_substut);
+        seconds_since_start = difftime( time(0), START_TIME);
+        cerr << "Total number of seeds considering substitutions: " << seed_positions_perfect.size() + seed_positions_substut.size() - failed_seeds << "\t Time elapsed: " << seconds_since_start << "secs\n";
+
+
+        // generating the anchor bitsets for all shift sizes
+        vector<boost::dynamic_bitset<>> lsxor_anchor_bsets;     // vector of dynamic bitsets for anchor bitsets
+        generateAnchoredShiftXORs(lshift_xor_bsets, N_bset, lsxor_anchor_bsets, anchor_size);
+        boost::dynamic_bitset<> anchor_bset(sequence_length, 0ull);
+        int motif_length = MINIMUM_MLEN;
+        for (; motif_length <= MAXIMUM_MLEN; motif_length++) {
+            anchor_bset.reset();
+
+            int i = (motif_length > 2) ? motif_length - 2 : 1;
+            for (; i <= motif_length + 2; i++) {
+                int shift_idx = i - MINIMUM_SHIFT;
+                // OR with actual shift XOR for same motif size
+                if (i == motif_length) { anchor_bset |= lshift_xor_bsets[shift_idx]; }
+                // OR with anchor bitset for neigboring shifts
+                else { anchor_bset |= lsxor_anchor_bsets[shift_idx]; }
+            }
+
+            lshift_xor_bsets[motif_length-MINIMUM_SHIFT] = anchor_bset;
+        }
+        lsxor_anchor_bsets.clear();
+        seconds_since_start = difftime( time(0), START_TIME);
+        cerr << "Generated anchored shift XORs!\t Time elapsed: " << seconds_since_start << "secs\n";
+
+        window_bitcount_threshold = 6;
+        seed_positions_anchored = processShiftXORsAnchored(lshift_xor_bsets, N_bset, window_length, window_bitcount_threshold,
+                                                        seed_positions_perfect, seed_positions_substut);
+        seconds_since_start = difftime( time(0), START_TIME);
+        failed_seeds = failedSeeds(seed_positions_perfect); failed_seeds += failedSeeds(seed_positions_substut); failed_seeds += failedSeeds(seed_positions_anchored);
+        cerr << "Total number of seeds considering indels: " << seed_positions_perfect.size() + seed_positions_substut.size() + seed_positions_anchored.size() - failed_seeds << "\t Time elapsed: " << seconds_since_start << "secs\n";
+    }
 
 
     // Objects used by complete striped smithwater algorithm
