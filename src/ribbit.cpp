@@ -198,12 +198,10 @@ int main(int argc, char *argv[]) {
 
     // assigns the output to either a file or standard output
     streambuf * buf; ofstream outstream;
-    if (out_file != "") {
-        outstream.open(out_file);
-        buf = outstream.rdbuf();    // output file buffer is created
-    }
-    // if output file is not provided the default is set at stdout
-    else { buf = std::cerr.rdbuf(); }
+    // if the output file is not given by default: input file + ".ribbit"
+    if (out_file == "") { out_file = fasta_file + ".ribbit"; }
+    outstream.open(out_file);
+    buf = outstream.rdbuf();    // output file buffer is created
     ostream out(buf);
 
     ifstream fastain(fasta_file);
