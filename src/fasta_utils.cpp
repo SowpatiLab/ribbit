@@ -259,7 +259,7 @@ void processSequence(string sequence_id, string sequence, int window_length, int
     seed_positions_anchored.clear();
 
     seconds_since_start = difftime( time(0), START_TIME);
-    std::cerr << "Total number of seeds that are processed for alignment: " << processed_seeds << "\t Time elapsed: " << seconds_since_start << "secs\n";
+    std::cerr << "Total number of seeds that are processed for alignment: " << processed_seeds << "\t Time elapsed: " << seconds_since_start << "secs\n\n";
 }
 
 

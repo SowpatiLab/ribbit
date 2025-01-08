@@ -86,7 +86,7 @@ bool parseArguments(int &argc, char* argv[], string &fasta_file, string &out_fil
         ("help,h", "Ribbit tool identifies short tandem repeats with allowed levels of impurity.")
 
         ("input-file,i", po::value<string>(), "File path for the input fasta file.")
-        ("output-file,o", po::value<string>(), "File path for the input fasta file.")        
+        ("output-file,o", po::value<string>(), "File path for the input fasta file. Default: adds a ribbit suffix to input file.")        
 
         ("min-motif-length,m", po::value<int>(), "The minimum length of the motif of the repeats to be identified. Default: 2")
         ("max-motif-length,M", po::value<int>(), "The maximum length of the motif of the repeats to be identified, Default: 100")
@@ -243,7 +243,7 @@ int main(int argc, char *argv[]) {
     NSHIFTS = MAXIMUM_SHIFT - MINIMUM_SHIFT + 1;
 
     cerr << "Purity threshold: " << PURITY_THRESHOLD << "\n";
-    cerr << "Motif purity threshold: " << MOTIFPURITY_THRESHOLD << "\n";
+    cerr << "Motif purity threshold: " << MOTIFPURITY_THRESHOLD << "\n\n";
 
     // Dynamically allocate memory for the matrix
     int SMALL_MLEN_LIMIT = 10;    // only save repeat classes for smaller motif sizes
@@ -272,13 +272,13 @@ int main(int argc, char *argv[]) {
     if (THREADS == 1) {
         // assigns the output to either a file or standard output
         streambuf * buf; ofstream outstream;
-        if (out_file != "") {
-            outstream.open(out_file);
-            buf = outstream.rdbuf();    // output file buffer is created
-        }
-        // if output file is not provided the default is set at stdout
-        else { buf = std::cerr.rdbuf(); }
+        
+        // if the output file is not given by default: input file + ".ribbit"
+        if (out_file == "") { out_file = fasta_file + ".ribbit"; }
+        outstream.open(out_file);
+        buf = outstream.rdbuf();    // output file buffer is created
         ostream out(buf);
+        
         while (getline(fastain, line)) {
             if (line[0] == '>') {
                 if (sequence != "") {
