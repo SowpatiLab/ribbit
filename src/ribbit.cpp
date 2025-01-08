@@ -129,6 +129,8 @@ bool parseArguments(int &argc, char* argv[], string &fasta_file, string &out_fil
 
     if (args.count("min-motif-length")) { MINIMUM_MLEN = args["min-motif-length"].as<int>(); }
     if (args.count("max-motif-length")) { MAXIMUM_MLEN = args["max-motif-length"].as<int>(); }
+    if (args.count("purity")) { PURITY_THRESHOLD = args["purity"].as<double>(); }
+    if (args.count("motif-purity")) { MOTIFPURITY_THRESHOLD = args["motif-purity"].as<double>(); }
 
     /*
       currently all are set to default parameters and non-accessible to the user
