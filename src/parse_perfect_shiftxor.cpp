@@ -259,7 +259,7 @@ vector<tuple<int, int, int, int>> processShiftXORsPerfect(vector<boost::dynamic_
                 cutoff = (motif_length <= 6) ? 12-motif_length : motif_length+midx;
                 if (last_starts[didx] != -1) {
                     if (window_position - last_starts[didx] >= cutoff) {
-                        if (PURITY_THRESHOLD = 1) { addPerfectRepeatPositions(last_starts[didx], window_position, motif_length, seed_positions, motif_bsets, bset_size); }
+                        if (PURITY_THRESHOLD == 1) { addPerfectRepeatPositions(last_starts[didx], window_position, motif_length, seed_positions, motif_bsets, bset_size); }
                         else { addSeedToSeedPositionsPerfect(last_starts[didx], window_position, motif_length, seed_positions, motif_bsets, bset_size); }
                     }
                     last_starts[didx] = -1;
@@ -280,7 +280,7 @@ vector<tuple<int, int, int, int>> processShiftXORsPerfect(vector<boost::dynamic_
                 else {
                     if (last_starts[didx] != -1) {
                         if (window_position - last_starts[didx] >= cutoff) {
-                            if (PURITY_THRESHOLD = 1) { addPerfectRepeatPositions(last_starts[didx], window_position, motif_length, seed_positions, motif_bsets, bset_size); }
+                            if (PURITY_THRESHOLD == 1) { addPerfectRepeatPositions(last_starts[didx], window_position, motif_length, seed_positions, motif_bsets, bset_size); }
                             else { addSeedToSeedPositionsPerfect(last_starts[didx], window_position, motif_length, seed_positions, motif_bsets, bset_size); }
                         }
                     }
@@ -298,7 +298,7 @@ vector<tuple<int, int, int, int>> processShiftXORsPerfect(vector<boost::dynamic_
         cutoff = (motif_length <= 6) ? 12-motif_length : motif_length;
         if (last_starts[didx] != -1) {
             if (window_position - last_starts[didx] >= cutoff) {
-                if (PURITY_THRESHOLD = 1) { addPerfectRepeatPositions(last_starts[didx], window_position, motif_length, seed_positions, motif_bsets, bset_size); }
+                if (PURITY_THRESHOLD == 1) { addPerfectRepeatPositions(last_starts[didx], window_position, motif_length, seed_positions, motif_bsets, bset_size); }
                 else { addSeedToSeedPositionsPerfect(last_starts[didx], window_position, motif_length, seed_positions, motif_bsets, bset_size); }
             }
             last_starts[didx] = -1;

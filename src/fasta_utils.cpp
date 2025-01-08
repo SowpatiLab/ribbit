@@ -129,7 +129,7 @@ void processSequence(string &sequence_id, string &sequence, int window_length, i
     vector<tuple<int, int, int, int>> seed_positions_anchored;
     int failed_seeds = 0;
 
-    if (PURITY_THRESHOLD = 1) {
+    if (PURITY_THRESHOLD == 1) {
         seed_positions_perfect = processShiftXORsPerfect(lshift_xor_bsets, N_bset, window_length, window_bitcount_threshold);
         seconds_since_start = difftime( time(0), START_TIME);
         cerr << "Total number of perfect seeds: " << seed_positions_perfect.size() << "\t Time elapsed: " << seconds_since_start << "secs\n";
