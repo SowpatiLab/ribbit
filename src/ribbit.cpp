@@ -89,7 +89,8 @@ bool parseArguments(int &argc, char* argv[], string &fasta_file, string &out_fil
         ("min-motif-length,m", po::value<int>(), "The minimum length of the motif of the repeats to be identified. Default: 2")
         ("max-motif-length,M", po::value<int>(), "The maximum length of the motif of the repeats to be identified, Default: 100")
 
-        ("purity,p", po::value<float>(), "Threshold value for cotinuous number of ones found in a seed. Default: 0.85")
+        ("purity,p", po::value<double>(), "Threshold value for cotinuous number of ones found in a seed. Default: 0.85")
+        ("motif-purity", po::value<double>(), "Threshold value for cotinuous number of ones found in a seed. Default: 0.85")
 
         ("min-length,l", po::value<string>(), "The minimum length of the repeat. Default: 12")
         ("min-units", po::value<string>(), "The minimum number of units of the repeat. Can be a integer value, for cutoff across all motif sizes.\
