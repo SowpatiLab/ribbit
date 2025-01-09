@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include <fstream>
 #include <iostream>
 #include <unordered_map>
@@ -90,7 +89,6 @@ bool parseArguments(int &argc, char* argv[], string &fasta_file, string &out_fil
         ("max-motif-length,M", po::value<int>(), "The maximum length of the motif of the repeats to be identified, Default: 100")
 
         ("purity,p", po::value<double>(), "Threshold value for cotinuous number of ones found in a seed. Default: 0.85")
-        ("motif-purity", po::value<double>(), "Threshold value for cotinuous number of ones found in a seed. Default: 0.85")
 
         ("min-length,l", po::value<string>(), "The minimum length of the repeat. Default: 12")
         ("min-units", po::value<string>(), "The minimum number of units of the repeat. Can be a integer value, for cutoff across all motif sizes.\
@@ -131,7 +129,6 @@ bool parseArguments(int &argc, char* argv[], string &fasta_file, string &out_fil
     if (args.count("min-motif-length")) { MINIMUM_MLEN = args["min-motif-length"].as<int>(); }
     if (args.count("max-motif-length")) { MAXIMUM_MLEN = args["max-motif-length"].as<int>(); }
     if (args.count("purity")) { PURITY_THRESHOLD = args["purity"].as<double>(); }
-    if (args.count("motif-purity")) { MOTIFPURITY_THRESHOLD = args["motif-purity"].as<double>(); }
 
     /*
       currently all are set to default parameters and non-accessible to the user
