@@ -282,7 +282,7 @@ int main(int argc, char *argv[]) {
         while (getline(fastain, line)) {
             if (line[0] == '>') {
                 if (sequence != "") {
-                    cerr << "Processing sequence " << seq_name << "\n";
+                    cerr << "\nProcessing sequence " << seq_name << "\n";
                     processSequence(seq_name, sequence, window_length, window_bitcount_threshold, anchor_length, cones_threshold, out);
                 }
                 seq_name = line.substr(1, line.find(' ') - 1);

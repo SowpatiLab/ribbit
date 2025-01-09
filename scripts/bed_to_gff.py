@@ -67,7 +67,7 @@ def distance(s1, s2):
 
 def process_bed(bed_file, gff_file):
     bed = pybedtools.BedTool(bed_file)
-    sorted_merged_bed = bed.sort().merge(str_start_j=list(range(2,12)), o=['collapse']*10)
+    sorted_merged_bed = bed.sort().merge(c=list(range(2,12)), o=['collapse']*10)
 
     out = open(gff_file, 'w')
 
