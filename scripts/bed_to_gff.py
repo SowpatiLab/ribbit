@@ -150,8 +150,7 @@ def process_bed(bed_file, gff_file):
         seed_orientations = region[10].split(',')
         seed_type = region[11].split(',')
         str_cigars = region[12].split(',')
-        print(str_cigars)
-        
+
         region_id = "R%09d" %(region_num)
         str_ids = ["S%09d" % (str_num+(i+1)) for i in range(len(str_starts))]
 
@@ -187,7 +186,6 @@ def process_bed(bed_file, gff_file):
                         
                         # STR-i and STR-j have the same motif ~ Could happen if they are identified from different motif shifts
                         if str_motifs[i] == str_motifs[j]:
-                            print(str_starts[i], str_ends[i], str_starts[j], str_ends[j], str_cigars[i], str_cigars[j], sep='\t')
                             merge_cigar, merge_purity = merge_repeats(str_ends[j], str_starts[i], str_cigars[j], str_cigars[i])
                             del_strs.append(j)
                             str_ends[i] = str_ends[j]; str_cigars[i] = merge_cigar; str_purities[i] = merge_purity
