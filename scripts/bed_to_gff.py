@@ -61,8 +61,62 @@ def expected_diff(parent_motif, parent_purity, child_motif, child_len, child_pur
     # retain the nested STR
     return not (child_purity > (1 - (abs(parent_imperfections - total_edit_d) / child_len)))
 
+
 def distance(s1, s2):
     return sum(1 for str_start_i, str_end_i in zip(s1, s2) if str_start_i != str_end_i)
+
+
+def cigar_split(cigar):
+    length = "";
+    clens = []; ctypes = []
+    
+    for c in cigar:
+        if c.isdigit(): length += c
+        else:
+            clens.append(int(length))
+            ctypes.append(c)
+            length = ""
+
+    return clens, ctypes
+
+
+def get_merge_coordinate(iend, jstart, clens, ctypes):
+    print(iend, jstart, clens, ctypes, sep='\t')
+    rpos = jstart
+    for i in range(len(clens)):
+        clen = clens[i]; ctype = ctypes[i]
+        if ctype == '=' or ctype == 'X' or ctype == 'I':
+            rpos += clen
+        if rpos == iend:
+            return clens[i+1:], ctypes[i+1:]
+        elif rpos > iend:
+            if i < len(clens) - 1: [rpos-iend] + clens[i+1:], ctypes[i:]
+            elif i == len(clens) - 1: return [rpos-iend], ctypes[i:]
+    if rpos >= iend:
+        if rpos == iend: return [], []
+        elif rpos > iend: return [rpos-iend], [ctypes[i]]
+
+
+def merge_repeats(iend, jstart, icigar, jcigar):
+    
+    iclens, ictypes = cigar_split(icigar)    
+    jclens, jctypes = cigar_split(jcigar)    
+    fclens, fctypes = get_merge_coordinate(iend, jstart, jclens, jctypes)
+    
+    clens = iclens + fclens
+    ctypes = ictypes + fctypes
+    merge_cigar = ''.join([f'{clens[i]}{ctypes[i]}' for i in range(len(clens))])
+
+    alignment_length = sum(clens)
+    matches = 0; mismatches = 0
+    for i in range(len(ctypes)):
+        clen = clens[i]; ctype = ctypes[i]
+        if ctype == '=': matches += clen
+        else: mismatches += clen
+    
+    merge_purity = matches/alignment_length
+    
+    return [merge_cigar, merge_purity]
 
 
 def process_bed(bed_file, gff_file):
@@ -77,12 +131,13 @@ def process_bed(bed_file, gff_file):
     region_num = 0
     str_num = 0
 
-    for region in tqdm(sorted_merged_bed):
+    for region in sorted_merged_bed:
         region_num += 1     # counting the number of regions
 
-        chrom = region.chrom
-        start = region.start
-        end = region.end
+        region_fields = str(region).split('\t')
+        chrom = region_fields[0]
+        start = int(region[1])
+        end = int(region[2])
         
         # splitting the attributes for individual regions in str_start_i merged region
         str_starts = [int(x) for x in region[3].split(',')]
@@ -95,6 +150,7 @@ def process_bed(bed_file, gff_file):
         seed_orientations = region[10].split(',')
         seed_type = region[11].split(',')
         str_cigars = region[12].split(',')
+        print(str_cigars)
         
         region_id = "R%09d" %(region_num)
         str_ids = ["S%09d" % (str_num+(i+1)) for i in range(len(str_starts))]
@@ -128,8 +184,16 @@ def process_bed(bed_file, gff_file):
                 
                 else:
                     if str_start_j <= str_start_i and str_start_i <= str_end_j:     # STR-j upstream of STR-i and overlapping
+                        
+                        # STR-i and STR-j have the same motif ~ Could happen if they are identified from different motif shifts
+                        if str_motifs[i] == str_motifs[j]:
+                            print(str_starts[i], str_ends[i], str_starts[j], str_ends[j], str_cigars[i], str_cigars[j], sep='\t')
+                            merge_cigar, merge_purity = merge_repeats(str_ends[j], str_starts[i], str_cigars[j], str_cigars[i])
+                            del_strs.append(j)
+                            str_ends[i] = str_ends[j]; str_cigars[i] = merge_cigar; str_purities[i] = merge_purity
+                        
                         # STR-i is shorter than STR-j ~ Unique length of STR-i is shorter than STR-i motif length or less than 3 bp
-                        if (str_lengths[i] < str_lengths[j]) and ((str_end_i - str_end_j) < len(str_motif_i) or ((str_end_i - str_end_j) < 3)):
+                        elif (str_lengths[i] < str_lengths[j]) and ((str_end_i - str_end_j) < len(str_motif_i) or ((str_end_i - str_end_j) < 3)):
                             del_strs.append(i)      # filter out STR
                         
                         # STR-i length equals STR-j length ~ choose repeat with higher purity
@@ -142,9 +206,14 @@ def process_bed(bed_file, gff_file):
                             overlap_relations[j].add(i)
                     
                     elif str_start_j <= str_end_i and str_end_i <= str_end_j:       # STR-i upstream of STR-j and overlapping
+
+                        if str_motifs[i] == str_motifs[j]:
+                            merge_cigar, merge_purity = merge_repeats(str_ends[i], str_starts[j], str_cigars[i], str_cigars[j])
+                            del_strs.append(j)
+                            str_ends[i] = str_ends[j]; str_cigars[i] = merge_cigar; str_purities[i] = merge_purity
                         
                         # STR-i is shorter than STR-j ~ Unique length of STR-i is shorter than STR-i motif length or less than 3 bp
-                        if (str_lengths[i] < str_lengths[j]) and (((str_start_j - str_start_i) < len(str_motif_i)) or ((str_start_j - str_start_i) < 3)):
+                        elif (str_lengths[i] < str_lengths[j]) and (((str_start_j - str_start_i) < len(str_motif_i)) or ((str_start_j - str_start_i) < 3)):
                             del_strs.append(i)
                         
                         # STR-i length equals STR-j length ~ choose repeat with higher purity
