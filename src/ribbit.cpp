@@ -83,7 +83,7 @@ bool parseArguments(int &argc, char* argv[], string &fasta_file, string &out_fil
         ("help,h", "Ribbit tool identifies short tandem repeats with allowed levels of inpurity.")
 
         ("input-file,i", po::value<string>(), "File path for the input fasta file.")
-        ("output-file,o", po::value<string>(), "File path for the output fasta file.")        
+        ("output-file,o", po::value<string>(), "File path for the output bed file.")        
 
         ("min-motif-length,m", po::value<int>(), "The minimum length of the motif of the repeats to be identified. Default: 2")
         ("max-motif-length,M", po::value<int>(), "The maximum length of the motif of the repeats to be identified, Default: 100")
