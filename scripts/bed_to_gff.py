@@ -137,7 +137,7 @@ def process_bed(bed_file, gff_file):
         chrom = region_fields[0]
         start = int(region[1])
         end = int(region[2])
-        
+
         # splitting the attributes for individual regions in str_start_i merged region
         str_starts = [int(x) for x in region[3].split(',')]
         str_ends = [int(x) for x in region[4].split(',')]
@@ -165,15 +165,18 @@ def process_bed(bed_file, gff_file):
             str_motif_i = str_motifs[i]
             str_purity_i = str_purities[i]
 
-            for j in range(len(str_starts)):
+            for j in range(nmerge):
                 
                 if i == j: continue     # skip comparison of region with itself
-
+                if i in del_strs or j in del_strs: continue
+                
                 str_start_j = str_starts[j]
                 str_end_j = str_ends[j]
 
                 if str_start_i >= str_start_j and str_end_i <= str_end_j: # location-i is nested within location-j
-                    if str_purity_i <= str_purities[j] or \
+                    if str_motifs[i] == str_motifs[j]:
+                        del_strs.append(i)
+                    elif str_purity_i <= str_purities[j] or \
                        str_motifs[i] == str_motifs[j] or \
                        expected_diff(str_motifs[j], str_purities[j], str_motifs[i], str_lengths[i], str_purities[i]):
                         del_strs.append(i) #lower purity, similar motif size, 
