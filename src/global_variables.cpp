@@ -22,6 +22,7 @@ uint32_t *MOTIF_NEXT = nullptr;
 // Define rclasses matrix
 int MINIMUM_MLEN = 2;
 int MAXIMUM_MLEN = 100;
+int SMALL_MLEN_LIMIT = 6;
 int NMOTIFS;
 int MINIMUM_SHIFT = 2;
 int MAXIMUM_SHIFT = 100;

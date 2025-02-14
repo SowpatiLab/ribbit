@@ -246,7 +246,7 @@ int main(int argc, char *argv[]) {
     cerr << "Motif purity threshold: " << MOTIFPURITY_THRESHOLD << "\n\n";
 
     // Dynamically allocate memory for the matrix
-    int SMALL_MLEN_LIMIT = 10;    // only save repeat classes for smaller motif sizes
+    int SMALL_MLEN_LIMIT = 6;    // only save repeat classes for smaller motif sizes
     REPEAT_CLASSES = new uint32_t*[SMALL_MLEN_LIMIT];
     NUM_MOTIFS = pow(4, SMALL_MLEN_LIMIT);
     for (int i = 0; i < SMALL_MLEN_LIMIT; ++i) {

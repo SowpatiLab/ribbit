@@ -240,7 +240,7 @@ void processSequence(string sequence_id, string sequence, int window_length, int
             // printing out the seed
             processed_seeds += 1;
 
-            if (seed_mlen <= 10) {
+            if (seed_mlen <= SMALL_MLEN_LIMIT) {
                 processSeedMotifWise(tuple<int, int> { seed_start, seed_end }, 0, seed_mlen, seed_type, sequence_id, sequence,
                                      sequence_length, lshift_xor_bsets[seed_mlen-MINIMUM_SHIFT], left_bset, right_bset, N_bset,
                                      continuous_ones_threshold, out, lshift_xor_bsets, aligner, filter, alignment);
@@ -450,7 +450,7 @@ void processSequenceThread(string sequence_id, string sequence, int seq_start, i
 
             processed_seeds += 1;
 
-            if (seed_mlen <= 10) {
+            if (seed_mlen <= SMALL_MLEN_LIMIT) {
                 processSeedMotifWise(tuple<int, int> { seed_start, seed_end }, seq_start, seed_mlen, seed_type, sequence_id, sequence,
                                      sequence_length, lshift_xor_bsets[seed_mlen-MINIMUM_SHIFT], left_bset, right_bset, N_bset,
                                      continuous_ones_threshold, out, lshift_xor_bsets, aligner, filter, alignment);
