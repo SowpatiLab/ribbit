@@ -381,16 +381,16 @@ void processSeed(tuple<int, int> seed_position, int seq_start, int &motif_length
     // length of the pseudo perfect sequence
     int ppr_length = seed_sequence_length + motif_length + ((1-PURITY_THRESHOLD)*seed_sequence_length);
     uint256_t motif_unit;
-    if (motif_length <= 10) {
+    if (motif_length <= SMALL_MLEN_LIMIT) {
         motif_unit = mostFrequentMotif(left_bset, right_bset, seed_start, seed_sequence_length,
                                        motif_length, sequence_length);
         atomicity = calculateAtomicity(motif_unit, motif_length);
     }
-    else if (motif_length > 10) {
+    else if (motif_length > SMALL_MLEN_LIMIT) {
         motif_unit = mostFrequentLongerMotif(left_bset, right_bset, seed_start, seed_sequence_length,
                                              motif_length, sequence_length, MATRIX);
         atomicity = calculateAtomicityLongMotif(motif_unit, motif_length);
-        if (atomicity < 10) {
+        if (atomicity < SMALL_MLEN_LIMIT) {
             processSeedMotifWise(tuple<int, int> { seed_start, seed_end }, seq_start, atomicity, seed_type, sequence_id, sequence,
                                  sequence_length, lshift_xor_bsets[atomicity-MINIMUM_SHIFT], left_bset, right_bset, N_bset,
                                  continuous_threshold, out, lshift_xor_bsets, aligner, filter, alignment);
@@ -433,8 +433,8 @@ void processSeed(tuple<int, int> seed_position, int seq_start, int &motif_length
         if (match_units >= PERFECT_UNITS[atomicity] && repeat_length >= MINIMUM_LENGTH[atomicity] && motifwise_purity >= MOTIFPURITY_THRESHOLD
             && atomicity >= MINIMUM_MLEN && atomicity <= MAXIMUM_MLEN) {            
             out << sequence_id << "\t" << repeat_start << "\t" << repeat_end << "\t" << motif.substr(0, atomicity) << "\t" 
-                << atomicity << " | " << motif_length << "\t" << repeat_end-repeat_start << "\t" << (repeat_end-repeat_start)/atomicity << "\t"
-                << purity << "\t" << "+\tSEED-" << seed_type << "\t" << cigar_string << "\n";
+                << purity << "\t" << "+\t" << cigar_string << "\t"
+                << atomicity << "\t" << repeat_end-repeat_start << "\t" << (repeat_end-repeat_start)/atomicity << "\n";
         }
     }
 
