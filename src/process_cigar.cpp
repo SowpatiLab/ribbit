@@ -24,7 +24,8 @@ tuple<vector<int>, vector<char>> cigarSplit(const char* cigar) {
         }
         else {
             clens.push_back(stoi(length));
-            ctypes.push_back(*t);
+            if (*t == '=') { ctypes.push_back('M'); }
+            else { ctypes.push_back(*t); }
             length = "";
         }
     }
@@ -139,7 +140,7 @@ pair<int, int> calculateTrimEdges(int &mismatches_threshold, double &purity, int
 void motifwiseParameters(string &cigar, int motif_length, double &avg_motifpurity, int &avg_motifindels) {
     
     tuple<vector<int>, vector<char>> csplit = cigarSplit(cigar.c_str());
-    vector<int>  clens = get<0> (csplit);
+    vector<int>  clens  = get<0> (csplit);
     vector<char> ctypes = get<1> (csplit);
 
     char ctype; int clength, cidx = 0;
@@ -230,9 +231,10 @@ void motifwiseParameters(string &cigar, int motif_length, double &avg_motifpurit
     avg_motifindels = 0;
 
     if (motifwise_matchpercent.size() > 0) {
-        avg_motifpurity = (double)(std::reduce(motifwise_matchpercent.begin(), motifwise_matchpercent.end(), 0)) / (double)motifwise_matchpercent.size();
-        // avg_motifpurity = calculateMedian(motifwise_matchpercent);
-        avg_motifindels = std::reduce(motifwise_indels.begin(), motifwise_indels.end()) / motifwise_indels.size();
+        for (int _=0; _<motifwise_matchpercent.size(); _++) { avg_motifpurity += motifwise_matchpercent[_]; }
+        avg_motifpurity = avg_motifpurity / ((double) (motifwise_matchpercent.size()));
+        for (int _=0; _<motifwise_indels.size(); _++) { avg_motifindels += motifwise_indels[_]; }
+        avg_motifindels = avg_motifindels / motifwise_indels.size();
     }
 }
 
@@ -499,8 +501,9 @@ void processCIGARMotifWise(int seed_start, int seed_sequence_length, string &cig
     avg_motifpurity = 0;
     avg_motifindels = 0;
     if (motifwise_matchpercent.size() > 0) {
-        avg_motifpurity = (double)(std::reduce(motifwise_matchpercent.begin(), motifwise_matchpercent.end())) / (double)motifwise_matchpercent.size();
-        // avg_motifpurity = calculateMedian(motifwise_matchpercent);
-        avg_motifindels = std::reduce(motifwise_indels.begin(), motifwise_indels.end()) / motifwise_indels.size();
+        for (int _=0; _<motifwise_matchpercent.size(); _++) { avg_motifpurity += motifwise_matchpercent[_]; }
+        avg_motifpurity = avg_motifpurity / ((double) (motifwise_matchpercent.size()));
+        for (int _=0; _<motifwise_indels.size(); _++) { avg_motifindels += motifwise_indels[_]; }
+        avg_motifindels = avg_motifindels / motifwise_indels.size();
     }
 }
