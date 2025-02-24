@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include <bitset>
 #include <boost/dynamic_bitset.hpp>
+#include <cmath>
 
 #include "global_variables.h"
 #include "parse_perfect_shiftxor.h"
@@ -15,19 +16,37 @@
 using namespace std;
 
 
-void addSeedToSeedPositionsPerfect(int seed_start, int seed_end, int motif_length, 
+bool retainNestedSeed(vector<boost::dynamic_bitset<>> &motif_bsets, int start, int end,
+                      int nested_midx, int parent_midx, int bset_size) {
+
+    int nested_count = 0, parent_count = 0;
+    for(int i=start; i<end; i++) {
+        if (motif_bsets[nested_midx][bset_size - 1 - i] == 1) nested_count += 1;
+        if (motif_bsets[parent_midx][bset_size - 1 - i] == 1) parent_count += 1;
+    }
+
+    if (nested_count < parent_count) { return false; }
+    else { return true; }
+}
+
+bool retainIdenticalSeeds(vector<boost::dynamic_bitset<>> &motif_bsets, int start, int end,
+                           int nested_midx, int parent_midx, int bset_size) {
+
+    int nested_count = 0, parent_count = 0;
+    for(int i=start; i<end; i++) {
+        if (motif_bsets[nested_midx][bset_size - 1 - i] == 1) nested_count += 1;
+        if (motif_bsets[parent_midx][bset_size - 1 - i] == 1) parent_count += 1;
+    }
+
+    if (nested_count < parent_count) { return false; }
+    else if (nested_count == parent_count) { return nested_midx < parent_midx; }
+    else { return true; }
+}
+
+
+void addSeedToSeedPositionsPerfect(int seed_start, int seed_end, int motif_length,
                                    vector<tuple<int, int, int, int>> &seed_positions,
                                    vector<boost::dynamic_bitset<>> &motif_bsets, int bset_size) {
-    /*
-     *  add seed for a perfect repeat to the existing seed positions list
-     *  @param seed_start start position of the seed
-     *  @param seed_end end position of the seed
-     *  @param motif_length motif length of the TR seed
-     *  @param seed_positions vector of existing seed positions
-     *  @param motif_bsets shift XOR bitsets of all the motif sizes
-     *  @param bset_size the total size of a shift XOR bitset
-     *  @return none add the seed to seed_position
-    */
 
     int last_start, last_end, last_mlen;       // coordinate variables for existing seeds
     int seed_length = seed_end-seed_start, seed_rlen = seed_end - seed_start + motif_length;
@@ -36,7 +55,7 @@ void addSeedToSeedPositionsPerfect(int seed_start, int seed_end, int motif_lengt
     int seed_midx = motif_length - MINIMUM_SHIFT;
     int last_length, last_rlen, overlap_length;
 
-    vector<int> remove_seeds;   // the indeices of seeds that need to be removed
+    vector<int> remove_seeds;   // the indices of seeds that need to be removed
 
     for (int i=seed_positions.size()-1; i>=0; i--) {
         // starting from the last seed and decrementing in indices
@@ -126,17 +145,6 @@ void addSeedToSeedPositionsPerfect(int seed_start, int seed_end, int motif_lengt
 void addPerfectRepeatPositions(int seed_start, int seed_end, int motif_length,
                                vector<tuple<int, int, int, int>> &repeat_positions,
                                vector<boost::dynamic_bitset<>> &motif_bsets, int bset_size) {
-    /*
-     *  add position for perfect repeat in repeat positions. function to identify
-     *  perfect repeats when the PURITY_THRESHOLD is 1
-     *  @param seed_start start position of the seed
-     *  @param seed_end end position of the seed
-     *  @param motif_length motif length of the TR seed
-     *  @param repeat_positions vector of existing seed positions
-     *  @param motif_bsets shift XOR bitsets of all the motif sizes
-     *  @param bset_size the total size of a shift XOR bitset
-     *  @return none add the seed to seed_position
-    */
 
     int last_start, last_end, last_mlen;       // coordinate variables for existing seeds
     int seed_length = seed_end-seed_start, seed_rlen = seed_end - seed_start + motif_length;
@@ -159,7 +167,7 @@ void addPerfectRepeatPositions(int seed_start, int seed_end, int motif_length,
         // once we encounter a seed that is beyond the start of the current seed
         if (last_end < seed_start) break;
 
-        // identical - repeat with lower motif size is retained
+        // identical
         if (last_start == seed_start && last_end == seed_end) {
             if (last_mlen < motif_length) { return; }
             else { remove_seeds.push_back(i); }
@@ -177,8 +185,7 @@ void addPerfectRepeatPositions(int seed_start, int seed_end, int motif_length,
             else { remove_seeds.push_back(i); }
         }
 
-        // overlap - difference between adding perfect repeat seeds and perfect repeat positions
-        // no overlapping repeats are merged
+        // overlap
         else {
             if (last_start < seed_start) { overlap_length = last_end - seed_start + last_mlen; }
             else { overlap_length = seed_end - last_start + motif_length; }
@@ -224,13 +231,12 @@ void addPerfectRepeatPositions(int seed_start, int seed_end, int motif_length,
 
 // function to identify windows based on the threshold of window bit counts
 vector<tuple<int, int, int, int>> processShiftXORsPerfect(vector<boost::dynamic_bitset<>> &motif_bsets, boost::dynamic_bitset<> &N_bset,
-                                                          int &window_length, int &window_bitcount_threshold) {
+                                                          int &window_length) {
     /*
      *  parsing the shift XORs of all shift sizes and picking seeds from each shift
      *  @param motif_bsets shift XOR bsets of all shift sizes
      *  @param N_bset N position bitset
      *  @param window_length length of the window to be scanned
-     *  @param window_bitcount_threshold the threshold number of set bits in the window
      *  @return vector<tuple<int, int, int>> vector of end position sorted seeds from all motif sizes
     */
 
@@ -238,6 +244,7 @@ vector<tuple<int, int, int, int>> processShiftXORsPerfect(vector<boost::dynamic_
     vector<tuple<int, int, int, int>> seed_positions;    // the vector of seed_positions // bool for perfect and imperfect
 
     int min_idx = MINIMUM_MLEN-MINIMUM_SHIFT, cutoff, didx, motif_length;
+
     int last_starts[NMOTIFS] = {-1};  // initialising a last record
     int last_ends[NMOTIFS] = {-1};  // initialising a last record
     int current_starts[NMOTIFS] = {-1};  // initialising a last record
@@ -256,7 +263,7 @@ vector<tuple<int, int, int, int>> processShiftXORsPerfect(vector<boost::dynamic_
             // N is present at this position reset the window
             for (int midx=min_idx; midx < min_idx+NMOTIFS; midx++) {
                 didx = midx-min_idx; motif_length = MINIMUM_SHIFT + midx;
-                cutoff = (motif_length <= 6) ? 12-motif_length : motif_length+midx;
+                cutoff = (motif_length <= 6) ? 12-motif_length : motif_length;
                 if (last_starts[didx] != -1) {
                     if (window_position - last_starts[didx] >= cutoff) {
                         if (PURITY_THRESHOLD == 1) { addPerfectRepeatPositions(last_starts[didx], window_position, motif_length, seed_positions, motif_bsets, bset_size); }

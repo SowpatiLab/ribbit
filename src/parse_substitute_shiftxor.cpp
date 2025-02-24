@@ -15,57 +15,6 @@
 
 using namespace std;
 
-
-bool retainNestedSeed(vector<boost::dynamic_bitset<>> &motif_bsets, int start, int end,
-                      int nested_midx, int parent_midx, int bset_size) {
-    /*
-     *  decides if the nested repeat should be retained or not based on the bitcount comparison
-     *  @param motif_bsets bitsets of all motif size shifts
-     *  @param start start position of the nested seed
-     *  @param end end position of the nested seed
-     *  @param nested_midx motif index of the nested seed
-     *  @param motif_bsets motif index of the parent seed
-     *  @param bset_size the total size of a shift XOR bitset
-     *  @return bool boolean value if the nested seed should be retained or not
-    */
-
-    int nested_count = 0, parent_count = 0;
-    for(int i=start; i<end; i++) {
-        if (motif_bsets[nested_midx][bset_size - 1 - i] == 1) nested_count += 1;
-        if (motif_bsets[parent_midx][bset_size - 1 - i] == 1) parent_count += 1;
-    }
-
-    // if the bitcount for the nested seed is greater. The nested seed is retained
-    if (nested_count < parent_count) { return false; }
-    else { return true; }
-}
-
-
-bool retainIdenticalSeeds(vector<boost::dynamic_bitset<>> &motif_bsets, int start, int end,
-                           int nested_midx, int parent_midx, int bset_size) {
-    /*
-     *  decides which of the identical seed positions should be retained
-     *  @param motif_bsets bitsets of all motif size shifts
-     *  @param start start position of the nested seed
-     *  @param end end position of the nested seed
-     *  @param nested_midx motif index of the nested seed
-     *  @param motif_bsets motif index of the parent seed
-     *  @param bset_size the total size of a shift XOR bitset
-     *  @return bool boolean value if the nested seed should be retained or not
-    */
-    int nested_count = 0, parent_count = 0;
-    for(int i=start; i<end; i++) {
-        if (motif_bsets[nested_midx][bset_size - 1 - i] == 1) nested_count += 1;
-        if (motif_bsets[parent_midx][bset_size - 1 - i] == 1) parent_count += 1;
-    }
-
-    // retains the one with the higher bit count
-    if (nested_count < parent_count) { return false; }
-    else if (nested_count == parent_count) { return nested_midx < parent_midx; }
-    else { return true; }
-}
-
-
 int addSeedToSeedPositionsSubstitutions(int seed_start, int seed_end, int motif_length, vector<tuple<int, int, int, int>> &seed_positions_perfect,
                                         vector<tuple<int, int, int, int>> &seed_positions_substut, int* seedlen_cutoff,
                                         vector<boost::dynamic_bitset<>> &motif_bsets, int bset_size, int from_index, int seed_type) {

@@ -14,3 +14,4 @@ void generateAnchoredShiftXORs(vector<boost::dynamic_bitset<>> &lshift_xor_bsets
 vector<tuple<int,int,int,int>> processShiftXORsAnchored(vector<boost::dynamic_bitset<>> &motif_bsets, boost::dynamic_bitset<> &N_bset,
                                                         int &window_length, int &window_bitcount_threshold, vector<tuple<int, int, int, int>> &seed_positions_perfect,
                                                         vector<tuple<int, int, int, int>> &seed_positions_substut);
+                                                        

@@ -1,6 +1,7 @@
 #include <cstdint>
 #include <unordered_map>
 #include <time.h>
+#include <mutex>
 
 #ifndef GLOABL_VARIABLES_H
 #define GLOABL_VARIABLES_H
@@ -28,10 +29,13 @@ extern int RANK_N;
 
 extern int MINIMUM_MLEN;
 extern int MAXIMUM_MLEN;
+extern int SMALL_MLEN_LIMIT;
 extern int NMOTIFS;
 extern int MINIMUM_SHIFT;
 extern int MAXIMUM_SHIFT;
 extern int NSHIFTS;
+extern int THREADS;
+extern std::mutex MTX;
 
 extern unordered_map<int, int> MINIMUM_LENGTH;
 extern unordered_map<int, int> MINIMUM_UNITS;
@@ -40,7 +44,8 @@ extern unordered_map<int, int> PERFECT_UNITS;
 extern bool LENGTH_CUTOFF_MODE;
 
 // cutoffs for different measures of purity
-extern float PURITY_THRESHOLD;
+extern double PURITY_THRESHOLD;
+extern double MOTIFPURITY_THRESHOLD;
 extern time_t START_TIME;
 
 #endif // MATRIX_H

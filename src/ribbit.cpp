@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <fstream>
 #include <iostream>
 #include <unordered_map>
@@ -7,9 +8,9 @@ namespace po = boost::program_options;
 
 #include "global_variables.h"
 #include "fasta_utils.h"
+#include "concatenate_output.h"
 
 using namespace std;
-
 
 bool isNumber(const string &s) {
     /*
@@ -64,13 +65,13 @@ bool parseDualtypeArgs(po::variables_map &args, const string &option, unordered_
 
 
 
-bool parseArguments(int &argc, char* argv[], string &fasta_file, string &out_file, int &window_length,
+bool parseArguments(int &argc, char* argv[], string &input_file, string &out_file, int &window_length,
                      int &window_bitcount_threshold, int &anchor_length, int &continuous_ones_threshold) {
     /*
      *  parsing input arguments for the program
      *  @param argc number of commandline arguments
      *  @param argv list of commandline arguments
-     *  @param fasta_file stores the name of the fasta file
+     *  @param input_file stores the name of the fasta file
      *  @param out_file stores the name of the output file
      *  @param window_length stores the length of the window
      *  @param window_bitcount_threshold bitcount threshold in the window; default: 4
@@ -80,21 +81,24 @@ bool parseArguments(int &argc, char* argv[], string &fasta_file, string &out_fil
     */
     po::options_description argparser("Below are the running options for the tool.");
     argparser.add_options()
-        ("help,h", "Ribbit tool identifies short tandem repeats with allowed levels of inpurity.")
+        ("help,h", "Ribbit tool identifies short tandem repeats with allowed levels of impurity.")
 
         ("input-file,i", po::value<string>(), "File path for the input fasta file.")
-        ("output-file,o", po::value<string>(), "File path for the output bed file.")        
+        ("output-file,o", po::value<string>(), "File path for the input fasta file. Default: adds a ribbit suffix to input file.")        
 
         ("min-motif-length,m", po::value<int>(), "The minimum length of the motif of the repeats to be identified. Default: 2")
         ("max-motif-length,M", po::value<int>(), "The maximum length of the motif of the repeats to be identified, Default: 100")
 
-        ("purity,p", po::value<double>(), "Threshold value for cotinuous number of ones found in a seed. Default: 0.85")
+        ("purity,p", po::value<double>(), "The purity of complete repeat. Default: 0.85")
+        ("motif-purity,q", po::value<double>(), "Average match of each motif with consensus motif. Default: 0.8")
 
         ("min-length,l", po::value<string>(), "The minimum length of the repeat. Default: 12")
         ("min-units", po::value<string>(), "The minimum number of units of the repeat. Can be a integer value, for cutoff across all motif sizes.\
                                             Tab separated file with two columns, first is the motif size and second unit cutoff. Default: 2")
         ("perfect-units", po::value<string>(), "The minimum number of complete units of the repeat. Can be a integer value, for cutoff across all motif sizes.\
                                                 Tab separated file with two columns, first is the motif size and second unit cutoff. Default: 2")
+
+        ("threads,t", po::value<int>(), "Number of threads to be used for running. default: 1")
 
         /*
           currently all are set to default parameters and non-accessible to the user
@@ -118,7 +122,7 @@ bool parseArguments(int &argc, char* argv[], string &fasta_file, string &out_fil
     int default_perfect_units = 2;
     int default_minimum_length = 12;
 
-    if (args.count("input-file"))  fasta_file = args["input-file"].as<string>();
+    if (args.count("input-file"))  input_file = args["input-file"].as<string>();
     else {
         cerr << "ERROR: Please specify an input fasta file!\n";
         return 0;
@@ -129,6 +133,8 @@ bool parseArguments(int &argc, char* argv[], string &fasta_file, string &out_fil
     if (args.count("min-motif-length")) { MINIMUM_MLEN = args["min-motif-length"].as<int>(); }
     if (args.count("max-motif-length")) { MAXIMUM_MLEN = args["max-motif-length"].as<int>(); }
     if (args.count("purity")) { PURITY_THRESHOLD = args["purity"].as<double>(); }
+    if (args.count("motif-purity")) { MOTIFPURITY_THRESHOLD = args["motif-purity"].as<double>(); }
+    if (args.count("threads")) { THREADS = args["threads"].as<int>(); }
 
     /*
       currently all are set to default parameters and non-accessible to the user
@@ -185,25 +191,16 @@ int main(int argc, char *argv[]) {
     */
 
     // exception for handling missing fasta index files handling gzip inputs
-    string fasta_file = "", out_file = "";
+    string input_file = "", out_file = "";
 
     // defaults which are not be changed
-    int window_length = 8, window_bitcount_threshold = 7, anchor_length = 3, cones_threshold = 3;
+    int window_length = 8;
+    int window_bitcount_threshold = 7;  // initialised for identifying repeats with substitutions
+    int anchor_length = 3, continuous_ones_threshold = 3;
 
-    bool success = parseArguments(argc, argv, fasta_file, out_file, window_length,
-                                   window_bitcount_threshold, anchor_length, cones_threshold);
+    bool success = parseArguments(argc, argv, input_file, out_file, window_length,
+                                  window_bitcount_threshold, anchor_length, continuous_ones_threshold);
     if (!success) exit(1);
-
-    // assigns the output to either a file or standard output
-    streambuf * buf; ofstream outstream;
-    // if the output file is not given by default: input file + ".ribbit"
-    if (out_file == "") { out_file = fasta_file + ".ribbit"; }
-    outstream.open(out_file);
-    buf = outstream.rdbuf();    // output file buffer is created
-    ostream out(buf);
-
-    ifstream fastain(fasta_file);
-    string line, seq_name, sequence="";
 
     if (!LENGTH_CUTOFF_MODE) {
         // if length cutoff is mentioned as units we convert that into bases
@@ -241,9 +238,10 @@ int main(int argc, char *argv[]) {
     NSHIFTS = MAXIMUM_SHIFT - MINIMUM_SHIFT + 1;
 
     cerr << "Purity threshold: " << PURITY_THRESHOLD << "\n";
+    cerr << "Motif purity threshold: " << MOTIFPURITY_THRESHOLD << "\n\n";
 
     // Dynamically allocate memory for the matrix
-    int SMALL_MLEN_LIMIT = 10;    // only save repeat classes for smaller motif sizes
+    SMALL_MLEN_LIMIT = 6;    // only save repeat classes for smaller motif sizes
     REPEAT_CLASSES = new uint32_t*[SMALL_MLEN_LIMIT];
     NUM_MOTIFS = pow(4, SMALL_MLEN_LIMIT);
     for (int i = 0; i < SMALL_MLEN_LIMIT; ++i) {
@@ -264,18 +262,7 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    while (getline(fastain, line)) {
-        if (line[0] == '>') {
-            if (sequence != "") {
-                cerr << "Processing sequence " << seq_name << "\n";
-                processSequence(seq_name, sequence, window_length, window_bitcount_threshold, anchor_length, cones_threshold, out);
-            }
-            seq_name = line.substr(1, line.find(' ') - 1);
-            sequence = "";
-        }
-        else { sequence += line; }
-    }
-    processSequence(seq_name, sequence, window_length, window_bitcount_threshold, anchor_length, cones_threshold, out);
+    parseFasta(input_file, window_length, window_bitcount_threshold, anchor_length, continuous_ones_threshold, out_file);
 
     // Don't forget to free the memory when done
     for (int i = 0; i < SMALL_MLEN_LIMIT; ++i) {
@@ -290,6 +277,5 @@ int main(int argc, char *argv[]) {
     delete[] MOTIF_GAPSIZE;
     delete[] MOTIF_NEXT;
 
-    fastain.close(); outstream.close();
     return 0;
 }

@@ -30,7 +30,6 @@ void mergeAllLists(vector<tuple<int,int,int,int>> &seed_positions_perfect,
     }
 
     while (!(perfect_start_bool && substut_start_bool)) {
-        // cout << "Loop-1: " << perfect_index << "\t" << substut_index << "\n";
         if (substut_start_bool) {
             while (perfect_index >= 0 || !perfect_start_bool) {
                 perfect_end = get<1> (seed_positions_perfect[perfect_index]);
@@ -191,6 +190,3 @@ void mergeAllLists(vector<tuple<int,int,int,int>> &seed_positions_perfect,
         }
     }
 }
-
-
-

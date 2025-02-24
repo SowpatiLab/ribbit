@@ -19,6 +19,7 @@ using namespace std;
 
 void generateAnchoredShiftXORs(vector<boost::dynamic_bitset<>> &lshift_xor_bsets, boost::dynamic_bitset<> &N_bset,
                                vector<boost::dynamic_bitset<>> &lsxor_anchor_bsets, int anchor_size) {
+
     /*
      *  generates shift XOR bitsets only retaining the anchors
      *  @param lshift_xor_bsets vector of left shift XOR bitsets of all shifts
@@ -57,16 +58,7 @@ void generateAnchoredShiftXORs(vector<boost::dynamic_bitset<>> &lshift_xor_bsets
 
 bool retainNestedSeedAnchored(vector<boost::dynamic_bitset<>> &motif_bsets, int start, int end,
                               int nested_midx, int parent_midx, int bset_size) {
-    /*
-     *  decides if the nested repeat should be retained or not based on the bitcount comparison
-     *  @param motif_bsets bitsets of all motif size shifts
-     *  @param start start position of the nested seed
-     *  @param end end position of the nested seed
-     *  @param nested_midx motif index of the nested seed
-     *  @param motif_bsets motif index of the parent seed
-     *  @param bset_size the total size of a shift XOR bitset
-     *  @return bool boolean value if the nested seed should be retained or not
-    */
+
     int nested_count = 0, parent_count = 0;
     for(int i=start; i<end; i++) {
         if (motif_bsets[nested_midx][bset_size - 1 - i] == 1) nested_count += 1;
@@ -77,19 +69,9 @@ bool retainNestedSeedAnchored(vector<boost::dynamic_bitset<>> &motif_bsets, int 
     else { return true; }
 }
 
-
 bool retainIdeniticalSeedAnchored(vector<boost::dynamic_bitset<>> &motif_bsets, int start, int end,
                               int nested_midx, int parent_midx, int bset_size) {
-    /*
-     *  decides if the nested repeat should be retained or not based on the bitcount comparison
-     *  @param motif_bsets bitsets of all motif size shifts
-     *  @param start start position of the nested seed
-     *  @param end end position of the nested seed
-     *  @param nested_midx motif index of the nested seed
-     *  @param motif_bsets motif index of the parent seed
-     *  @param bset_size the total size of a shift XOR bitset
-     *  @return bool boolean value if the nested seed should be retained or not
-    */
+
     int nested_count = 0, parent_count = 0;
     for(int i=start; i<end; i++) {
         if (motif_bsets[nested_midx][bset_size - 1 - i] == 1) nested_count += 1;
@@ -103,13 +85,6 @@ bool retainIdeniticalSeedAnchored(vector<boost::dynamic_bitset<>> &motif_bsets, 
 
 
 int clearSeedsAnchored(int from_index, vector<tuple<int, int, int, int>> &seed_positions, int seed_start) {
-    /*
-     *  removes redundant seeds from anchored seed positions
-     *  @param from_index the index from which seed with RANK_N should be searched for
-     *  @param seed_positions vector of all anchored seed_positions
-     *  @param seed_start the position of current seed added to stop searching for redundant seeds\
-     *  @return from_index updated from_index for next redundant search
-    */
 
     vector<int> remove_seeds;
     int last_end, last_type;
@@ -179,15 +154,15 @@ tuple<int,int> addSeedToSeedPositionsAnchored(int seed_start, int seed_end, int 
 
     vector<int> last_types, last_indices;
     mergeAllLists(seed_positions_perfect, seed_positions_substut, seed_positions_anchored,
-                  from_index_perfect, from_index_substut, last_types, last_indices, seed_start);   
+                  from_index_perfect, from_index_substut, last_types, last_indices, seed_start);
 
     int seed_rend   = seed_end + motif_length;
     int seed_length = seed_end - seed_start;
     int seed_rlen   = seed_length + motif_length;
 
     // indices for different shifts in motif_bsets
-    int  seed_midx = motif_length - MINIMUM_SHIFT;
-    int  last_midx = 0;
+    int seed_midx = motif_length - MINIMUM_SHIFT;
+    int last_midx = 0;
     int merge_start = 0, merge_end = 0, overlap_length = 0;
 
     vector<int> identical, nestedin, overlap;
@@ -230,7 +205,7 @@ tuple<int,int> addSeedToSeedPositionsAnchored(int seed_start, int seed_end, int 
         if (last_type == RANK_N) { continue; }
 
         // if the from_index is much ahead we skip the seeds that do not overlap
-        if (seed_end < last_start) { continue; }        
+        if (seed_end < last_start) { continue; }
 
         last_length = last_end - last_start;
         last_rlen  = last_rend - last_start;
@@ -359,7 +334,7 @@ tuple<int,int> addSeedToSeedPositionsAnchored(int seed_start, int seed_end, int 
                                 seed_positions_anchored[i] = tuple<int, int, int, int> {last_start, last_end, last_mlen, RANK_N};
                                 from_indices_new = addSeedToSeedPositionsAnchored(seed_start, seed_end, last_mlen, seed_positions_perfect, seed_positions_substut,
                                                                seed_positions_anchored, seedlen_cutoffs, motif_bsets, bset_size, from_indices, seed_type);
-                                return from_indices_new;                                
+                                return from_indices_new;
                             }
                             else { parentof_anchored_factor.push_back(i); }
                         }
@@ -539,7 +514,7 @@ tuple<int,int> addSeedToSeedPositionsAnchored(int seed_start, int seed_end, int 
                     if (ktype == RANK_P) {
                         last_mlen  = get<2> (seed_positions_perfect[j]);
                         if (last_mlen==factor) { seed_positions_perfect[j] = tuple<int, int, int, int> {last_start, last_end, last_mlen, RANK_N}; }
-                    }                
+                    }
                     else if (ktype == RANK_S) {
                         last_mlen  = get<2> (seed_positions_substut[j]);
                         if (last_mlen==factor) { seed_positions_substut[j] = tuple<int, int, int, int> {last_start, last_end, last_mlen, RANK_N}; }
@@ -557,6 +532,7 @@ tuple<int,int> addSeedToSeedPositionsAnchored(int seed_start, int seed_end, int 
     seed_positions_anchored.push_back({seed_start, seed_end, motif_length, seed_type});
     return tuple<int,int> { from_index_perfect, from_index_substut };
 }
+
 
 
 vector<tuple<int,int,int,int>> processShiftXORsAnchored(vector<boost::dynamic_bitset<>> &motif_bsets, boost::dynamic_bitset<> &N_bset,
@@ -593,8 +569,8 @@ vector<tuple<int,int,int,int>> processShiftXORsAnchored(vector<boost::dynamic_bi
     for (int midx=0; midx < NMOTIFS; midx++) {
         boost::dynamic_bitset<> window_bset(window_length, 0ull);
         window_bsets.push_back(window_bset);   // initialised window bitset
-        seedlen_cutoffs[midx] = ((midx+MINIMUM_MLEN) > 6) ? (midx+MINIMUM_MLEN) : 10;
-        if (midx+MINIMUM_MLEN >= 10) { seedlen_cutoffs[midx] = 0.9 * (midx+MINIMUM_MLEN); }
+        seedlen_cutoffs[midx] = ((midx+MINIMUM_MLEN) > SMALL_MLEN_LIMIT) ? (midx+MINIMUM_MLEN) : 10;
+        if (midx+MINIMUM_MLEN >= SMALL_MLEN_LIMIT) { seedlen_cutoffs[midx] = 0.9 * (midx+MINIMUM_MLEN); }
     }
 
     int overlap_distance = 0;   // the allowed overlap distance between adjacent seeds
@@ -638,6 +614,7 @@ vector<tuple<int,int,int,int>> processShiftXORsAnchored(vector<boost::dynamic_bi
                 window_bsets[didx] <<= 1;
                 window_bsets[didx][0] = motif_bsets[midx][xor_idx];
             }
+
 
             if (valid_position >= window_length) {
                 for (int midx=min_idx; midx < NMOTIFS+min_idx; midx++) {
@@ -686,7 +663,6 @@ vector<tuple<int,int,int,int>> processShiftXORsAnchored(vector<boost::dynamic_bi
 
                         else {
                             // if there is no seed currently being tracked
-
                             // if the last stored seed is beyond the overlapping distance of current position
                             if (last_ends[didx] != -1 && last_ends[didx] < window_position - overlap_distance) {
                                 from_indices = addSeedToSeedPositionsAnchored(last_starts[didx], last_ends[didx], motif_length, seed_positions_perfect,
