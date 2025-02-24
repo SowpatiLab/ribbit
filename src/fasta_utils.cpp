@@ -246,6 +246,8 @@ void processSequence(string sequence_id, string sequence, int window_length, int
     vector<tuple<int, int, int, int>> seed_positions_substut;
     vector<tuple<int, int, int, int>> seed_positions_anchored;
     int failed_seeds = 0;
+
+    vector<tuple<string, int, int, string, double, string, int, int, int>> repeat_loci;
     
     if (PURITY_THRESHOLD == 1) {
         seed_positions_perfect = processShiftXORsPerfect(lshift_xor_bsets, N_bset, window_length);
@@ -357,14 +359,22 @@ void processSequence(string sequence_id, string sequence, int window_length, int
             if (seed_mlen <= SMALL_MLEN_LIMIT) {
                 processSeedMotifWise(tuple<int, int> { seed_start, seed_end }, 0, seed_mlen, seed_type, sequence_id, sequence,
                                      sequence_length, lshift_xor_bsets[seed_mlen-MINIMUM_SHIFT], left_bset, right_bset, N_bset,
-                                     continuous_ones_threshold, out, lshift_xor_bsets, aligner, filter, alignment);
+                                     continuous_ones_threshold, out, lshift_xor_bsets, aligner, filter, alignment, repeat_loci);
             }
 
             else {
                 processSeed(tuple<int, int> { seed_start, seed_end }, 0, seed_mlen, seed_type, sequence_id, sequence, sequence_length,
                             lshift_xor_bsets[seed_mlen-MINIMUM_SHIFT], left_bset, right_bset, N_bset, continuous_ones_threshold,
-                            out, lshift_xor_bsets, MATRIX, aligner, filter, alignment);
+                            out, lshift_xor_bsets, MATRIX, aligner, filter, alignment, repeat_loci);
             }
+        }
+    }
+
+    if (repeat_loci.size() > 0) {
+        for (int i=0; i<repeat_loci.size(); i++) {
+            out << get<0> (repeat_loci[i]) << "\t" << get<1> (repeat_loci[i]) << "\t"    << get<2> (repeat_loci[i]) << "\t"
+                << get<3> (repeat_loci[i]) << "\t" << get<4> (repeat_loci[i]) << "\t+\t" << get<5> (repeat_loci[i]) << "\t"
+                << get<6> (repeat_loci[i]) << "\t" << get<7> (repeat_loci[i]) << "\t"    << get<8> (repeat_loci[i]) << "\n";
         }
     }
 
@@ -456,6 +466,8 @@ void processSequenceThread(string sequence_id, string sequence, int seq_start, i
     vector<tuple<int, int, int, int>> seed_positions_substut;
     vector<tuple<int, int, int, int>> seed_positions_anchored;
     int failed_seeds = 0;
+
+    vector<tuple<string, int, int, string, double, string, int, int, int>> repeat_loci;
 
     if (PURITY_THRESHOLD == 1) {
         seed_positions_perfect = processShiftXORsPerfect(lshift_xor_bsets, N_bset, window_length);
@@ -568,17 +580,25 @@ void processSequenceThread(string sequence_id, string sequence, int seq_start, i
             if (seed_mlen <= SMALL_MLEN_LIMIT) {
                 processSeedMotifWise(tuple<int, int> { seed_start, seed_end }, seq_start, seed_mlen, seed_type, sequence_id, sequence,
                                      sequence_length, lshift_xor_bsets[seed_mlen-MINIMUM_SHIFT], left_bset, right_bset, N_bset,
-                                     continuous_ones_threshold, out, lshift_xor_bsets, aligner, filter, alignment);
+                                     continuous_ones_threshold, out, lshift_xor_bsets, aligner, filter, alignment, repeat_loci);
             }
 
             else {
                 processSeed(tuple<int, int> { seed_start, seed_end }, seq_start, seed_mlen, seed_type, sequence_id, sequence, sequence_length,
                             lshift_xor_bsets[seed_mlen-MINIMUM_SHIFT], left_bset, right_bset, N_bset, continuous_ones_threshold,
-                            out, lshift_xor_bsets, MATRIX, aligner, filter, alignment);
+                            out, lshift_xor_bsets, MATRIX, aligner, filter, alignment, repeat_loci);
             }
         }
     }
     // MTX.unlock();
+
+    if (repeat_loci.size() > 0) {
+        for (int i=0; i<repeat_loci.size(); i++) {
+            out << get<0> (repeat_loci[i]) << "\t" << get<1> (repeat_loci[i]) << "\t"    << get<2> (repeat_loci[i]) << "\t"
+                << get<3> (repeat_loci[i]) << "\t" << get<4> (repeat_loci[i]) << "\t+\t" << get<5> (repeat_loci[i]) << "\t"
+                << get<6> (repeat_loci[i]) << "\t" << get<7> (repeat_loci[i]) << "\t"    << get<8> (repeat_loci[i]) << "\n";
+        }
+    }
 
     seed_positions_perfect.clear();
     seed_positions_substut.clear();

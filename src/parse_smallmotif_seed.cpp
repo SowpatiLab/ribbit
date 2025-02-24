@@ -18,6 +18,7 @@
 #include "global_variables.h"
 #include "bitseq_utils.h"
 #include "process_cigar.h"
+#include "output_utils.h"
 #include "parse_seed.h"
 #include "parse_smallmotif_seed.h"
 
@@ -191,7 +192,8 @@ void possibleMotifs(boost::dynamic_bitset<> &left_bset, boost::dynamic_bitset<> 
 void processSeedMotifWise(tuple<int, int> seed_position, int seq_start, int &motif_length, int &seed_type, string &sequence_id, string &sequence,
                           int &sequence_length, boost::dynamic_bitset<> &xor_bset, boost::dynamic_bitset<> &left_bset, boost::dynamic_bitset<> &right_bset,
                           boost::dynamic_bitset<> &N_bset, int &continuous_threshold, ostream &out, vector<boost::dynamic_bitset<>> &lshift_xor_bsets,
-                          StripedSmithWaterman::Aligner &aligner, StripedSmithWaterman::Filter &filter, StripedSmithWaterman::Alignment &alignment) {
+                          StripedSmithWaterman::Aligner &aligner, StripedSmithWaterman::Filter &filter, StripedSmithWaterman::Alignment &alignment,
+                          vector<tuple<string, int, int, string, double, string, int, int, int>> &repeat_loci) {
     /*
      * processes the seed and finds all the repeats in the sequence
      * @param seed_position tuple with start and end position of the seed
@@ -246,7 +248,8 @@ void processSeedMotifWise(tuple<int, int> seed_position, int seq_start, int &mot
     vector<int> cigar_values;
     int ppr_length;
 
-    int repeat_start, repeat_end, match_nucs, mismatch_nucs, match_units, repeat_length;
+    int repeat_start, repeat_end, match_nucs, mismatch_nucs, match_units;
+    int repeat_length, repeat_units;
     int alignment_length, interruptions, atomicity, motif_sequence_length, motifwise_indels;
     double purity = 0, motifwise_purity = 0;
     string cigar_string, motif_sequence;
@@ -256,8 +259,6 @@ void processSeedMotifWise(tuple<int, int> seed_position, int seq_start, int &mot
     for(motif_idx=0; motif_idx < motifs.size(); motif_idx++) {
         motif_unit = motifs[motif_idx];
         atomicity = calculateAtomicity(motif_unit, motif_length);
-
-        // if (atomicity != motif_length) { return; }
 
         // the repeat should be treated based on the atomicity
         motif = calculateMotif(motif_unit, motif_length);
@@ -280,9 +281,10 @@ void processSeedMotifWise(tuple<int, int> seed_position, int seq_start, int &mot
 
         if (match_units >= PERFECT_UNITS[atomicity] && repeat_length >= MINIMUM_LENGTH[atomicity] && motifwise_purity >= MOTIFPURITY_THRESHOLD
             && atomicity >= MINIMUM_MLEN && atomicity <= MAXIMUM_MLEN) {
-            out << sequence_id << "\t" << repeat_start << "\t" << repeat_end << "\t" << motif.substr(0, atomicity) << "\t" 
-                << purity << "\t" << "+\t" << cigar_string << "\t"
-                << atomicity << "\t" << repeat_end-repeat_start << "\t" << (repeat_end-repeat_start)/atomicity << "\n";
+            repeat_units = repeat_length/atomicity;
+
+            addLocusToOutput(sequence_id, repeat_start, repeat_end, motif.substr(0, atomicity), purity, cigar_string,
+                             atomicity, repeat_length, repeat_units, out, repeat_loci);
         }
     }
 }
