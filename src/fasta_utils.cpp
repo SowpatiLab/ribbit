@@ -1,15 +1,19 @@
 #include <iostream>
 #include <fstream>
+#include <string>
+#include <vector>
 #include <unordered_map>
 #include <boost/dynamic_bitset.hpp>
 #include <numeric>
 #include <algorithm>
+#include <thread>
 #include <mutex>
 
 // local imports
 #include "global_variables.h"
 #include "fasta_utils.h"
 #include "bitseq_utils.h"
+#include "concatenate_output.h"
 #include "parse_perfect_shiftxor.h"
 #include "parse_substitute_shiftxor.h"
 #include "parse_anchored_shiftxor.h"
@@ -58,15 +62,126 @@ int failedSeeds(vector<tuple<int, int, int, int>> &seed_positions) {
 }
 
 
-void processSequence(string sequence_id, string sequence, int window_length, int window_bitcount_threshold, int anchor_size,
-                     int continuous_ones_threshold, ostream &out) {
+void parseFasta(string fasta_file, int window_length, int window_bitcount_threshold,
+                int anchor_length, int continuous_ones_threshold, string out_file) {
+    /*
+     * parses a fasta file input
+     * @param fasta_file input fasta file name
+     * @param window_length length of the window to be considered for picking seeds
+     * @param window_bitcount_threshold threshold number of set bits in window
+     * @param anchor_length length of continuous ones in anchor shift XORs
+     * @param continuous_ones_threshold minimum continuous set bits in the window
+     * @param out_file output file name
+    */
+    vector<string> seq_names;
+    ifstream fastain(fasta_file);
+    string line, seq_name, sequence="";
+
+    if (THREADS == 1) {
+        // assigns the output to either a file or standard output
+        streambuf * buf; ofstream outstream;
+
+        // if the output file is not given by default: input file + ".ribbit"
+        if (out_file == "") { out_file = fasta_file + ".ribbit"; }
+        outstream.open(out_file);
+        buf = outstream.rdbuf();    // output file buffer is created
+        ostream out(buf);
+
+        // adding header to the output file
+        out << "#Chrom\t" << "Start\t" << "Stop\t" << "Motif\t" << "Purity\t"  << "Strand\t" << "Cigar\t" << "Motif length\t"
+            << "Repeat length\t" << "Repeat Units\n";
+
+        while (getline(fastain, line)) {
+            if (line[0] == '>') {
+                if (sequence != "") {
+                    cerr << "\nProcessing sequence " << seq_name << "\n";
+                    processSequence(seq_name, sequence, window_length, window_bitcount_threshold, anchor_length,
+                                    continuous_ones_threshold, out);
+                }
+                seq_name = line.substr(1, line.find(' ') - 1);
+                seq_names.push_back(seq_name);
+                sequence = "";
+            }
+            else { sequence += line; }
+        }
+        processSequence(seq_name, sequence, window_length, window_bitcount_threshold, anchor_length,
+                        continuous_ones_threshold, out);
+        fastain.close(); outstream.close();
+    }
+
+    else {
+        unordered_map<string, int> seq_lens; int nseqs = 0;
+        parseFai(fasta_file+".fai", nseqs, seq_lens);
+        if (nseqs == 0) {
+            cerr << "ERROR: Index for fasta file missing! Required when running in threads mode.\n";
+            cerr << "NOTE: Index can generated using `samtools faidx [fasta_file]`\n";
+            return;
+        }
+        int chunk_size = 0;
+        int tnum = 1;
+        int toverlap = 100000;
+        int seq_start = 0;
+
+        std::vector<std::thread> threads;
+        string output_name = "";
+
+        while (getline(fastain, line)) {
+            if (line[0] == '>') {
+                if (sequence != "") {
+                    threads.clear();
+                    cerr << "Processing sequence " << seq_name << "\n";
+                    output_name = out_file + "_" + seq_name + "_" + to_string(tnum);
+                    threads.emplace_back(processSequenceThread, seq_name, sequence, seq_start, window_length, window_bitcount_threshold,
+                                        anchor_length, continuous_ones_threshold, tnum, output_name);
+                    for (int _=0; _<THREADS; _++) { threads[_].join(); }
+                }
+                tnum = 1; seq_start = 0;
+                seq_name = line.substr(1, line.find(' ') - 1);
+                seq_names.push_back(seq_name);
+                chunk_size = ((seq_lens[seq_name] + (THREADS*toverlap))/THREADS) + 10;
+                sequence = "";
+            }
+            else {
+                sequence += line;
+                if (sequence.length() >= chunk_size) {
+                    output_name = out_file + "_" + seq_name + "_" + to_string(tnum);
+                    cerr << "Writing thread "<< tnum << " output to " << output_name << "\n";
+                    threads.emplace_back(processSequenceThread, seq_name, sequence, seq_start, window_length, window_bitcount_threshold,
+                                         anchor_length, continuous_ones_threshold, tnum, output_name);
+                    seq_start += sequence.length() - toverlap;
+                    sequence = "" + sequence.substr(sequence.length() - (toverlap + 1), toverlap);
+                    tnum += 1;
+                }
+            }
+        }
+        if (sequence != "") {
+            output_name = out_file + "_" + seq_name + "_" + to_string(tnum);
+            cerr << "Writing thread "<< tnum << " output to " << output_name << "\n";
+            threads.emplace_back(processSequenceThread, seq_name, sequence, seq_start, window_length, window_bitcount_threshold,
+                                 anchor_length, continuous_ones_threshold, tnum, output_name);
+            for (int _=0; _<THREADS; _++) { threads[_].join(); }
+        }
+
+        START_TIME = time(0);
+        double seconds_since_start;
+        if (THREADS > 1) {
+            concatenateOutputs(out_file, seq_names, THREADS);
+        }
+        seconds_since_start = difftime(time(0), START_TIME);
+        std::cerr << "Concatenated all outputs.\t Time elapsed: " << seconds_since_start << "secs\n";
+    }
+}
+
+
+void processSequence(string sequence_id, string sequence, int window_length, int window_bitcount_threshold,
+                     int anchor_length, int continuous_ones_threshold, ostream &out) {
     /*
      *  processes each sequence from 2-bit conversion to identifying repeats
      *  @param sequence_id name of the sequence from fasta
      *  @param sequence string of the fasta sequence
      *  @param window_length length of the window to be scanned from the shift XOR
      *  @param window_bitcount_threshold threshold bitcount in the bit window
-     *  @param anchor_size the length of the continuous stretch of 1s to be considered as anchor
+     *  @param anchor_length the length of the continuous stretch of 1s to be considered as anchor
      *  @param continuous_ones_threshold the minimum number of continuous stretch of 1s in seed
      *  @param out the output file to which the output has to be printed
      *  @return void generates the dynamic bitsets of shift XOR matches and
@@ -147,12 +262,12 @@ void processSequence(string sequence_id, string sequence, int window_length, int
         failed_seeds = failedSeeds(seed_positions_perfect); failed_seeds += failedSeeds(seed_positions_substut);
         seconds_since_start = difftime( time(0), START_TIME);
         std::cerr << "Total number of seeds considering substitutions: " << seed_positions_perfect.size() + seed_positions_substut.size() - failed_seeds
-                << "\t Time elapsed: " << seconds_since_start << "secs\n";
+                  << "\t Time elapsed: " << seconds_since_start << "secs\n";
 
 
         // generating the anchor bitsets for all shift sizes
         vector<boost::dynamic_bitset<>> lsxor_anchor_bsets;     // vector of dynamic bitsets for anchor bitsets
-        generateAnchoredShiftXORs(lshift_xor_bsets, N_bset, lsxor_anchor_bsets, anchor_size);
+        generateAnchoredShiftXORs(lshift_xor_bsets, N_bset, lsxor_anchor_bsets, anchor_length);
         boost::dynamic_bitset<> anchor_bset(sequence_length, 0ull);
         int motif_length = MINIMUM_MLEN;
         for (; motif_length <= MAXIMUM_MLEN; motif_length++) {
@@ -175,11 +290,11 @@ void processSequence(string sequence_id, string sequence, int window_length, int
 
         window_bitcount_threshold = 6;  // threshold selected for identifying repeats with indels
         seed_positions_anchored = processShiftXORsAnchored(lshift_xor_bsets, N_bset, window_length, window_bitcount_threshold,
-                                                        seed_positions_perfect, seed_positions_substut);
+                                                           seed_positions_perfect, seed_positions_substut);
         seconds_since_start = difftime( time(0), START_TIME);
         failed_seeds = failedSeeds(seed_positions_perfect); failed_seeds += failedSeeds(seed_positions_substut); failed_seeds += failedSeeds(seed_positions_anchored);
         std::cerr << "Total number of seeds considering indels: " << seed_positions_perfect.size() + seed_positions_substut.size() + seed_positions_anchored.size() - failed_seeds
-                << "\t Time elapsed: " << seconds_since_start << "secs\n";
+                  << "\t Time elapsed: " << seconds_since_start << "secs\n";
     }
 
 
@@ -232,7 +347,6 @@ void processSequence(string sequence_id, string sequence, int window_length, int
         for (int j = seed_start; j < seed_end; j++) {
             seed_bset[seed_end - 1 - j] = lshift_xor_bsets[seed_mlen-MINIMUM_SHIFT][sequence_length - 1 - j];
         }
-        // cout << sequence_id << "\t" << seed_start << "\t" << seed_end << "\t" << seed_type << "\n";
 
         if (seed_end - seed_start >= 0.9*seed_mlen) {
             // process seed if it is alteast the size of the motif length
@@ -264,14 +378,15 @@ void processSequence(string sequence_id, string sequence, int window_length, int
 
 
 void processSequenceThread(string sequence_id, string sequence, int seq_start, int window_length, int window_bitcount_threshold,
-                           int anchor_size, int continuous_ones_threshold, int tnum, string out_file) {
+                           int anchor_length, int continuous_ones_threshold, int tnum, string out_file) {
     /*
      *  processes each sequence from 2-bit conversion to identifying repeats
      *  @param sequence_id name of the sequence from fasta
      *  @param sequence string of the fasta sequence
+     *  @param seq_start the start coordinate of the sequence to be processed in the thread
      *  @param window_length length of the window to be scanned from the shift XOR
      *  @param window_bitcount_threshold threshold bitcount in the bit window
-     *  @param anchor_size the length of the continuous stretch of 1s to be considered as anchor
+     *  @param anchor_length the length of the continuous stretch of 1s to be considered as anchor
      *  @param continuous_ones_threshold the minimum number of continuous stretch of 1s in seed
      *  @param out the output file to which the output has to be printed
      *  @return void generates the dynamic bitsets of shift XOR matches and
@@ -362,7 +477,7 @@ void processSequenceThread(string sequence_id, string sequence, int seq_start, i
 
         // generating the anchor bitsets for all shift sizes
         vector<boost::dynamic_bitset<>> lsxor_anchor_bsets;     // vector of dynamic bitsets for anchor bitsets
-        generateAnchoredShiftXORs(lshift_xor_bsets, N_bset, lsxor_anchor_bsets, anchor_size);
+        generateAnchoredShiftXORs(lshift_xor_bsets, N_bset, lsxor_anchor_bsets, anchor_length);
         boost::dynamic_bitset<> anchor_bset(sequence_length, 0ull);
         int motif_length = MINIMUM_MLEN;
         for (; motif_length <= MAXIMUM_MLEN; motif_length++) {
