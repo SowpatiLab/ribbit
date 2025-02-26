@@ -16,3 +16,7 @@ BOOST_PROGRAM_OPTIONS_LIB = -lboost_program_options
 
 ribbit: $(SRC_RIBBIT)
 	$(CXX) $(CXXFLAGS) $(INCLUDE) $(BOOST_LIB) $(SRC_SSW) $(SRC_RIBBIT) $(BOOST_PROGRAM_OPTIONS_LIB) -o ribbit
+
+clean:
+	@rm -f ribbit
+	@echo "Clean done!"
