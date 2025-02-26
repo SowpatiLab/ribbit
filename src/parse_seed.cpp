@@ -433,10 +433,10 @@ void processSeed(tuple<int, int> seed_position, int seq_start, int &motif_length
 
     if (alignment_length >= MINIMUM_LENGTH[atomicity]) {
         repeat_length = repeat_end - repeat_start;
-        if (match_units >= PERFECT_UNITS[atomicity] && repeat_length >= MINIMUM_LENGTH[atomicity] && motifwise_purity >= MOTIFPURITY_THRESHOLD
-            && atomicity >= MINIMUM_MLEN && atomicity <= MAXIMUM_MLEN) {            
+        if (((atomicity <= 10 && match_units >= PERFECT_UNITS[atomicity]) || ((atomicity > 10) && ((purity * repeat_length) >= 3*atomicity)))
+            && repeat_length >= MINIMUM_LENGTH[atomicity] && motifwise_purity >= MOTIFPURITY_THRESHOLD
+            && atomicity >= MINIMUM_MLEN && atomicity <= MAXIMUM_MLEN) {
             repeat_units = repeat_length/atomicity;
-
             addLocusToOutput(sequence_id, repeat_start, repeat_end, motif.substr(0, atomicity), purity, cigar_string,
                              atomicity, repeat_length, repeat_units, out, repeat_loci);
         }

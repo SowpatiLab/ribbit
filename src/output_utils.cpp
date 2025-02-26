@@ -317,15 +317,15 @@ void addLocusToOutput(string &sequence_id, int repeat_start, int repeat_end, str
         }
 
         else if (last_start <= repeat_start && repeat_end <= last_end) {
-            // new location is nested in previous location
-            if (purity <= last_purity || motif == last_motif || expectedPurityDifference(last_motif, last_purity, motif, repeat_length, purity)) {
+            // new location is nested within previous repeat
+            if (purity <= last_purity || motif == last_motif) {
                 return;
             }
         }
 
         else if (repeat_start <= last_start && last_end <= repeat_end) {
-            // new location is nested in previous location
-            if (last_purity <= purity || motif == last_motif || expectedPurityDifference(motif, purity, last_motif, last_length, last_purity)) {
+            // previous location is nested within new repeat
+            if (last_purity <= purity || motif == last_motif) {
                 remove_loci.push_back(i);
             }
         }
