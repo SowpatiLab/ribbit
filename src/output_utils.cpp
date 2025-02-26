@@ -149,6 +149,25 @@ bool expectedPurityDifference(string parent_motif, double parent_purity, string 
 }
     
 
+bool checkCyclicalVariation(string query, string ref) {
+    /*
+     * checks if a query motif is cyclical variation of reference motif
+     * @param query sequence of the query motif
+     * @param ref sequence of reference motif
+     * @return bool if the query motif is a cyclical variation of the reference motif
+    */
+    if (query.length() != ref.length()) return false;
+
+    string cycle;
+    for (int _=0; _<query.length(); _++) {
+        cycle =  query.substr(_, query.length() - _) + query.substr(0,_);
+        if (ref == cycle) return true;
+    }
+
+    return false;
+}
+
+
 tuple<vector<int>, vector<char>> cigarSplit(string cigar){
     /*
      * cigar string is split to the operation and the length
@@ -318,14 +337,14 @@ void addLocusToOutput(string &sequence_id, int repeat_start, int repeat_end, str
 
         else if (last_start <= repeat_start && repeat_end <= last_end) {
             // new location is nested within previous repeat
-            if (purity <= last_purity || motif == last_motif) {
+            if (purity <= last_purity || motif.length() > last_motif.length() || motif == last_motif || checkCyclicalVariation(motif, last_motif)) {
                 return;
             }
         }
 
         else if (repeat_start <= last_start && last_end <= repeat_end) {
             // previous location is nested within new repeat
-            if (last_purity <= purity || motif == last_motif) {
+            if (last_purity <= purity || last_motif.length() > motif.length() || motif == last_motif || checkCyclicalVariation(motif, last_motif)) {
                 remove_loci.push_back(i);
             }
         }
@@ -334,7 +353,7 @@ void addLocusToOutput(string &sequence_id, int repeat_start, int repeat_end, str
             if (last_start <= repeat_start && repeat_start <= last_end) {     // last-repeat is upstream of current repeat
                 
                 // STR-i and STR-j have the same motif ~ Could happen if they are identified from different motif shifts
-                if (motif == last_motif) {
+                if (motif == last_motif || checkCyclicalVariation(motif, last_motif)) {
                     tuple <string, double>merge_values = mergeRepeats(last_end, repeat_start, last_cigar, cigar_string);
                     remove_loci.push_back(i);
                     repeat_start = last_start; cigar_string = get<0> (merge_values); purity = get<1> (merge_values);
@@ -359,7 +378,7 @@ void addLocusToOutput(string &sequence_id, int repeat_start, int repeat_end, str
 
             else if (repeat_start <= last_start && last_start <= repeat_end) {  // last-repeat is downstream of current repeat
 
-                if (motif == last_motif) {
+                if (motif == last_motif || checkCyclicalVariation(motif, last_motif)) {
                     tuple <string, double>merge_values = mergeRepeats(repeat_end, last_start, cigar_string, last_cigar);
                     remove_loci.push_back(i);
                     repeat_end = last_end; cigar_string = get<0> (merge_values); purity = get<1> (merge_values);
