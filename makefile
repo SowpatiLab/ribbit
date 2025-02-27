@@ -1,5 +1,5 @@
 CXX      = g++	# GNU c++ compiler
-CXXFLAGS = -O3	# optimisation level flag
+CXXFLAGS = -O3 -w # optimisation level flag; suppress warnings
 
 BOOST_LIB  = -lboost_system		# include the boost library
 BOOST_PROGRAM_OPTIONS_LIB = -lboost_program_options		# including the program options library from boost
