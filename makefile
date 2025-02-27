@@ -8,9 +8,10 @@
 CXX      = g++	# GNU c++ compiler
 CXXFLAGS = -O3 -std=c++1z -w	# optimisation level flag; suppress warnings
 
-BOOST_LIB  = -L/opt/homebrew/Cellar/boost/1.86.0_2/lib	# boost library path
+BOOST_VERSION = `ls /opt/homebrew/Cellar/boost/`	# getting system boost version
+BOOST_LIB  = -L/opt/homebrew/Cellar/boost/${BOOST_VERSION}/lib	# boost library path
 BOOST_PROGRAM_OPTIONS_LIB = -lboost_program_options		#i boost program options library path
-INCLUDE    = -I/opt/homebrew/Cellar/boost/1.86.0_2/include/	# boost include path
+INCLUDE    = -I/opt/homebrew/Cellar/boost/${BOOST_VERSION}/include/	# boost include path
 
 # library includes for striped-smithwaterman alignment
 SRC_SSW    = src/ssw.c src/ssw_cpp.cpp
