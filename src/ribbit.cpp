@@ -276,6 +276,9 @@ int main(int argc, char *argv[]) {
     delete[] MOTIF_GAPS;
     delete[] MOTIF_GAPSIZE;
     delete[] MOTIF_NEXT;
+    
+    double seconds_since_start = difftime( time(0), START_TIME);
+    std::cerr << "Total time elapsed: " << seconds_since_start << "secs\n";
 
     return 0;
 }

@@ -516,8 +516,8 @@ void processSequenceThread(string sequence_id, string sequence, int seq_start, i
         seconds_since_start = difftime( time(0), START_TIME);
         failed_seeds = failedSeeds(seed_positions_perfect); failed_seeds += failedSeeds(seed_positions_substut); failed_seeds += failedSeeds(seed_positions_anchored);
         std::cerr << "Thread " << tnum << ": Total number of seeds considering indels: " 
-                << seed_positions_perfect.size() + seed_positions_substut.size() + seed_positions_anchored.size() - failed_seeds
-                << "\t Time elapsed: " << seconds_since_start << "secs\n";
+                  << seed_positions_perfect.size() + seed_positions_substut.size() + seed_positions_anchored.size() - failed_seeds
+                  << "\t Time elapsed: " << seconds_since_start << "secs\n";
     }
 
 
@@ -604,7 +604,7 @@ void processSequenceThread(string sequence_id, string sequence, int seq_start, i
     seed_positions_substut.clear();
     seed_positions_anchored.clear();
 
-    seconds_since_start = difftime( time(0), START_TIME);
     outstream.close();
+    seconds_since_start = difftime( time(0), START_TIME);
     std::cerr << "Thread " << tnum << ": Total number of seeds that are processed for alignment: " << processed_seeds << "\t Time elapsed: " << seconds_since_start << "secs\n";
 }
