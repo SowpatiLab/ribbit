@@ -240,6 +240,8 @@ int main(int argc, char *argv[]) {
     cerr << "Purity threshold: " << PURITY_THRESHOLD << "\n";
     cerr << "Motif purity threshold: " << MOTIFPURITY_THRESHOLD << "\n\n";
 
+    cerr << "NOTE: Purity threshold is a strict cutoff for VNTRs but for STRs the cutoff is flexible\n      as length of the perfect stretchs is also considered.\n\n";
+
     // Dynamically allocate memory for the matrix
     SMALL_MLEN_LIMIT = 6;    // only save repeat classes for smaller motif sizes
     REPEAT_CLASSES = new uint32_t*[SMALL_MLEN_LIMIT];

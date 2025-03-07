@@ -25,11 +25,12 @@ using namespace boost;
 
 using namespace boost::multiprecision;
 
+
 int longestContinuousMatches(boost::dynamic_bitset<> &bset) {
     /*
-       * calculates the longest continuous stretch of 1s in a bitset
-       * @param bset input bitset
-       * @return int length of the longest continuous stretch of 1s
+     * calculates the longest continuous stretch of 1s in a bitset
+     * @param bset input bitset
+     * @return int length of the longest continuous stretch of 1s
     */
 
     int nseq = bset.size(), l = 0, maxl = 0;
@@ -49,13 +50,13 @@ int longestContinuousMatches(boost::dynamic_bitset<> &bset) {
 int countBitsDiagonal(int row, int col, int diagonal_length, vector<boost::dynamic_bitset<>*> &MATRIX,
                       int &sequence_length, int neighbor_flank=0) {
     /*
-     *  count the number of ones across a diagonal
-     *  @param row index of the row in the sequence matrix
-     *  @param col index of the column in the sequence matrix
-     *  @param size length of the diagonal
-     *  @param MATRIX dot matrix of the chromosome sequence
-     *  @param sequence_length length of the chromosome sequence
-     *  @return int position within the sequence that is the possible motif for the seed
+     * count the number of ones across a diagonal
+     * @param row index of the row in the sequence matrix
+     * @param col index of the column in the sequence matrix
+     * @param size length of the diagonal
+     * @param MATRIX dot matrix of the chromosome sequence
+     * @param sequence_length length of the chromosome sequence
+     * @return int position within the sequence that is the possible motif for the seed
     */
 
     int count = 0;
@@ -84,10 +85,10 @@ int countBitsDiagonal(int row, int col, int diagonal_length, vector<boost::dynam
 
 double calculateArrayMean(int arr[], int size) {
     /*
-     *  calculating the mean for array of integers
-     *  @param arr array of integers
-     *  @param size size of the array
-     *  @return double the average of all the integer values
+     * calculating the mean for array of integers
+     * @param arr array of integers
+     * @param size size of the array
+     * @return double the average of all the integer values
     */
     int sum = 0;
     for (int i = 0; i < size; ++i) {
@@ -97,73 +98,18 @@ double calculateArrayMean(int arr[], int size) {
 }
 
 
-uint256_t mostFrequentLongerMotifOld(boost::dynamic_bitset<> &left_bset, boost::dynamic_bitset<> &right_bset, int &seed_start,
+uint256_t mostFrequentLongMotif(boost::dynamic_bitset<> &left_bset, boost::dynamic_bitset<> &right_bset, int &seed_start,
                                   int &seed_sequence_length, int &motif_length, int &sequence_length, vector<boost::dynamic_bitset<>*> &MATRIX) {
     /*
-     *  return the index in the seed which is possible motif of the repeat
-     *  @param seed_start starting position of seed in the sequence
-     *  @param seed_end ending position of seed in the sequence
-     *  @param MATRIX dot matrix of the chromosome sequence
-     *  @param sequence_length length of the chromosome sequence
-     *  @return int position within the sequence that is the possible motif for the seed
-    */
-
-    int num_motifs = seed_sequence_length / motif_length;
-    int trail_length = seed_sequence_length % motif_length;
-    if (trail_length > (motif_length/4)) { num_motifs += 1; }
-    int neighbor_flank = 2;
-
-    int mmotif_index = 0, max_count = 0, row_count = 0;
-    int row, row_offset, cix;
-
-    // outer loop for rows
-    for (int row_start = seed_start; row_start < seed_start + seed_sequence_length - motif_length + 1; row_start++) {
-        row_count = 0; row = row_start;
-        row_offset = (row_start - seed_start) % motif_length;
-
-        if (row_offset > 0) {
-            row = (row_start + motif_length) - row_offset;
-        }
-
-        for (int col=0; col < seed_sequence_length; col++) {
-            cix = sequence_length-1-seed_start-col;
-            if ((*MATRIX[row])[cix] == 1) row_count += 1;
-
-            row += 1;
-            if (row >= row_start + motif_length) row = row_start;
-        }
-
-        if (row_count > max_count) {
-            max_count = row_count; mmotif_index = row_start;
-        }
-    }
-
-    // return mmotif_index;
-    uint256_t motif_unit, ONE = 1;
-    for (int j = mmotif_index; j < mmotif_index+motif_length; j++) {
-        motif_unit <<= 1; 
-        if (left_bset[sequence_length -1 -j] == 1) motif_unit |= ONE;
-
-        motif_unit <<= 1;
-        if (right_bset[sequence_length -1 -j] == 1) motif_unit |= ONE;
-    }
-
-    return motif_unit;
-}
-
-
-uint256_t mostFrequentLongerMotif(boost::dynamic_bitset<> &left_bset, boost::dynamic_bitset<> &right_bset, int &seed_start,
-                                  int &seed_sequence_length, int &motif_length, int &sequence_length, vector<boost::dynamic_bitset<>*> &MATRIX) {
-    /*
-     *  return the index in the seed which is possible motif of the repeat
-     *  @param left_bset the bitset of left bit of a sequence
-     *  @param right_bset the bitset of right bit of a sequence
-     *  @param seed_start starting position of seed in the sequence
-     *  @param seed_sequence_length length of the seed sequence
-     *  @param motif_length length of the motif
-     *  @param sequence_length length of the chromosome sequence
-     *  @param MATRIX dot matrix of the chromosome sequence
-     *  @return int position within the sequence that is the possible motif for the seed
+     * return the index in the seed which is possible motif of the repeat
+     * @param left_bset the bitset of left bit of a sequence
+     * @param right_bset the bitset of right bit of a sequence
+     * @param seed_start starting position of seed in the sequence
+     * @param seed_sequence_length length of the seed sequence
+     * @param motif_length length of the motif
+     * @param sequence_length length of the chromosome sequence
+     * @param MATRIX dot matrix of the chromosome sequence
+     * @return int position within the sequence that is the possible motif for the seed
     */
 
     int seed_end = seed_start + seed_sequence_length;
@@ -179,7 +125,7 @@ uint256_t mostFrequentLongerMotif(boost::dynamic_bitset<> &left_bset, boost::dyn
 
     // outer loop for rows
     for (int row_start = seed_start; row_start < seed_end - motif_length + 1; row_start++) {
-        row_count = 0; 
+        row_count = 0;
         int iterations = 0;
 
         dstream_index = row_start + motif_length;
@@ -247,7 +193,7 @@ uint256_t mostFrequentLongerMotif(boost::dynamic_bitset<> &left_bset, boost::dyn
     // return mmotif_index;
     uint256_t motif_unit, ONE = 1;
     for (int j = mmotif_index; j < mmotif_index+motif_length; j++) {
-        motif_unit <<= 1; 
+        motif_unit <<= 1;
         if (left_bset[sequence_length -1 -j] == 1) motif_unit |= ONE;
 
         motif_unit <<= 1;
@@ -255,65 +201,6 @@ uint256_t mostFrequentLongerMotif(boost::dynamic_bitset<> &left_bset, boost::dyn
     }
 
     return motif_unit;
-}
-
-// with seed seq and known motif length here we are applying KMP algorithm to know the frequenct motifs. 
-uint256_t mostFrequentMotif(boost::dynamic_bitset<> &left_bset, boost::dynamic_bitset<> &right_bset, int &seed_start,
-                            int &seed_sequence_length, int &motif_length, int &sequence_length) {
-    /*
-     * finding the most repeating motif based on the maximum count for one seed
-     * @param left_bset the dynamic bitset of the left bit of the sequence
-     * @param right_bset the dynamic bitset of the right bit of the sequence
-     * @param seed_start start of the seed sequence
-     * @param seed_sequence_length length of the seed sequence
-     * @param motif_length length of the motif
-     * @param sequence_length total length of the sequence
-     * @returns uint32_t the repeat class represented as bits
-    */
-
-    unordered_map<uint256_t, int> motif_counts;
-    uint256_t ONE = 1;
-    uint256_t window = 0; // window to track the motif
-    uint256_t mask = 0;
-    for (int i=0; i<2*motif_length; i++) {
-        mask <<= 1; mask |= ONE;
-    }
-    uint256_t match = 0;
-    int bitcount = 0;
-    bool motif_present = 0;
-
-    uint256_t maxfreq_motif = 0;
-    int max_freq = 0;
-
-    uint256_t motif = 0; int wstart, wend;
-    int seed_end = seed_start + seed_sequence_length;
-    if (seed_end > sequence_length - 1) { seed_end = sequence_length - 1; }
-    int lc_motif_length = motif_length;
-
-    for (int j = seed_start; j < seed_end; j++) {
-        window <<= 1; 
-        if (left_bset[sequence_length -1 -j] == 1) window |= ONE;
-
-        window <<= 1;
-        if (right_bset[sequence_length -1 -j] == 1) window |= ONE;
-
-        window &= mask;
-
-        wstart = j - (motif_length - 1);
-        wend = j + 1;
-
-        if (j-seed_start >= (0.9*motif_length)-1) {   // window is atleast the size of motif length
-            motif_present = 0;
-            motif_counts[window] += 1;
-
-            if (motif_counts[window] > max_freq) {
-                max_freq = motif_counts[window];
-                maxfreq_motif = window;
-            }
-        }
-    }
-
-    return maxfreq_motif;
 }
 
 
@@ -384,21 +271,15 @@ void processSeed(tuple<int, int> seed_position, int seq_start, int &motif_length
     // length of the pseudo perfect sequence
     int ppr_length = seed_sequence_length + motif_length + ((1-PURITY_THRESHOLD)*seed_sequence_length);
     uint256_t motif_unit;
-    if (motif_length <= SMALL_MLEN_LIMIT) {
-        motif_unit = mostFrequentMotif(left_bset, right_bset, seed_start, seed_sequence_length,
-                                       motif_length, sequence_length);
-        atomicity = calculateAtomicity(motif_unit, motif_length);
-    }
-    else if (motif_length > SMALL_MLEN_LIMIT) {
-        motif_unit = mostFrequentLongerMotif(left_bset, right_bset, seed_start, seed_sequence_length,
-                                             motif_length, sequence_length, MATRIX);
-        atomicity = calculateAtomicityLongMotif(motif_unit, motif_length);
-        if (atomicity < SMALL_MLEN_LIMIT) {
-            processSeedMotifWise(tuple<int, int> { seed_start, seed_end }, seq_start, atomicity, seed_type, sequence_id, sequence,
-                                 sequence_length, lshift_xor_bsets[atomicity-MINIMUM_SHIFT], left_bset, right_bset, N_bset,
-                                 continuous_threshold, out, lshift_xor_bsets, aligner, filter, alignment, repeat_loci);
-            return;
-        }
+
+    motif_unit = mostFrequentLongMotif(left_bset, right_bset, seed_start, seed_sequence_length,
+                                            motif_length, sequence_length, MATRIX);
+    atomicity = calculateAtomicityLongMotif(motif_unit, motif_length);
+    if (atomicity < SMALL_MLEN_LIMIT) {
+        processSeedMotifWise(tuple<int, int> { seed_start, seed_end }, seq_start, atomicity, seed_type, sequence_id, sequence,
+                                sequence_length, lshift_xor_bsets[atomicity-MINIMUM_SHIFT], left_bset, right_bset, N_bset,
+                                continuous_threshold, out, aligner, filter, alignment, repeat_loci);
+        return;
     }
 
     if (motif_length % atomicity != 0) { return; }
@@ -431,12 +312,18 @@ void processSeed(tuple<int, int> seed_position, int seq_start, int &motif_length
         if (!inserted) { seed_repeat_loci.push_back(pair<int, int> { repeat_start, repeat_end - atomicity }); }
     }
 
+
+
+
+
     if (alignment_length >= MINIMUM_LENGTH[atomicity]) {
         repeat_length = repeat_end - repeat_start;
-        if (((atomicity <= 10 && match_units >= PERFECT_UNITS[atomicity]) || ((atomicity > 10) && ((purity * repeat_length) >= 3*atomicity)))
-            && repeat_length >= MINIMUM_LENGTH[atomicity] && motifwise_purity >= MOTIFPURITY_THRESHOLD
+        if (((atomicity <= 10 && match_units >= PERFECT_UNITS[atomicity]) || ((atomicity > 10)
+            && (((purity * repeat_length) >= 3*atomicity) || (purity > 0.9 && purity*repeat_length >= 2*atomicity))))
+            && purity >= PURITY_THRESHOLD && repeat_length >= MINIMUM_LENGTH[atomicity] && motifwise_purity >= MOTIFPURITY_THRESHOLD
             && atomicity >= MINIMUM_MLEN && atomicity <= MAXIMUM_MLEN) {
             repeat_units = repeat_length/atomicity;
+
             addLocusToOutput(sequence_id, repeat_start, repeat_end, motif.substr(0, atomicity), purity, cigar_string,
                              atomicity, repeat_length, repeat_units, out, repeat_loci);
         }
@@ -449,7 +336,7 @@ void processSeed(tuple<int, int> seed_position, int seq_start, int &motif_length
     for (int i=0; i<seed_repeat_loci.size(); i++) {
 
         if (flank_start >= seed_repeat_loci[i].first) { flank_start = seed_repeat_loci[i].second; continue;  }
-        
+
         if (seed_repeat_loci[i].first - flank_start >= MINIMUM_LENGTH[motif_length]) {
             if (flank_start < seed_start) { flank_start = seed_start; }
             if (seed_repeat_loci[i].first > seed_end) { seed_repeat_loci[i].first = seed_end; }
@@ -459,12 +346,12 @@ void processSeed(tuple<int, int> seed_position, int seq_start, int &motif_length
                             lshift_xor_bsets, MATRIX, aligner, filter, alignment, repeat_loci);
             }
         }
-        
+
         flank_start = seed_repeat_loci[i].second;
     }
 
     if (seed_end - flank_start >= MINIMUM_LENGTH[motif_length]) {
-        if (flank_start < seed_start) { flank_start = seed_start; }            
+        if (flank_start < seed_start) { flank_start = seed_start; }
         if (flank_start != seed_start) {
             processSeed(tuple<int, int> { flank_start, seed_end }, seq_start, motif_length, seed_type, sequence_id, sequence,
                         sequence_length, xor_bset, left_bset, right_bset, N_bset, continuous_threshold, out, lshift_xor_bsets,

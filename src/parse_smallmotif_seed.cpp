@@ -75,19 +75,22 @@ int calculateMotifUnits(boost::dynamic_bitset<> &left_bset, boost::dynamic_bitse
 }
 
 
-// with seed seq and known motif length here we are applying KMP algorithm to know the frequenct motifs. 
 void possibleMotifs(boost::dynamic_bitset<> &left_bset, boost::dynamic_bitset<> &right_bset, int &seed_start,
                     int &seed_sequence_length, int &motif_length, int &sequence_length,
                     vector<uint32_t> &motifs, vector<int> &starts, vector<int> &ends, string &sequence) {
     /*
-     * finding the most repeating motif without converting the seed to string
+     * finding the most repeating motif without converting the seed to string; applying the KMP algorithm
      * @param left_bset the dynamic bitset of the left bit of the sequence
      * @param right_bset the dynamic bitset of the right bit of the sequence
      * @param seed_start start of the seed sequence
      * @param seed_sequence_length length of the seed sequence
      * @param motif_length length of the motif
      * @param sequence_length total length of the sequence
-     * @returns uint32_t the repeat class represented as bits
+     * @param motifs the vector of identified possible motifs; passed as reference; updated
+     * @param starts the vector of starts of the identified motifs
+     * @param ends the vector of the ends of the identified motifs
+     * @param sequence the nucleotide sequence of the seed
+     * @returns none updates motifs, starts and ends of the identified motifs
     */
 
     unordered_map<uint32_t, int> new_motif_start;
@@ -156,7 +159,7 @@ void possibleMotifs(boost::dynamic_bitset<> &left_bset, boost::dynamic_bitset<> 
                             MOTIF_GAPS[motif] += ((j - MOTIF_END[motif]) / motif_length);
                             MOTIF_GAPSIZE[motif] += (j - MOTIF_END[motif]);
                         }
-                    }                    
+                    }
                     else if (MOTIF_END[motif] == j && MOTIF_NEXT[motif] != window.to_ulong()) {
                         MOTIF_GAPS[motif] += 1;
                         MOTIF_GAPSIZE[motif] += 1;
@@ -176,7 +179,6 @@ void possibleMotifs(boost::dynamic_bitset<> &left_bset, boost::dynamic_bitset<> 
         window <<= 2;
     }
 
-
     for (auto& it: new_motif_start) {
         // reiterate through all the left over motifs and record them
         motif = it.first;
@@ -191,28 +193,28 @@ void possibleMotifs(boost::dynamic_bitset<> &left_bset, boost::dynamic_bitset<> 
 
 void processSeedMotifWise(tuple<int, int> seed_position, int seq_start, int &motif_length, int &seed_type, string &sequence_id, string &sequence,
                           int &sequence_length, boost::dynamic_bitset<> &xor_bset, boost::dynamic_bitset<> &left_bset, boost::dynamic_bitset<> &right_bset,
-                          boost::dynamic_bitset<> &N_bset, int &continuous_threshold, ostream &out, vector<boost::dynamic_bitset<>> &lshift_xor_bsets,
+                          boost::dynamic_bitset<> &N_bset, int &continuous_threshold, ostream &out,
                           StripedSmithWaterman::Aligner &aligner, StripedSmithWaterman::Filter &filter, StripedSmithWaterman::Alignment &alignment,
                           vector<tuple<string, int, int, string, double, string, int, int, int>> &repeat_loci) {
     /*
      * processes the seed and finds all the repeats in the sequence
      * @param seed_position tuple with start and end position of the seed
+     * @param seq_start the start of the seed sequence
      * @param motif_length length of the motif
+     * @param seed_type type of the seed
      * @param sequence_id name of the sequence
+     * @param sequence nucleotide sequence of the seed
      * @param sequence_length length of the complete sequence
-     * @param xor_bset the XOR conversion of the bitset (also includes anchor bitset)
+     * @param xor_bset shift XOR bitset of the motif size
      * @param left_bset the dynamic bitset of the left bit of the sequence
      * @param right_bset the dynamic bitset of the right bit of the sequence
-     * @param purity_cutoff_mode if the impurity levels are given by purity threshold or mismatches
-     * @param minimum_length the minimum length cutoff for different motif sizes
-     * @param purity_threshold the allowed minimum purity
-     * @param mismatches_threshold the allowed maximum mismatches
-     * @param perfect_units the minimum number of perfect units for different motif sizes
+     * @param N_bset the bitset indicating the presence of Ns at a position
      * @param continuous_threshold minimum length of continuous stretch of 1s in the seed
-     * @param out outfile
-     * @param aligner the aligner object
-     * @param filter the filter object
+     * @param out output file name
+     * @param aligner the aligner object pf ssw alignment
+     * @param filter the filter object of ssw alignment
      * @param alignment the resultant alignment object
+     * @param repeat_loci the list of identified repeat loci
      * @returns none prints out the repeat locations to the output file
     */
 
@@ -234,7 +236,7 @@ void processSeedMotifWise(tuple<int, int> seed_position, int seq_start, int &mot
         seed_bset[seed_end - 1 - j] = xor_bset[sequence_length -j - 1];
     }
 
-    int longest_stretch = longestContinuousMatches(seed_bset);    
+    int longest_stretch = longestContinuousMatches(seed_bset);
     if (longest_stretch < continuous_threshold) { return; }
     if (THREADS > 1) MTX.lock();
     vector<uint32_t> motifs; vector<int> starts, ends;
@@ -250,7 +252,8 @@ void processSeedMotifWise(tuple<int, int> seed_position, int seq_start, int &mot
 
     int repeat_start, repeat_end, match_nucs, mismatch_nucs, match_units;
     int repeat_length, repeat_units;
-    int alignment_length, interruptions, atomicity, motif_sequence_length, motifwise_indels;
+    int alignment_length, interruptions, atomicity;
+    int motif_sequence_length, motifwise_indels, avg_matchlen;
     double purity = 0, motifwise_purity = 0;
     string cigar_string, motif_sequence;
 
@@ -273,15 +276,21 @@ void processSeedMotifWise(tuple<int, int> seed_position, int seq_start, int &mot
         while(pseudo_perfect_repeat.length() <= ppr_length) pseudo_perfect_repeat += motif;
         aligner.Align(motif_sequence.c_str(), pseudo_perfect_repeat.c_str(), ppr_length, filter, &alignment, 15);
         processCIGARMotifWise(starts[motif_idx], motif_sequence_length, alignment.cigar_string, motif_sequence, atomicity,
-                              repeat_start, repeat_end, alignment_length, cigar_string, purity, motifwise_purity, motifwise_indels);
+                              repeat_start, repeat_end, alignment_length, cigar_string, purity, motifwise_purity, motifwise_indels, avg_matchlen);
         repeat_length = repeat_end - repeat_start;
         if (THREADS > 1) MTX.lock();
         match_units = calculateMotifUnits(left_bset, right_bset, repeat_start, repeat_length, atomicity, sequence_length, motif_unit);
         if (THREADS > 1) MTX.unlock();
 
-        if (match_units >= PERFECT_UNITS[atomicity] && repeat_length >= MINIMUM_LENGTH[atomicity] && motifwise_purity >= MOTIFPURITY_THRESHOLD
+        repeat_units = repeat_length/atomicity;
+
+        if ((match_units >= PERFECT_UNITS[atomicity] && match_units >= (0.7*repeat_units))
+            && (motifwise_purity >= MOTIFPURITY_THRESHOLD || avg_matchlen > 2*atomicity)
+            && repeat_length >= MINIMUM_LENGTH[atomicity]
             && atomicity >= MINIMUM_MLEN && atomicity <= MAXIMUM_MLEN) {
-            repeat_units = repeat_length/atomicity;
+            // a small motif seed is considered valid based on a set of criteria
+            // - match units are more than threshold AND 70% of the total units are perfect
+            // - average motif purity is 80% OR the average continuous match length twice the atomicity
 
             addLocusToOutput(sequence_id, repeat_start, repeat_end, motif.substr(0, atomicity), purity, cigar_string,
                              atomicity, repeat_length, repeat_units, out, repeat_loci);
