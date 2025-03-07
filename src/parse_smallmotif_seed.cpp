@@ -287,7 +287,8 @@ void processSeedMotifWise(tuple<int, int> seed_position, int seq_start, int &mot
         if ((match_units >= PERFECT_UNITS[atomicity] && match_units >= (0.7*repeat_units))
             && (motifwise_purity >= MOTIFPURITY_THRESHOLD || avg_matchlen > 2*atomicity)
             && repeat_length >= MINIMUM_LENGTH[atomicity]
-            && atomicity >= MINIMUM_MLEN && atomicity <= MAXIMUM_MLEN) {
+            && atomicity >= MINIMUM_MLEN && atomicity <= MAXIMUM_MLEN
+            && (!(repeat_units < 3 && purity < PURITY_THRESHOLD))) {
             // a small motif seed is considered valid based on a set of criteria
             // - match units are more than threshold AND 70% of the total units are perfect
             // - average motif purity is 80% OR the average continuous match length twice the atomicity
