@@ -13,7 +13,18 @@ void mergeAllLists(vector<tuple<int,int,int,int>> &seed_positions_perfect,
                    vector<tuple<int,int,int,int>> &seed_positions_anchored,
                    int from_index_perfect, int from_index_substut, vector<int> &last_types,
                    vector<int> &last_indices, int seed_start) {
-
+    /*
+     * merges the list of seeds of across all types
+     * @param seed_positions_perfect vector of perfect seed positions
+     * @param seed_positions_substut vector of repeat positions with mismatches allowed
+     * @param seed_positions_anchored vector of repeat positions with indels allowed
+     * @param from_index_perfect index of perfect seed to resume merging from
+     * @param from_index_substut index of substitute seeds to resume merging from
+     * @param last_types index of substitute seeds to resume merging from
+     * @param last_indices index of substitute seeds to resume merging from
+     * @param seed_start start of the seed
+     * @returns void
+    */
     vector<int> last_subperf_types;
     vector<int> last_subperf_indices;
     int perfect_start_bool = false, substut_start_bool = false;
@@ -52,7 +63,7 @@ void mergeAllLists(vector<tuple<int,int,int,int>> &seed_positions_perfect,
                 substut_end = get<1> (seed_positions_substut[substut_index]);
                 substut_type = get<3> (seed_positions_substut[substut_index]);
                 if (substut_end >= seed_start) {
-                    if (substut_type != RANK_N) { 
+                    if (substut_type != RANK_N) {
                         last_subperf_types.push_back(RANK_S);
                         last_subperf_indices.push_back(substut_index);
                     }
@@ -96,8 +107,6 @@ void mergeAllLists(vector<tuple<int,int,int,int>> &seed_positions_perfect,
         }
     }
 
-    // cout << "Subperf lengths: " << last_subperf_indices.size() << "\t" << last_subperf_types.size() << "\n";
-
     int subperf_start_bool = false, anchored_start_bool = false;
     int subperf_index = last_subperf_indices.size()-1, anchored_index = seed_positions_anchored.size()-1;
     int subperf_end, anchored_end;
@@ -125,7 +134,6 @@ void mergeAllLists(vector<tuple<int,int,int,int>> &seed_positions_perfect,
     }
     else {
         while (!(subperf_start_bool && anchored_start_bool)) {
-            // cout << "Loop-2: " << subperf_index << "\t" << anchored_index << "\n";
             if (anchored_start_bool) {
                 while (subperf_index >= 0 || !subperf_start_bool) {
                     subperf_type = last_subperf_types[subperf_index];
@@ -165,7 +173,7 @@ void mergeAllLists(vector<tuple<int,int,int,int>> &seed_positions_perfect,
                 idx = last_subperf_indices[subperf_index];
 
                 if (subperf_type == RANK_P) { subperf_end = get<1> (seed_positions_perfect[idx]); }
-                else if (subperf_type == RANK_S) { subperf_end = get<1> (seed_positions_substut[idx]); }                    
+                else if (subperf_type == RANK_S) { subperf_end = get<1> (seed_positions_substut[idx]); }
                 anchored_end = get<1> (seed_positions_anchored[anchored_index]);
 
                 if (anchored_end > subperf_end) {

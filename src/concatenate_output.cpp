@@ -27,16 +27,23 @@ void sortBedRecords(std::vector<BedRecord>& records) {
 }
 
 void concatenateOutputs(string out_file, vector<string>seq_names, int THREADS) {
+    /*
+     * sorts and concatenates all the outputs from different threads
+     * @param out_file the name of the output file
+     * @param seq_names vector of the sequence names
+     * @param THREADS number of threads used by the program
+     * @returns void
+    */
     ofstream out(out_file);
     vector<int> starts;
     string line; vector<string> lines;
     string chrom; int start, end;
-    
+
     std::vector<BedRecord> records;
     for (string seq_name: seq_names) {
         for (int tnum = 1; tnum <= THREADS; tnum++) {
             records.clear();
-            string output_name = out_file + "_" + seq_name + "_" + to_string(tnum);            
+            string output_name = out_file + "_" + seq_name + "_" + to_string(tnum);
             ifstream chunk(output_name);
             cerr << "Concatenating " << output_name << "\n";
             while (getline(chunk, line)) {

@@ -24,7 +24,7 @@
 using namespace std;
 
 
-void parseFai(string infai, int &nseqs, unordered_map<string, int> &seq_lens) {    
+void parseFai(string infai, int &nseqs, unordered_map<string, int> &seq_lens) {
     /*
      * parses the fasta index file
      * @param infai file identifier of the fasta index
@@ -51,7 +51,7 @@ void parseFai(string infai, int &nseqs, unordered_map<string, int> &seq_lens) {
 int failedSeeds(vector<tuple<int, int, int, int>> &seed_positions) {
     /*
      * counts the number of failed seeds in a seed positions vector
-     * @param seed_positions vector of seed_positions 
+     * @param seed_positions vector of seed_positions
     */
     int count = 0; int seed_type = 0;
     for (int seed_idx=seed_positions.size()-1; seed_idx>=0; seed_idx--) {
@@ -94,7 +94,7 @@ void parseFasta(string fasta_file, int window_length, int window_bitcount_thresh
         while (getline(fastain, line)) {
             if (line[0] == '>') {
                 if (sequence != "") {
-                    cerr << "\nProcessing sequence " << seq_name << "\n";
+                    // cerr << "\nProcessing sequence " << seq_name << "\n";
                     processSequence(seq_name, sequence, window_length, window_bitcount_threshold, anchor_length,
                                     continuous_ones_threshold, out);
                 }
@@ -113,8 +113,8 @@ void parseFasta(string fasta_file, int window_length, int window_bitcount_thresh
         unordered_map<string, int> seq_lens; int nseqs = 0;
         parseFai(fasta_file+".fai", nseqs, seq_lens);
         if (nseqs == 0) {
-            cerr << "ERROR: Index for fasta file missing! Required when running in threads mode.\n";
-            cerr << "NOTE: Index can generated using `samtools faidx [fasta_file]`\n";
+            // cerr << "ERROR: Index for fasta file missing! Required when running in threads mode.\n";
+            // cerr << "NOTE: Index can generated using `samtools faidx [fasta_file]`\n";
             return;
         }
         int chunk_size = 0;
@@ -129,7 +129,7 @@ void parseFasta(string fasta_file, int window_length, int window_bitcount_thresh
             if (line[0] == '>') {
                 if (sequence != "") {
                     threads.clear();
-                    cerr << "Processing sequence " << seq_name << "\n";
+                    // cerr << "Processing sequence " << seq_name << "\n";
                     output_name = out_file + "_" + seq_name + "_" + to_string(tnum);
                     threads.emplace_back(processSequenceThread, seq_name, sequence, seq_start, window_length, window_bitcount_threshold,
                                         anchor_length, continuous_ones_threshold, tnum, output_name);
@@ -145,7 +145,7 @@ void parseFasta(string fasta_file, int window_length, int window_bitcount_thresh
                 sequence += line;
                 if (sequence.length() >= chunk_size) {
                     output_name = out_file + "_" + seq_name + "_" + to_string(tnum);
-                    cerr << "Writing thread "<< tnum << " output to " << output_name << "\n";
+                    // cerr << "Writing thread "<< tnum << " output to " << output_name << "\n";
                     threads.emplace_back(processSequenceThread, seq_name, sequence, seq_start, window_length, window_bitcount_threshold,
                                          anchor_length, continuous_ones_threshold, tnum, output_name);
                     seq_start += sequence.length() - toverlap;
@@ -156,7 +156,7 @@ void parseFasta(string fasta_file, int window_length, int window_bitcount_thresh
         }
         if (sequence != "") {
             output_name = out_file + "_" + seq_name + "_" + to_string(tnum);
-            cerr << "Writing thread "<< tnum << " output to " << output_name << "\n";
+            // cerr << "Writing thread "<< tnum << " output to " << output_name << "\n";
             threads.emplace_back(processSequenceThread, seq_name, sequence, seq_start, window_length, window_bitcount_threshold,
                                  anchor_length, continuous_ones_threshold, tnum, output_name);
             for (int _=0; _<THREADS; _++) { threads[_].join(); }
@@ -168,7 +168,7 @@ void parseFasta(string fasta_file, int window_length, int window_bitcount_thresh
             concatenateOutputs(out_file, seq_names, THREADS);
         }
         seconds_since_start = difftime(time(0), START_TIME);
-        std::cerr << "Concatenated all outputs.\t Time elapsed: " << seconds_since_start << "secs\n";
+        // std::cerr << "Concatenated all outputs.\t Time elapsed: " << seconds_since_start << "secs\n";
     }
 }
 
@@ -190,6 +190,9 @@ void processSequence(string sequence_id, string sequence, int window_length, int
 
     START_TIME = time(0);
     double seconds_since_start;
+
+    std::cerr << "Processing " << sequence_id << "\n";
+    std::cerr << "Length of the sequence: " << sequence.length() << "\n";
 
     // converting the sequencing to bitsets
     int sequence_length = sequence.length();
@@ -238,7 +241,7 @@ void processSequence(string sequence_id, string sequence, int window_length, int
         lshift_xor_bsets.push_back( ~(left_bset ^ (left_bset<<(i))) & ~(right_bset ^ (right_bset<<(i))) );
     }
     seconds_since_start = difftime( time(0), START_TIME);
-    std::cerr << "Generated shift XORs!\t Time elapsed:" << seconds_since_start << "secs\n";
+    // std::cerr << "Generated shift XORs!\t Time elapsed:" << seconds_since_start << "secs\n";
 
 
     // generating seed positions; vector of tuple with start and end of the seeds
@@ -248,23 +251,23 @@ void processSequence(string sequence_id, string sequence, int window_length, int
     int failed_seeds = 0;
 
     vector<tuple<string, int, int, string, double, string, int, int, int>> repeat_loci;
-    
+
     if (PURITY_THRESHOLD == 1) {
         seed_positions_perfect = processShiftXORsPerfect(lshift_xor_bsets, N_bset, window_length);
         seconds_since_start = difftime( time(0), START_TIME);
-        std::cerr << "Total number of perfect seeds: " << seed_positions_perfect.size() << "\t Time elapsed: " << seconds_since_start << "secs\n";
+        // std::cerr << "Total number of perfect seeds: " << seed_positions_perfect.size() << "\t Time elapsed: " << seconds_since_start << "secs\n";
     }
 
     else {
         seed_positions_perfect = processShiftXORsPerfect(lshift_xor_bsets, N_bset, window_length);
         seconds_since_start = difftime( time(0), START_TIME);
-        std::cerr << "Total number of perfect seeds: " << seed_positions_perfect.size() << "\t Time elapsed: " << seconds_since_start << "secs\n";
+        // std::cerr << "Total number of perfect seeds: " << seed_positions_perfect.size() << "\t Time elapsed: " << seconds_since_start << "secs\n";
 
         seed_positions_substut = processShiftXORswithSubstitutions(lshift_xor_bsets, N_bset, window_length, window_bitcount_threshold, seed_positions_perfect);
         failed_seeds = failedSeeds(seed_positions_perfect); failed_seeds += failedSeeds(seed_positions_substut);
         seconds_since_start = difftime( time(0), START_TIME);
-        std::cerr << "Total number of seeds considering substitutions: " << seed_positions_perfect.size() + seed_positions_substut.size() - failed_seeds
-                  << "\t Time elapsed: " << seconds_since_start << "secs\n";
+        // std::cerr << "Total number of seeds considering substitutions: " << seed_positions_perfect.size() + seed_positions_substut.size() - failed_seeds
+                //   << "\t Time elapsed: " << seconds_since_start << "secs\n";
 
 
         // generating the anchor bitsets for all shift sizes
@@ -288,15 +291,15 @@ void processSequence(string sequence_id, string sequence, int window_length, int
         }
         lsxor_anchor_bsets.clear();
         seconds_since_start = difftime( time(0), START_TIME);
-        std::cerr << "Generated anchored shift XORs!\t Time elapsed: " << seconds_since_start << "secs\n";
+        // std::cerr << "Generated anchored shift XORs!\t Time elapsed: " << seconds_since_start << "secs\n";
 
         window_bitcount_threshold = 6;  // threshold selected for identifying repeats with indels
         seed_positions_anchored = processShiftXORsAnchored(lshift_xor_bsets, N_bset, window_length, window_bitcount_threshold,
                                                            seed_positions_perfect, seed_positions_substut);
         seconds_since_start = difftime( time(0), START_TIME);
         failed_seeds = failedSeeds(seed_positions_perfect); failed_seeds += failedSeeds(seed_positions_substut); failed_seeds += failedSeeds(seed_positions_anchored);
-        std::cerr << "Total number of seeds considering indels: " << seed_positions_perfect.size() + seed_positions_substut.size() + seed_positions_anchored.size() - failed_seeds
-                  << "\t Time elapsed: " << seconds_since_start << "secs\n";
+        // std::cerr << "Total number of seeds considering indels: " << seed_positions_perfect.size() + seed_positions_substut.size() + seed_positions_anchored.size() - failed_seeds
+                //   << "\t Time elapsed: " << seconds_since_start << "secs\n";
     }
 
 
@@ -312,7 +315,7 @@ void processSequence(string sequence_id, string sequence, int window_length, int
     uint64_t smallest; int smallest_type = -1;
     int spidx_p=0, spidx_s=0, spidx_a=0;
     int processed_seeds = 0;
-    
+
     while (spidx_p < seed_positions_perfect.size() || spidx_s < seed_positions_substut.size() || spidx_a < seed_positions_anchored.size()) {
         smallest = -1;
 
@@ -359,7 +362,7 @@ void processSequence(string sequence_id, string sequence, int window_length, int
             if (seed_mlen <= SMALL_MLEN_LIMIT) {
                 processSeedMotifWise(tuple<int, int> { seed_start, seed_end }, 0, seed_mlen, seed_type, sequence_id, sequence,
                                      sequence_length, lshift_xor_bsets[seed_mlen-MINIMUM_SHIFT], left_bset, right_bset, N_bset,
-                                     continuous_ones_threshold, out, lshift_xor_bsets, aligner, filter, alignment, repeat_loci);
+                                     continuous_ones_threshold, out, aligner, filter, alignment, repeat_loci);
             }
 
             else {
@@ -383,7 +386,8 @@ void processSequence(string sequence_id, string sequence, int window_length, int
     seed_positions_anchored.clear();
 
     seconds_since_start = difftime( time(0), START_TIME);
-    std::cerr << "Total number of seeds that are processed for alignment: " << processed_seeds << "\t Time elapsed: " << seconds_since_start << "secs\n\n";
+    // std::cerr << "Total number of seeds that are processed for alignment: " << processed_seeds << "\t Time elapsed: " << seconds_since_start << "secs\n\n";
+    std::cerr << "Done!" << " Time elapsed: " << seconds_since_start << "secs\n\n";
 }
 
 
@@ -459,7 +463,7 @@ void processSequenceThread(string sequence_id, string sequence, int seq_start, i
         lshift_xor_bsets.push_back( ~(left_bset ^ (left_bset<<(i))) & ~(right_bset ^ (right_bset<<(i))) );
     }
     seconds_since_start = difftime( time(0), START_TIME);
-    std::cerr << "Thread " << tnum << ": Generated shift XORs!\t Time elapsed:" << seconds_since_start << "secs\n";
+    // std::cerr << "Thread " << tnum << ": Generated shift XORs!\t Time elapsed:" << seconds_since_start << "secs\n";
 
     // generating seed positions; vector of tuple with start and end of the seeds
     vector<tuple<int, int, int, int>> seed_positions_perfect;
@@ -472,19 +476,19 @@ void processSequenceThread(string sequence_id, string sequence, int seq_start, i
     if (PURITY_THRESHOLD == 1) {
         seed_positions_perfect = processShiftXORsPerfect(lshift_xor_bsets, N_bset, window_length);
         seconds_since_start = difftime( time(0), START_TIME);
-        std::cerr << "Thread " << tnum << ": Total number of perfect seeds: " << seed_positions_perfect.size() << "\t Time elapsed: " << seconds_since_start << "secs\n";
+        // std::cerr << "Thread " << tnum << ": Total number of perfect seeds: " << seed_positions_perfect.size() << "\t Time elapsed: " << seconds_since_start << "secs\n";
     }
 
     else {
         seed_positions_perfect = processShiftXORsPerfect(lshift_xor_bsets, N_bset, window_length);
         seconds_since_start = difftime( time(0), START_TIME);
-        std::cerr << "Thread " << tnum << ": Total number of perfect seeds: " << seed_positions_perfect.size() << "\t Time elapsed: " << seconds_since_start << "secs\n";
+        // std::cerr << "Thread " << tnum << ": Total number of perfect seeds: " << seed_positions_perfect.size() << "\t Time elapsed: " << seconds_since_start << "secs\n";
 
         seed_positions_substut = processShiftXORswithSubstitutions(lshift_xor_bsets, N_bset, window_length, window_bitcount_threshold, seed_positions_perfect);
         failed_seeds = failedSeeds(seed_positions_perfect); failed_seeds += failedSeeds(seed_positions_substut);
         seconds_since_start = difftime( time(0), START_TIME);
-        std::cerr << "Thread " << tnum << ": Total number of seeds considering substitutions: " << seed_positions_perfect.size() + seed_positions_substut.size() - failed_seeds
-                << "\t Time elapsed: " << seconds_since_start << "secs\n";
+        // std::cerr << "Thread " << tnum << ": Total number of seeds considering substitutions: " << seed_positions_perfect.size() + seed_positions_substut.size() - failed_seeds
+                // << "\t Time elapsed: " << seconds_since_start << "secs\n";
 
 
         // generating the anchor bitsets for all shift sizes
@@ -508,16 +512,16 @@ void processSequenceThread(string sequence_id, string sequence, int seq_start, i
         }
         lsxor_anchor_bsets.clear();
         seconds_since_start = difftime( time(0), START_TIME);
-        std::cerr << "Thread " << tnum << ": Generated anchored shift XORs!\t Time elapsed: " << seconds_since_start << "secs\n";
+        // std::cerr << "Thread " << tnum << ": Generated anchored shift XORs!\t Time elapsed: " << seconds_since_start << "secs\n";
 
         window_bitcount_threshold = 6;
         seed_positions_anchored = processShiftXORsAnchored(lshift_xor_bsets, N_bset, window_length, window_bitcount_threshold,
                                                         seed_positions_perfect, seed_positions_substut);
         seconds_since_start = difftime( time(0), START_TIME);
         failed_seeds = failedSeeds(seed_positions_perfect); failed_seeds += failedSeeds(seed_positions_substut); failed_seeds += failedSeeds(seed_positions_anchored);
-        std::cerr << "Thread " << tnum << ": Total number of seeds considering indels: " 
-                << seed_positions_perfect.size() + seed_positions_substut.size() + seed_positions_anchored.size() - failed_seeds
-                << "\t Time elapsed: " << seconds_since_start << "secs\n";
+        // std::cerr << "Thread " << tnum << ": Total number of seeds considering indels: "
+                //   << seed_positions_perfect.size() + seed_positions_substut.size() + seed_positions_anchored.size() - failed_seeds
+                //   << "\t Time elapsed: " << seconds_since_start << "secs\n";
     }
 
 
@@ -571,7 +575,6 @@ void processSequenceThread(string sequence_id, string sequence, int seq_start, i
         for (int j = seed_start; j < seed_end; j++) {
             seed_bset[seed_end - 1 - j] = lshift_xor_bsets[seed_mlen-MINIMUM_SHIFT][sequence_length - 1 - j];
         }
-        // std::cerr << "Thread " << tnum << ": " << sequence_id << "\t" << seed_start << "\t" << seed_end << "\t" << seed_type << "\n";
 
         if (seed_end - seed_start >= 0.9*seed_mlen) {
 
@@ -580,7 +583,7 @@ void processSequenceThread(string sequence_id, string sequence, int seq_start, i
             if (seed_mlen <= SMALL_MLEN_LIMIT) {
                 processSeedMotifWise(tuple<int, int> { seed_start, seed_end }, seq_start, seed_mlen, seed_type, sequence_id, sequence,
                                      sequence_length, lshift_xor_bsets[seed_mlen-MINIMUM_SHIFT], left_bset, right_bset, N_bset,
-                                     continuous_ones_threshold, out, lshift_xor_bsets, aligner, filter, alignment, repeat_loci);
+                                     continuous_ones_threshold, out, aligner, filter, alignment, repeat_loci);
             }
 
             else {
@@ -604,7 +607,7 @@ void processSequenceThread(string sequence_id, string sequence, int seq_start, i
     seed_positions_substut.clear();
     seed_positions_anchored.clear();
 
-    seconds_since_start = difftime( time(0), START_TIME);
     outstream.close();
-    std::cerr << "Thread " << tnum << ": Total number of seeds that are processed for alignment: " << processed_seeds << "\t Time elapsed: " << seconds_since_start << "secs\n";
+    seconds_since_start = difftime( time(0), START_TIME);
+    // std::cerr << "Thread " << tnum << ": Total number of seeds that are processed for alignment: " << processed_seeds << "\t Time elapsed: " << seconds_since_start << "secs\n";
 }
