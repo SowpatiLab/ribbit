@@ -180,8 +180,9 @@ tuple<vector<int>, vector<char>> extractNonOverlapCigar(int a_end, int b_start, 
     */
     vector<int> nover_clens; vector<char> nover_ctypes;
     int rpos = b_start, i = 0;
+    int clen; char ctype;
     for (i=0; i<b_clens.size(); i++) {  // pass through the locus
-        int clen = b_clens[i]; char ctype = b_ctypes[i];
+        clen = b_clens[i]; ctype = b_ctypes[i];
         if (ctype == '=' || ctype == 'M' || ctype == 'X' || ctype == 'I') {
             rpos += clen;
         }
@@ -195,8 +196,8 @@ tuple<vector<int>, vector<char>> extractNonOverlapCigar(int a_end, int b_start, 
         else if (rpos > a_end) {
             // if reached beyond the end of the upstream overlapping locus
             if (i < b_clens.size() - 1) {
-                nover_clens.push_back(rpos-a_end);
-                for (int _=i; _<b_clens.size(); _++) { nover_clens.push_back(b_clens[_]); }
+                nover_clens = {rpos-a_end};
+                for (int _=i+1; _<b_clens.size(); _++) { nover_clens.push_back(b_clens[_]); }
                 nover_ctypes = vector<char>(b_ctypes.begin() + i, b_ctypes.end());
                 return {nover_clens, nover_ctypes};
             }
