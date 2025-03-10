@@ -13,8 +13,7 @@ SRC_RIBBIT = src/global_variables.cpp src/concatenate_output.cpp src/output_util
 
 # if there is a change in any of the ribbit source file make builds the executable
 ribbit: $(SRC_RIBBIT)
-	$(CXX) $(CXXFLAGS) $(BOOST_LIB) $(PTHREAD_LIB) $(SRC_SSW) $(SRC_RIBBIT) $(BOOST_PROGRAM_OPTIONS_LIB) -o ribbit
-
+	$(CXX) $(CXXFLAGS) $(BOOST_LIB) $(SRC_SSW) $(SRC_RIBBIT) $(BOOST_PROGRAM_OPTIONS_LIB) $(PTHREAD_LIB) -o ribbit
 # clean removes the executable
 clean:
 	@rm -f ribbit
