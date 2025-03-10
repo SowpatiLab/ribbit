@@ -358,43 +358,16 @@ void processSequence(string sequence_id, string sequence, int window_length, int
 
             // printing out the seed
             processed_seeds += 1;
-
-            if (seed_bset_size > 5000) {
-                int slice_length = 5000, slice_overlap = ((int)(500/seed_mlen)) * seed_mlen;
-                int slices = seed_bset_size / (slice_length - slice_overlap);
-                if (seed_bset_size % (slice_length - slice_overlap) != 0) slices += 1;
-                int slice_start, slice_end;
-                for (int i=0; i<slices; i++) {
-                    slice_start = seed_start + (i*(slice_length - slice_overlap));
-                    if (i == slices - 1) slice_end = seed_end;
-                    else slice_end = slice_start + slice_length;
-                    
-                    if (seed_mlen <= SMALL_MLEN_LIMIT) {
-                        processSeedMotifWise(tuple<int, int> { slice_start, slice_end }, 0, seed_mlen, seed_type, sequence_id, sequence,
-                                             sequence_length, lshift_xor_bsets[seed_mlen-MINIMUM_SHIFT], left_bset, right_bset, N_bset,
-                                             continuous_ones_threshold, out, aligner, filter, alignment, repeat_loci);
-                    }
-
-                    else {
-                        processSeed(tuple<int, int> { slice_start, slice_end }, 0, seed_mlen, seed_type, sequence_id, sequence, 
+            if (seed_mlen <= SMALL_MLEN_LIMIT) {
+                processSeedMotifWise(tuple<int, int> { seed_start, seed_end }, 0, seed_mlen, seed_type, sequence_id, sequence,
                                     sequence_length, lshift_xor_bsets[seed_mlen-MINIMUM_SHIFT], left_bset, right_bset, N_bset,
-                                    continuous_ones_threshold, out, lshift_xor_bsets, MATRIX, aligner, filter, alignment, repeat_loci);
-                    }
-                }
+                                    continuous_ones_threshold, out, aligner, filter, alignment, repeat_loci);
             }
 
             else {
-                if (seed_mlen <= SMALL_MLEN_LIMIT) {
-                    processSeedMotifWise(tuple<int, int> { seed_start, seed_end }, 0, seed_mlen, seed_type, sequence_id, sequence,
-                                        sequence_length, lshift_xor_bsets[seed_mlen-MINIMUM_SHIFT], left_bset, right_bset, N_bset,
-                                        continuous_ones_threshold, out, aligner, filter, alignment, repeat_loci);
-                }
-
-                else {
-                    processSeed(tuple<int, int> { seed_start, seed_end }, 0, seed_mlen, seed_type, sequence_id, sequence, sequence_length,
-                                lshift_xor_bsets[seed_mlen-MINIMUM_SHIFT], left_bset, right_bset, N_bset, continuous_ones_threshold,
-                                out, lshift_xor_bsets, MATRIX, aligner, filter, alignment, repeat_loci);
-                }
+                processSeed(tuple<int, int> { seed_start, seed_end }, 0, seed_mlen, seed_type, sequence_id, sequence, sequence_length,
+                            lshift_xor_bsets[seed_mlen-MINIMUM_SHIFT], left_bset, right_bset, N_bset, continuous_ones_threshold,
+                            out, lshift_xor_bsets, MATRIX, aligner, filter, alignment, repeat_loci);
             }
         }
     }
