@@ -273,7 +273,8 @@ void processSeed(tuple<int, int> seed_position, int seq_start, int &motif_length
     uint256_t motif_unit;
 
     motif_unit = mostFrequentLongMotif(left_bset, right_bset, seed_start, seed_sequence_length,
-                                            motif_length, sequence_length, MATRIX);
+                                        motif_length, sequence_length, MATRIX);
+
     atomicity = calculateAtomicityLongMotif(motif_unit, motif_length);
     if (atomicity < SMALL_MLEN_LIMIT) {
         processSeedMotifWise(tuple<int, int> { seed_start, seed_end }, seq_start, atomicity, seed_type, sequence_id, sequence,
@@ -311,10 +312,6 @@ void processSeed(tuple<int, int> seed_position, int seq_start, int &motif_length
         }
         if (!inserted) { seed_repeat_loci.push_back(pair<int, int> { repeat_start, repeat_end - atomicity }); }
     }
-
-
-
-
 
     if (alignment_length >= MINIMUM_LENGTH[atomicity]) {
         repeat_length = repeat_end - repeat_start;
