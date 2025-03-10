@@ -26,6 +26,86 @@ using namespace boost;
 using namespace boost::multiprecision;
 
 
+
+void longRepeatSSWAlignment(string &alignment_cigar, int seed_sequence_length, string &seed_sequence, int motif_length, string &motif,
+                            StripedSmithWaterman::Aligner &aligner, StripedSmithWaterman::Filter &filter,
+                            StripedSmithWaterman::Alignment &alignment, int slice_length) {
+    alignment_cigar = "";
+    
+    int slices = seed_sequence_length / slice_length;
+    int slice_start, slice_end, slice_len;
+    if (seed_sequence_length % slice_length != 0) slices += 1;
+    string slice_sequence;
+    string slice_cigar;
+    int adjust_start = 0;
+
+    int ppr_length;
+    string perfect_repeat;
+    
+    for (int i=0; i<slices; i++) {
+        slice_start = i*(slice_length) + adjust_start;
+        if (i == slices - 1) slice_end = seed_sequence_length;
+        else slice_end = slice_start + slice_length;
+        slice_sequence = seed_sequence.substr(slice_start, slice_end-slice_start);
+        slice_len = slice_sequence.length();
+
+        ppr_length = slice_len + motif_length + ((1-PURITY_THRESHOLD)*slice_len);
+        perfect_repeat = "";
+        while(perfect_repeat.length() <= ppr_length) perfect_repeat += motif;
+
+        aligner.Align(slice_sequence.c_str(), perfect_repeat.c_str(), ppr_length, filter, &alignment, 15);
+        slice_cigar = alignment.cigar_string;
+
+        int _ = 0; string initial_length = ""; int ilen;
+        while(isdigit(slice_cigar[_])) { initial_length += slice_cigar[_]; _++; }
+        ilen = stoi(initial_length);
+        if (slice_cigar[_] == 'S') {
+            string soft_clip_ref_bases = perfect_repeat.substr(alignment.ref_begin, motif_length).substr(motif_length-ilen, ilen);
+            string soft_clip_que_bases = slice_sequence.substr(0, ilen);
+            string soft_clip_cigar = "";
+
+            int xlen = 0, mlen = 0; bool mcontinue;
+            for (int i=0; i<ilen; i++) {
+                if (soft_clip_ref_bases[i] == soft_clip_que_bases[i]) {
+                    if (mcontinue) { mlen += 1; }
+                    else {
+                        if (xlen > 0) { soft_clip_cigar += to_string(xlen) + 'X'; }
+                        xlen = 0;
+                        mlen = 1; mcontinue = true;
+                    }
+                }
+                else {
+                    if (mcontinue) {
+                        if (mlen > 0) { soft_clip_cigar += to_string(mlen) + 'M'; }
+                        mlen = 0;
+                        xlen = 1; mcontinue = false;
+                    }
+                    else { xlen += 1; }
+                }
+            }
+            if (xlen > 0) { soft_clip_cigar += to_string(xlen) + 'X'; }
+            else if (mlen > 0) { soft_clip_cigar += to_string(mlen) + 'M'; }
+            alignment_cigar += soft_clip_cigar;
+            slice_cigar = slice_cigar.substr(_+1);
+        }
+
+        if (i==slices-1) {
+            alignment_cigar += slice_cigar; adjust_start = 0;
+        }
+        else {
+            if (slice_cigar[slice_cigar.length()-1] == 'S') {
+                string astart = "";
+                _ = slice_cigar.length()-2;
+                while(isdigit(slice_cigar[_])) { astart = slice_cigar[_] + astart; _ = _ - 1; }
+                alignment_cigar += slice_cigar.substr(0, slice_cigar.length() - astart.length() - 1);
+                adjust_start = -1 * stoi(astart);
+            }
+            else { alignment_cigar += slice_cigar; adjust_start = 0; }
+        }
+    }
+}
+
+
 int longestContinuousMatches(boost::dynamic_bitset<> &bset) {
     /*
      * calculates the longest continuous stretch of 1s in a bitset
@@ -292,41 +372,11 @@ void processSeed(tuple<int, int> seed_position, int seq_start, int &motif_length
     perfect_repeat = "";
     while(perfect_repeat.length() <= ppr_length) perfect_repeat += motif;
 
-    string alignment_cigar, acigar;
-    int slice_length = 10000, slice_overlap = 500;
+    string alignment_cigar;
+    int slice_length = 10000;
     if (seed_sequence_length > slice_length) {
-        alignment_cigar = "";
-        int adjust_start = 0;
-        int slices = seed_bset_size / slice_length;
-        if (seed_bset_size % slice_length != 0) slices += 1;
-        int slice_start, slice_end; string slice_sequence;
-        for (int i=0; i<slices; i++) {
-            slice_start = i*(slice_length - slice_overlap) + adjust_start;
-            if (i == slices - 1) slice_end = seed_sequence_length;
-            else slice_end = slice_start + slice_length;
-            slice_sequence = seed_sequence.substr(slice_start, slice_end-slice_start);
-
-            ppr_length = slice_sequence.length() + motif_length + ((1-PURITY_THRESHOLD)*seed_sequence_length);
-            perfect_repeat = "";
-            while(perfect_repeat.length() <= ppr_length) perfect_repeat += motif;
-
-            aligner.Align(seed_sequence.c_str(), perfect_repeat.c_str(), ppr_length, filter, &alignment, 15);
-            acigar = alignment.cigar_string;
-            if (i==slices-1) {
-                alignment_cigar += acigar; adjust_start = 0;
-            }
-            else {
-                if (acigar[acigar.length()-1] == 'S') {
-                    string astart = "";
-                    int _ = acigar.length()-2;
-                    while(acigar[_].isdigit()) { astart = acigar[_] + astart; _ = _ - 1; }
-                    alignment_cigar += acigar.substr(0, acigar.length() - astart.length() - 1);
-                    adjust_start = -1 * stoi(astart);
-                }
-                else { alignment_cigar += acigar; adjust_start = 0; }
-            }
-        }
-        
+        longRepeatSSWAlignment(alignment_cigar, seed_sequence_length, seed_sequence, motif_length, motif, aligner, filter,
+                               alignment, slice_length);
     }
     else {
         aligner.Align(seed_sequence.c_str(), perfect_repeat.c_str(), ppr_length, filter, &alignment, 15);
@@ -351,10 +401,6 @@ void processSeed(tuple<int, int> seed_position, int seq_start, int &motif_length
         if (!inserted) { seed_repeat_loci.push_back(pair<int, int> { repeat_start, repeat_end - atomicity }); }
     }
 
-
-
-
-
     if (alignment_length >= MINIMUM_LENGTH[atomicity]) {
         repeat_length = repeat_end - repeat_start;
         if (((atomicity <= 10 && match_units >= PERFECT_UNITS[atomicity]) || ((atomicity > 10)
@@ -367,7 +413,6 @@ void processSeed(tuple<int, int> seed_position, int seq_start, int &motif_length
                              atomicity, repeat_length, repeat_units, out, repeat_loci);
         }
     }
-
 
     if (seed_repeat_loci.size()==0) { return; }
 

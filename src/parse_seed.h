@@ -16,3 +16,7 @@ void processSeed(tuple<int, int> seed_position, int seq_start, int &motif_length
                  StripedSmithWaterman::Alignment &alignment, vector<tuple<string, int, int, string, double, string, int, int, int>> &repeat_loci);
 
 int longestContinuousMatches(boost::dynamic_bitset<> &bset);
+
+void longRepeatSSWAlignment(string &alignment_cigar, int seed_sequence_length, string &seed_sequence, int motif_length, string &motif,
+                            StripedSmithWaterman::Aligner &aligner, StripedSmithWaterman::Filter &filter,
+                            StripedSmithWaterman::Alignment &alignment, int slice_length);
