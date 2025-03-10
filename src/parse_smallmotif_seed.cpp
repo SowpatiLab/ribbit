@@ -275,41 +275,11 @@ void processSeedMotifWise(tuple<int, int> seed_position, int seq_start, int &mot
         perfect_repeat = "";
         while(perfect_repeat.length() <= ppr_length) perfect_repeat += motif;
 
-        string alignment_cigar, acigar;
-        int slice_length = 10000, slice_overlap = 500;
+        string alignment_cigar;
+        int slice_length = 10000;
         if (seed_sequence_length > slice_length) {
-            alignment_cigar = "";
-            int adjust_start = 0;
-            int slices = seed_bset_size / slice_length;
-            if (seed_bset_size % slice_length != 0) slices += 1;
-            int slice_start, slice_end; string slice_sequence;
-            for (int i=0; i<slices; i++) {
-                slice_start = i*(slice_length - slice_overlap) + adjust_start;
-                if (i == slices - 1) slice_end = seed_sequence_length;
-                else slice_end = slice_start + slice_length;
-                slice_sequence = seed_sequence.substr(slice_start, slice_end-slice_start);
-
-                ppr_length = slice_sequence.length() + motif_length + ((1-PURITY_THRESHOLD)*seed_sequence_length);
-                perfect_repeat = "";
-                while(perfect_repeat.length() <= ppr_length) perfect_repeat += motif;
-
-                aligner.Align(seed_sequence.c_str(), perfect_repeat.c_str(), ppr_length, filter, &alignment, 15);
-                acigar = alignment.cigar_string;
-                if (i==slices-1) {
-                    alignment_cigar += acigar; adjust_start = 0;
-                }
-                else {
-                    if (acigar[acigar.length()-1] == 'S') {
-                        string astart = "";
-                        int _ = acigar.length()-2;
-                        while(acigar[_].isdigit()) { astart = acigar[_] + astart; _ = _ - 1; }
-                        alignment_cigar += acigar.substr(0, acigar.length() - astart.length() - 1);
-                        adjust_start = -1 * stoi(astart);
-                    }
-                    else { alignment_cigar += acigar; adjust_start = 0; }
-                }
-            }
-            
+            longRepeatSSWAlignment(alignment_cigar, seed_sequence_length, seed_sequence, motif_length, motif, aligner, filter,
+                                   alignment, slice_length);
         }
         else {
             aligner.Align(seed_sequence.c_str(), perfect_repeat.c_str(), ppr_length, filter, &alignment, 15);

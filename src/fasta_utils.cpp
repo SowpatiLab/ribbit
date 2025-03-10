@@ -355,9 +355,8 @@ void processSequence(string sequence_id, string sequence, int window_length, int
 
         if (seed_end - seed_start >= 0.9*seed_mlen) {
             // process seed if it is alteast the size of the motif length
-
-            // printing out the seed
             processed_seeds += 1;
+
             if (seed_mlen <= SMALL_MLEN_LIMIT) {
                 processSeedMotifWise(tuple<int, int> { seed_start, seed_end }, 0, seed_mlen, seed_type, sequence_id, sequence,
                                     sequence_length, lshift_xor_bsets[seed_mlen-MINIMUM_SHIFT], left_bset, right_bset, N_bset,
