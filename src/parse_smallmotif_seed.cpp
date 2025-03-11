@@ -253,9 +253,9 @@ void processSeedMotifWise(tuple<int, int> seed_position, int seq_start, int &mot
     int repeat_start, repeat_end, match_nucs, mismatch_nucs, match_units;
     int repeat_length, repeat_units;
     int alignment_length, interruptions, atomicity;
-    int motif_sequence_length, motifwise_indels, avg_matchlen;
+    int motif_seed_length, motifwise_indels, avg_matchlen;
     double purity = 0, motifwise_purity = 0;
-    string cigar_string, motif_sequence;
+    string cigar_string, motif_seed_sequence;
 
 
     int motif_idx; uint32_t motif_unit;
@@ -268,31 +268,23 @@ void processSeedMotifWise(tuple<int, int> seed_position, int seq_start, int &mot
         motif = motif.substr(0, atomicity);
 
         motif_unit >>= 2*(motif_length - atomicity);
-        motif_sequence = sequence.substr(starts[motif_idx], ends[motif_idx] - starts[motif_idx]);
-        motif_sequence_length = ends[motif_idx] - starts[motif_idx];
+        // seed sequence limiting to the coordinates where full motif alignment matches are found 
+        motif_seed_sequence = sequence.substr(starts[motif_idx], ends[motif_idx] - starts[motif_idx]);
+        motif_seed_length = ends[motif_idx] - starts[motif_idx];
 
         ppr_length = ends[motif_idx] - starts[motif_idx] + motif_length + ((1-PURITY_THRESHOLD)*(ends[motif_idx] - starts[motif_idx]));
         perfect_repeat = "";
         while(perfect_repeat.length() <= ppr_length) perfect_repeat += motif;
 
-        string alignment_cigar;
-        int slice_length = 10000;
-        if (seed_sequence_length > slice_length) {
-            longRepeatSSWAlignment(alignment_cigar, seed_sequence_length, seed_sequence, motif_length, motif, aligner, filter,
-                                   alignment, slice_length);
-        }
-        else {
-            aligner.Align(seed_sequence.c_str(), perfect_repeat.c_str(), ppr_length, filter, &alignment, 15);
-            alignment_cigar = alignment.cigar_string;
-        }
-
-        processCIGARMotifWise(starts[motif_idx], motif_sequence_length, alignment_cigar, motif_sequence, atomicity,
+        aligner.Align(seed_sequence.c_str(), perfect_repeat.c_str(), ppr_length, filter, &alignment, 15);
+        processCIGARMotifWise(starts[motif_idx], motif_seed_length, alignment.cigar_string, motif_seed_sequence, atomicity,
                               repeat_start, repeat_end, alignment_length, cigar_string, purity, motifwise_purity, motifwise_indels, avg_matchlen);
-        repeat_length = repeat_end - repeat_start;
+        
         if (THREADS > 1) MTX.lock();
         match_units = calculateMotifUnits(left_bset, right_bset, repeat_start, repeat_length, atomicity, sequence_length, motif_unit);
         if (THREADS > 1) MTX.unlock();
 
+        repeat_length = repeat_end - repeat_start;
         repeat_units = repeat_length/atomicity;
 
         if ((match_units >= PERFECT_UNITS[atomicity] && match_units >= (0.7*repeat_units))
