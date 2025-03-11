@@ -302,13 +302,18 @@ void processSequence(string sequence_id, string sequence, int window_length, int
                 //   << "\t Time elapsed: " << seconds_since_start << "secs\n";
     }
 
-
     // Objects used by complete striped smithwater algorithm
     StripedSmithWaterman::Aligner   aligner;
     StripedSmithWaterman::Filter    filter;
     StripedSmithWaterman::Alignment alignment;
 
     // shift XORs for desired motif sizes; combination of shift XOR and anchor XOR
+
+    int seedlen_cutoffs[NMOTIFS];
+    for (int midx=0; midx < NMOTIFS; midx++) {
+        seedlen_cutoffs[midx] = ((midx+MINIMUM_MLEN) > SMALL_MLEN_LIMIT) ? (midx+MINIMUM_MLEN) : 10;
+        if (midx+MINIMUM_MLEN > SMALL_MLEN_LIMIT) { seedlen_cutoffs[midx] = 0.9 * (midx+MINIMUM_MLEN); }
+    }
 
     tuple<int,int,int,int> seed;
     int seed_start, seed_end, seed_mlen, seed_type, seed_bset_size;
@@ -348,6 +353,8 @@ void processSequence(string sequence_id, string sequence, int window_length, int
         seed_mlen  = get<2> (seed);
 
         seed_bset_size = seed_end - seed_start;
+        if (seed_bset_size < seedlen_cutoffs[seed_mlen-MINIMUM_MLEN]) { continue; }
+
         boost::dynamic_bitset<> seed_bset(seed_bset_size, 0ull);
         for (int j = seed_start; j < seed_end; j++) {
             seed_bset[seed_end - 1 - j] = lshift_xor_bsets[seed_mlen-MINIMUM_SHIFT][sequence_length - 1 - j];
