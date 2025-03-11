@@ -358,7 +358,10 @@ void addLocusToOutput(string &sequence_id, int repeat_start, int repeat_end, str
                     tuple <string, double>merge_values = mergeRepeats(last_end, repeat_start, last_cigar, cigar_string);
                     remove_loci.push_back(i);
                     cigar_string = get<0> (merge_values); purity = get<1> (merge_values);
-                    repeat_start = last_start;
+                    repeat_start = last_start; repeat_length = repeat_end - repeat_start;
+                    for (int j: remove_loci) { repeat_loci.erase(repeat_loci.begin() + j, repeat_loci.begin() + j + 1);}
+                    addLocusToOutput(sequence_id, repeat_start, repeat_end, motif, purity, cigar_string,
+                                          motif_length, repeat_length, repeat_units, out, repeat_loci); return;
                 }
 
                 // current repeat is shorter
@@ -384,7 +387,10 @@ void addLocusToOutput(string &sequence_id, int repeat_start, int repeat_end, str
                     tuple <string, double>merge_values = mergeRepeats(repeat_end, last_start, cigar_string, last_cigar);
                     remove_loci.push_back(i);
                     cigar_string = get<0> (merge_values); purity = get<1> (merge_values);
-                    repeat_start = last_start;
+                    repeat_end = last_end; repeat_length = repeat_end - repeat_start;
+                    for (int j: remove_loci) { repeat_loci.erase(repeat_loci.begin() + j, repeat_loci.begin() + j + 1);}
+                    addLocusToOutput(sequence_id, repeat_start, repeat_end, motif, purity, cigar_string,
+                                          motif_length, repeat_length, repeat_units, out, repeat_loci); return;
                 }
                 // STR-i is shorter than STR-j ~ Unique length of STR-i is shorter than STR-i motif length or less than 3 bp
                 else if ((last_purity < purity) && ( ((last_end - repeat_end) < last_mlen) || ((last_end - repeat_end) < 3) )) {
@@ -409,12 +415,7 @@ void addLocusToOutput(string &sequence_id, int repeat_start, int repeat_end, str
         }
     }
 
-    if (remove_loci.size()>0) {
-        for (int _=0; _<remove_loci.size(); _++) {
-            int i = remove_loci[_];
-            repeat_loci.erase(repeat_loci.begin() + remove_loci[_], repeat_loci.begin() + remove_loci[_] + 1);
-        }
-    }
+    for (int j: remove_loci) { repeat_loci.erase(repeat_loci.begin() + j, repeat_loci.begin() + j + 1);}
 
     for (int j=i; j>=0; j--) {
         if (repeat_start - get<2> (repeat_loci[j]) > 10000) {

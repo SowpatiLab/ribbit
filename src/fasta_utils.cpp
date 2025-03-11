@@ -329,7 +329,6 @@ void processSequence(string sequence_id, string sequence, int window_length, int
         if (spidx_a < seed_positions_anchored.size() && (smallest > get<0> (seed_positions_anchored[spidx_a]))) {
             smallest = get<0> (seed_positions_anchored[spidx_a]); smallest_type = RANK_A;
         }
-
         // Print the smallest element and move the corresponding pointer
         if (smallest_type == RANK_P) {
             seed = seed_positions_perfect[spidx_p]; ++spidx_p;
@@ -348,29 +347,55 @@ void processSequence(string sequence_id, string sequence, int window_length, int
         seed_mlen  = get<2> (seed);
 
         seed_bset_size = seed_end - seed_start;
+        if (seed_bset_size < 0.9*seed_mlen) { continue; }
         boost::dynamic_bitset<> seed_bset(seed_bset_size, 0ull);
         for (int j = seed_start; j < seed_end; j++) {
             seed_bset[seed_end - 1 - j] = lshift_xor_bsets[seed_mlen-MINIMUM_SHIFT][sequence_length - 1 - j];
         }
 
-        if (seed_end - seed_start >= 0.9*seed_mlen) {
+        if (seed_bset_size >= 0.9*seed_mlen) {
             // process seed if it is alteast the size of the motif length
             processed_seeds += 1;
 
-            if (seed_mlen <= SMALL_MLEN_LIMIT) {
-                processSeedMotifWise(tuple<int, int> { seed_start, seed_end }, 0, seed_mlen, seed_type, sequence_id, sequence,
-                                    sequence_length, lshift_xor_bsets[seed_mlen-MINIMUM_SHIFT], left_bset, right_bset, N_bset,
-                                    continuous_ones_threshold, out, aligner, filter, alignment, repeat_loci);
+            int slice_length = 20000 - 2*seed_mlen;
+            if (seed_bset_size > slice_length) {
+                int slice_start = 0, slice_end = 0;
+                while (slice_end < seed_bset_size) {
+                    if (slice_start + slice_length > seed_bset_size) { slice_end = seed_bset_size; }
+                    else { slice_end = slice_start + slice_length; }
+
+                    if (seed_mlen <= SMALL_MLEN_LIMIT) {
+                        processSeedMotifWise(tuple<int, int> { seed_start + slice_start, seed_start + slice_end }, 0, seed_mlen, seed_type, sequence_id, sequence,
+                                            sequence_length, lshift_xor_bsets[seed_mlen-MINIMUM_SHIFT], left_bset, right_bset, N_bset,
+                                            continuous_ones_threshold, out, aligner, filter, alignment, repeat_loci);
+                    }
+
+                    else {
+                        processSeed(tuple<int, int> { seed_start + slice_start, seed_start + slice_end }, 0, seed_mlen, seed_type, sequence_id, sequence, sequence_length,
+                                    lshift_xor_bsets[seed_mlen-MINIMUM_SHIFT], left_bset, right_bset, N_bset, continuous_ones_threshold,
+                                    out, lshift_xor_bsets, MATRIX, aligner, filter, alignment, repeat_loci);
+                    }
+
+                    slice_start += slice_length - 500;
+                }
             }
 
             else {
-                processSeed(tuple<int, int> { seed_start, seed_end }, 0, seed_mlen, seed_type, sequence_id, sequence, sequence_length,
-                            lshift_xor_bsets[seed_mlen-MINIMUM_SHIFT], left_bset, right_bset, N_bset, continuous_ones_threshold,
-                            out, lshift_xor_bsets, MATRIX, aligner, filter, alignment, repeat_loci);
+                if (seed_mlen <= SMALL_MLEN_LIMIT) {
+                    processSeedMotifWise(tuple<int, int> { seed_start, seed_end }, 0, seed_mlen, seed_type, sequence_id, sequence,
+                                        sequence_length, lshift_xor_bsets[seed_mlen-MINIMUM_SHIFT], left_bset, right_bset, N_bset,
+                                        continuous_ones_threshold, out, aligner, filter, alignment, repeat_loci);
+                }
+
+                else {
+                    processSeed(tuple<int, int> { seed_start, seed_end }, 0, seed_mlen, seed_type, sequence_id, sequence, sequence_length,
+                                lshift_xor_bsets[seed_mlen-MINIMUM_SHIFT], left_bset, right_bset, N_bset, continuous_ones_threshold,
+                                out, lshift_xor_bsets, MATRIX, aligner, filter, alignment, repeat_loci);
+                }
             }
+
         }
     }
-
     if (repeat_loci.size() > 0) {
         for (int i=0; i<repeat_loci.size(); i++) {
             out << get<0> (repeat_loci[i]) << "\t" << get<1> (repeat_loci[i]) << "\t"    << get<2> (repeat_loci[i]) << "\t"
