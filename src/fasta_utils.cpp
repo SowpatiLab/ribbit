@@ -308,7 +308,6 @@ void processSequence(string sequence_id, string sequence, int window_length, int
     StripedSmithWaterman::Alignment alignment;
 
     // shift XORs for desired motif sizes; combination of shift XOR and anchor XOR
-
     int seedlen_cutoffs[NMOTIFS];
     for (int midx=0; midx < NMOTIFS; midx++) {
         seedlen_cutoffs[midx] = ((midx+MINIMUM_MLEN) > SMALL_MLEN_LIMIT) ? (midx+MINIMUM_MLEN) : 10;
@@ -353,8 +352,8 @@ void processSequence(string sequence_id, string sequence, int window_length, int
         seed_mlen  = get<2> (seed);
 
         seed_bset_size = seed_end - seed_start;
-        if (seed_bset_size < seedlen_cutoffs[seed_mlen-MINIMUM_MLEN]) { continue; }
-
+        if (seed_bset_size < seedlen_cutoffs[seed_mlen - MINIMUM_MLEN]) { continue; }
+        
         boost::dynamic_bitset<> seed_bset(seed_bset_size, 0ull);
         for (int j = seed_start; j < seed_end; j++) {
             seed_bset[seed_end - 1 - j] = lshift_xor_bsets[seed_mlen-MINIMUM_SHIFT][sequence_length - 1 - j];
@@ -370,6 +369,7 @@ void processSequence(string sequence_id, string sequence, int window_length, int
                 while (slice_end < seed_bset_size) {
                     if (slice_start + slice_length > seed_bset_size) { slice_end = seed_bset_size; }
                     else { slice_end = slice_start + slice_length; }
+
                     if (seed_mlen <= SMALL_MLEN_LIMIT) {
                         processSeedMotifWise(tuple<int, int> { seed_start + slice_start, seed_start + slice_end }, 0, seed_mlen, seed_type, sequence_id, sequence,
                                             sequence_length, lshift_xor_bsets[seed_mlen-MINIMUM_SHIFT], left_bset, right_bset, N_bset,
