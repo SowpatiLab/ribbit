@@ -332,8 +332,9 @@ void addLocusToOutput(string &sequence_id, int repeat_start, int repeat_end, str
 
         // identical
         if (repeat_start == last_start && repeat_end == last_end) {
-            if (purity <= last_purity) return;
-            else remove_loci.push_back(i);
+            if (motif == last_motif || checkCyclicalVariation(motif, last_motif)) { return; }
+            else if (purity <= last_purity) return;
+            else if (purity > last_purity) remove_loci.push_back(i);
         }
 
         // nested
@@ -409,16 +410,13 @@ void addLocusToOutput(string &sequence_id, int repeat_start, int repeat_end, str
                 }
             }
         }
-
-        if (last_end < repeat_start) {
-            break;
-        }
     }
 
     for (int j: remove_loci) { repeat_loci.erase(repeat_loci.begin() + j, repeat_loci.begin() + j + 1);}
 
-    for (int j=i; j>=0; j--) {
-        if (repeat_start - get<2> (repeat_loci[j]) > 10000) {
+
+    for (int j=repeat_loci.size()-1; j>=0; j--) {
+        if (repeat_start - get<2> (repeat_loci[j]) > 50000) {
             printRepeatsToOutput(out, repeat_loci, j);
             break;
         }
