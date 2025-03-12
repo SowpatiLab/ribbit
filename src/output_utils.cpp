@@ -324,6 +324,11 @@ void addLocusToOutput(string &sequence_id, int repeat_start, int repeat_end, str
     for (i=repeat_loci.size()-1; i >= 0; i--) {
         last_start  = get<1> (repeat_loci[i]);
         last_end    = get<2> (repeat_loci[i]);
+
+        if ((repeat_end < last_start) || (repeat_start > last_end)) {
+            continue;
+        }
+
         last_motif  = get<3> (repeat_loci[i]);
         last_mlen   = get<6> (repeat_loci[i]);
         last_purity = get<4> (repeat_loci[i]);
