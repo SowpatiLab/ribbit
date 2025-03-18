@@ -201,6 +201,8 @@ tuple<vector<int>, vector<char>> extractNonOverlapCigar(int a_end, int b_start, 
             return {nover_clens, nover_ctypes};
         }
     }
+
+    return {nover_clens, nover_ctypes};
 }
 
 

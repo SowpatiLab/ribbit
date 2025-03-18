@@ -63,9 +63,11 @@ bool retainNestedSeedAnchored(vector<boost::dynamic_bitset<>> &motif_bsets, int 
     }
 
     if (nested_count < parent_count) { return false; }
+    
     else if (nested_count == parent_count) {
         if (nested_midx < parent_midx) { return true; }
     }
+    
     else { return true; }
 }
 
