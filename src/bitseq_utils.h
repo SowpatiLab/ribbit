@@ -1,9 +1,6 @@
-#include <iostream>
 #include <boost/dynamic_bitset.hpp>
 
-#include <cstdint>
-#include <iomanip>
-#include <boost/multiprecision/cpp_int.hpp>
+#include "global_variables.h"
 
 using namespace std;
 using namespace boost::multiprecision;

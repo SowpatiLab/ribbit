@@ -1,8 +1,4 @@
-#include <iostream>
-#include <fstream>
-#include <string>
-#include <vector>
-#include <algorithm>
+#include "global_variables.h"
 
 using namespace std;
 

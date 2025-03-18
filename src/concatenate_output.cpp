@@ -1,10 +1,3 @@
-#include <iostream>
-#include <fstream>
-#include <string>
-#include <vector>
-#include <algorithm>
-#include <cstdio>
-
 #include "concatenate_output.h"
 
 using namespace std;

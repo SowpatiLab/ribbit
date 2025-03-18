@@ -1,19 +1,4 @@
-/*
- * Different methods for parsing shift XOR and identification of tandem repeats
-*/
-
-
-#include <iostream>
-#include <fstream>
-#include <unordered_map>
-#include <bitset>
-#include <boost/dynamic_bitset.hpp>
-#include <algorithm>
-
-#include "global_variables.h"
 #include "parse_anchored_shiftxor.h"
-#include "parse_seed.h"
-#include "merge_types.h"
 
 using namespace std;
 
@@ -460,14 +445,14 @@ tuple<int,int> addSeedToSeedPositionsAnchored(int seed_start, int seed_end, int 
                 if (motif_length == last_mlen) {
                     if (last_length >= seed_length) {
                         if ((seed_length >= 3*motif_length) && ((overlap_length >= 3*motif_length-1) || (overlap_length >= seed_length-1))) {
-                            seed_type == (seed_type == RANK_C || last_type == RANK_C) ? RANK_C : RANK_A;
+                            seed_type = (seed_type == RANK_C || last_type == RANK_C) ? RANK_C : RANK_A;
                             seed_positions_anchored[i] = tuple<int, int, int, int> {last_start, last_end, last_mlen, RANK_N};
                             from_indices_new = addSeedToSeedPositionsAnchored(merge_start, merge_end, last_mlen, seed_positions_perfect, seed_positions_substut,
                                                            seed_positions_anchored, seedlen_cutoffs, motif_bsets, bset_size, from_indices, seed_type);
                             return from_indices_new;
                         }
                         else if ((seed_length < 3*motif_length) && ((overlap_length >= motif_length-1) || (overlap_length >= seed_length-1))) {
-                            seed_type == (seed_type == RANK_C || last_type == RANK_C) ? RANK_C : RANK_A;
+                            seed_type = (seed_type == RANK_C || last_type == RANK_C) ? RANK_C : RANK_A;
                             seed_positions_anchored[i] = tuple<int, int, int, int> {last_start, last_end, last_mlen, RANK_N};
                             from_indices_new = addSeedToSeedPositionsAnchored(merge_start, merge_end, last_mlen, seed_positions_perfect, seed_positions_substut,
                                                            seed_positions_anchored, seedlen_cutoffs, motif_bsets, bset_size, from_indices, seed_type);
@@ -476,14 +461,14 @@ tuple<int,int> addSeedToSeedPositionsAnchored(int seed_start, int seed_end, int 
                     }
                     else {
                         if ((last_length >= 3*last_mlen) && ((overlap_length >= 3*last_mlen-1) || (overlap_length >= last_length-1))) {
-                            seed_type == (seed_type == RANK_C || last_type == RANK_C) ? RANK_C : RANK_A;
+                            seed_type = (seed_type == RANK_C || last_type == RANK_C) ? RANK_C : RANK_A;
                             seed_positions_anchored[i] = tuple<int, int, int, int> {last_start, last_end, last_mlen, RANK_N};
                             from_indices_new = addSeedToSeedPositionsAnchored(merge_start, merge_end, last_mlen, seed_positions_perfect, seed_positions_substut,
                                                            seed_positions_anchored, seedlen_cutoffs, motif_bsets, bset_size, from_indices, seed_type);
                             return from_indices_new;
                         }
                         else if ((seed_length < 3*last_mlen) && ((overlap_length >= last_mlen-1) || (overlap_length >= last_length-1))) {
-                            seed_type == (seed_type == RANK_C || last_type == RANK_C) ? RANK_C : RANK_A;
+                            seed_type = (seed_type == RANK_C || last_type == RANK_C) ? RANK_C : RANK_A;
                             seed_positions_anchored[i] = tuple<int, int, int, int> {last_start, last_end, last_mlen, RANK_N};
                             from_indices_new = addSeedToSeedPositionsAnchored(merge_start, merge_end, last_mlen, seed_positions_perfect, seed_positions_substut,
                                                            seed_positions_anchored, seedlen_cutoffs, motif_bsets, bset_size, from_indices, seed_type);

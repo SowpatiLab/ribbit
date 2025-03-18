@@ -1,16 +1,3 @@
-/*
- * Different methods for parsing shift XOR and identification of tandem repeats
-*/
-
-
-#include <iostream>
-#include <fstream>
-#include <unordered_map>
-#include <bitset>
-#include <boost/dynamic_bitset.hpp>
-
-#include "global_variables.h"
-#include "parse_perfect_shiftxor.h"
 #include "parse_substitute_shiftxor.h"
 
 using namespace std;

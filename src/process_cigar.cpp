@@ -1,13 +1,4 @@
-#include <iostream>
-#include <fstream>
-#include <unordered_map>
-#include <bitset>
-#include <boost/dynamic_bitset.hpp>
-#include <numeric>
-#include <utility>
-
-#include "global_variables.h"
-#include "ssw_cpp.h"
+#include "process_cigar.h"
 
 using namespace std;
 using namespace boost;

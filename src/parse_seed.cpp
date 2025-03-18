@@ -1,50 +1,9 @@
-/*
- * Different methods for parsing motif_length XOR and identification of tandem repeats
-*/
-
-#include <iostream>
-#include <fstream>
-#include <unordered_map>
-#include <boost/dynamic_bitset.hpp>
-
-#include <cstdint>
-#include <iomanip>
-#include <boost/multiprecision/cpp_int.hpp>
-
-#include "ssw_cpp.h"
-
-#include "global_variables.h"
-#include "bitseq_utils.h"
-#include "process_cigar.h"
-#include "output_utils.h"
 #include "parse_seed.h"
-#include "parse_smallmotif_seed.h"
 
 using namespace std;
 using namespace boost;
 
 using namespace boost::multiprecision;
-
-
-int longestContinuousMatches(boost::dynamic_bitset<> &bset) {
-    /*
-     * calculates the longest continuous stretch of 1s in a bitset
-     * @param bset input bitset
-     * @return int length of the longest continuous stretch of 1s
-    */
-
-    int nseq = bset.size(), l = 0, maxl = 0;
-    for (int j=nseq-1; j >= 0; j--) {
-        if (bset[j] == 1) l += 1;
-        else {
-            if (l > maxl) { maxl = l; }
-            l = 0;
-        }
-    }
-    if (l > maxl) { maxl = l; }
-
-    return maxl;
-}
 
 
 int countBitsDiagonal(int row, int col, int diagonal_length, vector<boost::dynamic_bitset<>*> &MATRIX,

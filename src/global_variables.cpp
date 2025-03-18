@@ -1,8 +1,3 @@
-#include <cstdint>
-#include <unordered_map>
-#include <time.h>
-#include <mutex>
-
 #include "global_variables.h"
 
 using namespace std;
@@ -11,7 +6,6 @@ using namespace std;
 uint32_t **REPEAT_CLASSES = nullptr;
 int NUM_MOTIFS;
 
-int *MOTIF_FREQUENCY = nullptr;
 int *MOTIF_UNITS = nullptr;
 int *MOTIF_START = nullptr;
 int *MOTIF_END = nullptr;
