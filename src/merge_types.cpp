@@ -1,6 +1,8 @@
 #include "merge_types.h"
 
 using namespace std;
+
+
 void mergeAllLists(vector<tuple<int,int,int,int>> &seed_positions_perfect,
                    vector<tuple<int,int,int,int>> &seed_positions_substut,
                    vector<tuple<int,int,int,int>> &seed_positions_anchored,

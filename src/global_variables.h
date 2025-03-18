@@ -5,7 +5,6 @@
 #include <boost/multiprecision/cpp_int.hpp>
 #include <time.h>
 
-
 #ifndef GLOABL_VARIABLES_H
 #define GLOABL_VARIABLES_H
 
