@@ -268,8 +268,8 @@ void processSequence(string sequence_id, string sequence, int window_length, int
     StripedSmithWaterman::Alignment alignment;
 
     // shift XORs for desired motif sizes; combination of shift XOR and anchor XOR
-    int seedlen_cutoffs[NMOTIFS];
-    for (int midx=0; midx < NMOTIFS; midx++) {
+    int seedlen_cutoffs[NMLENS];
+    for (int midx=0; midx < NMLENS; midx++) {
         seedlen_cutoffs[midx] = ((midx+MINIMUM_MLEN) > SMALL_MLEN_LIMIT) ? (midx+MINIMUM_MLEN) : 10;
         if (midx+MINIMUM_MLEN > SMALL_MLEN_LIMIT) { seedlen_cutoffs[midx] = 0.9 * (midx+MINIMUM_MLEN); }
     }
@@ -374,7 +374,6 @@ void processSequence(string sequence_id, string sequence, int window_length, int
     seed_positions_anchored.clear();
 
     seconds_since_start = difftime( time(0), START_TIME);
-    // std::cerr << "Total number of seeds that are processed for alignment: " << processed_seeds << "\t Time elapsed: " << seconds_since_start << "secs\n\n";
     std::cerr << "Done!" << " Time elapsed: " << seconds_since_start << "secs\n\n";
 }
 

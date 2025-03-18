@@ -227,8 +227,9 @@ int main(int argc, char *argv[]) {
 
     cerr << "Minimum motif:\t" << MINIMUM_MLEN << "\n";
     cerr << "Maximum motif:\t" << MAXIMUM_MLEN << "\n";
+    
     // minimum shift XOR to be generated; should be one less than the minimum motif size
-    NMOTIFS = MAXIMUM_MLEN - MINIMUM_MLEN + 1;
+    NMLENS = MAXIMUM_MLEN - MINIMUM_MLEN + 1;
     MINIMUM_SHIFT = (MINIMUM_MLEN > 2) ? MINIMUM_MLEN-2 : 1;
     MAXIMUM_SHIFT = MAXIMUM_MLEN + 2;
     NSHIFTS = MAXIMUM_SHIFT - MINIMUM_SHIFT + 1;

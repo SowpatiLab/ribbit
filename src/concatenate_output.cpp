@@ -15,9 +15,11 @@ struct BedRecord {
     }
 };
 
+
 void sortBedRecords(std::vector<BedRecord>& records) {
     std::sort(records.begin(), records.end());
 }
+
 
 void concatenateOutputs(string out_file, vector<string>seq_names, int THREADS) {
     /*

@@ -31,7 +31,7 @@ extern int RANK_N;
 extern int MINIMUM_MLEN;
 extern int MAXIMUM_MLEN;
 extern int SMALL_MLEN_LIMIT;
-extern int NMOTIFS;
+extern int NMLENS;
 extern int MINIMUM_SHIFT;
 extern int MAXIMUM_SHIFT;
 extern int NSHIFTS;
