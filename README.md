@@ -2,10 +2,14 @@
     <img src="./lib/logo_rounded.png" alt="ribbit-logo" style="width:220px; border-radius: 20%"/>
 </p>
 
-<h1 align=left style="font-size: 45px; padding-left: 10px; padding-bottom: 0px">ribbit</h1>
+<h1 align=left style="font-size: 38px; padding-left: 10px; padding-bottom: 0px">ribbit</h1>
 
-<p style="font-size: 18px">
-Ribbit is a tool to identify tandem repeats of variable motif sizes from genomes. This tools is specialised to resolve complex TR structures and accurately define the priodicity and consensus motif of the tandem repeat. The algorithm converts DNA sequences to 2-bit format and uses basic bit operations to identify  tandem repeat sequences. <br>
+<p style="font-size: 16px">
+Ribbit is a tool to identify tandem repeats of variable motif sizes in genomes. The tools is specialised to resolve 
+complex TR structures, accurately define the priodicity and consensus motif of the tandem repeat. The algorithm 
+converts DNA sequences to 2-bit format and uses basic bit operations to identify  tandem repeat sequences. Ribbit investigates
+a DNA sequence for potential TRs of periodicities and compares the periodicity annotations based on the purity. Thus, it 
+can resolve overlapping/nested tandem repeats with higher accuracy.<br>
 </p>
 
 
@@ -15,7 +19,7 @@ Ribbit is a tool to identify tandem repeats of variable motif sizes from genomes
     <li><a href="#installation">Installation</a></li>
     <li><a href="#usage">Usage</a></li>
     <li><a href="#inputs-and-outputs">Inputs and Outputs</a></li>
-    <li><a href="#license">Citation</a></li>
+    <li><a href="#citation">Citation</a></li>
     <li><a href="#contact">Contact</a></li>
 </ol>
 
@@ -149,6 +153,11 @@ make
 | Test_Seq     | 4858037 | 4858050 | CTCTTT                        | 0.9230    | +      | 6=1I6=                                                      | 6          | 13            | 2             |
 | Test_Seq     | 5000704 | 5000745 | TATTCGTATGCGTATTC             | 0.9024    | +      | 4=1I22=1X4=2X7=                                             | 17         | 41            | 2             |
 
+</p>
+
+## Citation
+<p style="font-size: 16px">
+If you found ribbit useful, we would appreciate it if you could cite our manuscript: <a href="https://doi.org/10.1101/2025.02.06.636828">Ribbit: Accurate identification and annotation of complex tandem repeat sequences in genomes</a>
 </p>
 
 ## Contact
