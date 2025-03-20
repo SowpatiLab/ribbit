@@ -1,8 +1,5 @@
-#include <iostream>
-#include <fstream>
-#include <unordered_map>
-#include <bitset>
-#include <boost/dynamic_bitset.hpp>
+#include "global_variables.h"
+#include "parse_perfect_shiftxor.h"
 
 using namespace std;
 

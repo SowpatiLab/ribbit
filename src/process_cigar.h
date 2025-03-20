@@ -1,6 +1,4 @@
-#include <stdio.h>
-#include <vector>
-#include <string>
+#include "global_variables.h"
 
 using namespace std;
 

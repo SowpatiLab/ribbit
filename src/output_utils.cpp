@@ -1,20 +1,3 @@
-#include <iostream>
-#include <fstream>
-#include <unordered_map>
-#include <mutex>
-#include <boost/dynamic_bitset.hpp>
-
-#include <cstdint>
-#include <numeric>
-#include <algorithm>
-#include <limits>
-#include <cmath>
-#include <cctype>
-#include <iomanip>
-#include <boost/multiprecision/cpp_int.hpp>
-
-#include "global_variables.h"
-#include "process_cigar.h"
 #include "output_utils.h"
 
 using namespace std;
@@ -218,6 +201,8 @@ tuple<vector<int>, vector<char>> extractNonOverlapCigar(int a_end, int b_start, 
             return {nover_clens, nover_ctypes};
         }
     }
+
+    return {nover_clens, nover_ctypes};
 }
 
 

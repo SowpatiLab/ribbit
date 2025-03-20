@@ -1,16 +1,16 @@
-#include <iostream>
-#include <fstream>
-#include <string>
-#include <vector>
-#include <algorithm>
-#include <cstdio>
-
 #include "concatenate_output.h"
 
 using namespace std;
 
 
 struct BedRecord {
+    /*
+     * A structure to store the bed records
+     * @param start the start of the record
+     * @param end the end of the record
+     * @param record the record
+     * @returns void
+    */
     int start;
     int end;
     string record;
@@ -22,9 +22,16 @@ struct BedRecord {
     }
 };
 
+
 void sortBedRecords(std::vector<BedRecord>& records) {
+    /*
+     * sorts the bed records based on the start position
+     * @param records vector of bed records
+     * @returns void
+    */
     std::sort(records.begin(), records.end());
 }
+
 
 void concatenateOutputs(string out_file, vector<string>seq_names, int THREADS) {
     /*

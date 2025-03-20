@@ -1,9 +1,9 @@
-#include <iostream>
-#include <fstream>
-#include <unordered_map>
-#include <bitset>
-#include <boost/dynamic_bitset.hpp>
 #include "ssw_cpp.h"
+
+#include "global_variables.h"
+#include "bitseq_utils.h"
+#include "process_cigar.h"
+#include "output_utils.h"
 
 using namespace std;
 using namespace boost;
@@ -13,3 +13,5 @@ void processSeedMotifWise(tuple<int, int> seed_position, int seq_start, int &mot
                           boost::dynamic_bitset<> &N_bset, int &continuous_threshold, ostream &out,
                           StripedSmithWaterman::Aligner &aligner, StripedSmithWaterman::Filter &filter, StripedSmithWaterman::Alignment &alignment,
                           vector<tuple<string, int, int, string, double, string, int, int, int>> &repeat_loci);
+
+int longestContinuousMatches(boost::dynamic_bitset<> &bset);

@@ -1,9 +1,3 @@
-#include <iostream>
-#include <fstream>
-#include <unordered_map>
-#include <boost/dynamic_bitset.hpp>
-
-#include "global_variables.h"
 #include "bitseq_utils.h"
 
 using namespace std;
@@ -85,6 +79,7 @@ int calculateAtomicity(dynamic_bitset<> &window, int &motif_length) {
     return motif_length;
 }
 
+
 int calculateAtomicity(uint256_t &motif, int &motif_length) {
     /*
      * finding the atomicity of a motif represented in dynamic bits
@@ -113,6 +108,7 @@ int calculateAtomicity(uint256_t &motif, int &motif_length) {
     return motif_length;
 }
 
+
 int calculateAtomicityLongMotif(uint256_t &motif, int &motif_length) {
     /*
      * finding the atomicity of a motif represented in dynamic bits
@@ -135,6 +131,7 @@ int calculateAtomicityLongMotif(uint256_t &motif, int &motif_length) {
 
     return motif_length;
 }
+
 
 int calculateAtomicity(uint32_t &motif, int &motif_length) {
     /*
@@ -181,6 +178,7 @@ int calculateAtomicity(uint32_t &motif, int &motif_length) {
     }
     return motif_length;
 }
+
 
 uint32_t calculateRepeatClass(boost::dynamic_bitset<> &window, int &motif_length) {
     /*

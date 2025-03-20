@@ -2,28 +2,34 @@
  * Different methods for parsing motif_length XOR and identification of tandem repeats
 */
 
-#include <iostream>
-#include <fstream>
-#include <unordered_map>
-#include <mutex>
-#include <boost/dynamic_bitset.hpp>
-
-#include <cstdint>
 #include <numeric>
 #include <iomanip>
-#include <boost/multiprecision/cpp_int.hpp>
 
-#include "ssw_cpp.h"
-
-#include "global_variables.h"
-#include "bitseq_utils.h"
-#include "process_cigar.h"
-#include "output_utils.h"
-#include "parse_seed.h"
 #include "parse_smallmotif_seed.h"
 
 using namespace std;
 using namespace boost;
+
+
+int longestContinuousMatches(boost::dynamic_bitset<> &bset) {
+    /*
+     * calculates the longest continuous stretch of 1s in a bitset
+     * @param bset input bitset
+     * @return int length of the longest continuous stretch of 1s
+    */
+
+    int nseq = bset.size(), l = 0, maxl = 0;
+    for (int j=nseq-1; j >= 0; j--) {
+        if (bset[j] == 1) l += 1;
+        else {
+            if (l > maxl) { maxl = l; }
+            l = 0;
+        }
+    }
+    if (l > maxl) { maxl = l; }
+
+    return maxl;
+}
 
 
 int calculateMotifUnits(boost::dynamic_bitset<> &left_bset, boost::dynamic_bitset<> &right_bset, int &start,
@@ -266,25 +272,25 @@ void processSeedMotifWise(tuple<int, int> seed_position, int seq_start, int &mot
         // the repeat should be treated based on the atomicity
         motif = calculateMotif(motif_unit, motif_length);
         motif = motif.substr(0, atomicity);
-
         motif_unit >>= 2*(motif_length - atomicity);
+
         // seed sequence limiting to the coordinates where full motif alignment matches are found 
         motif_seed_sequence = sequence.substr(starts[motif_idx], ends[motif_idx] - starts[motif_idx]);
         motif_seed_length = ends[motif_idx] - starts[motif_idx];
 
-        ppr_length = ends[motif_idx] - starts[motif_idx] + motif_length + ((1-PURITY_THRESHOLD)*(ends[motif_idx] - starts[motif_idx]));
+        ppr_length = motif_seed_length + motif_length + ((1-PURITY_THRESHOLD)* motif_seed_length);
         perfect_repeat = "";
         while(perfect_repeat.length() <= ppr_length) perfect_repeat += motif;
+        
+        aligner.Align(motif_seed_sequence.c_str(), perfect_repeat.c_str(), ppr_length, filter, &alignment, 15);
 
-        aligner.Align(seed_sequence.c_str(), perfect_repeat.c_str(), ppr_length, filter, &alignment, 15);
         processCIGARMotifWise(starts[motif_idx], motif_seed_length, alignment.cigar_string, motif_seed_sequence, atomicity,
                               repeat_start, repeat_end, alignment_length, cigar_string, purity, motifwise_purity, motifwise_indels, avg_matchlen);
-        
+        repeat_length = repeat_end - repeat_start;
         if (THREADS > 1) MTX.lock();
         match_units = calculateMotifUnits(left_bset, right_bset, repeat_start, repeat_length, atomicity, sequence_length, motif_unit);
         if (THREADS > 1) MTX.unlock();
 
-        repeat_length = repeat_end - repeat_start;
         repeat_units = repeat_length/atomicity;
 
         if ((match_units >= PERFECT_UNITS[atomicity] && match_units >= (0.7*repeat_units))

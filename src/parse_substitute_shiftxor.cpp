@@ -1,16 +1,3 @@
-/*
- * Different methods for parsing shift XOR and identification of tandem repeats
-*/
-
-
-#include <iostream>
-#include <fstream>
-#include <unordered_map>
-#include <bitset>
-#include <boost/dynamic_bitset.hpp>
-
-#include "global_variables.h"
-#include "parse_perfect_shiftxor.h"
 #include "parse_substitute_shiftxor.h"
 
 using namespace std;
@@ -414,19 +401,19 @@ vector<tuple<int, int, int, int>> processShiftXORswithSubstitutions(vector<boost
     int valid_position = 0;     // position tracking valid bits in the window
 
     int min_idx = MINIMUM_MLEN-MINIMUM_SHIFT, didx, motif_length;
-    int last_starts[NMOTIFS];     // stores the start of the previous seed
-    int last_ends[NMOTIFS];       // stores the end of the previous seed
-    int current_starts[NMOTIFS];  // stores the current seed start
-    int seedlen_cutoffs[NMOTIFS];
+    int last_starts[NMLENS];     // stores the start of the previous seed
+    int last_ends[NMLENS];       // stores the end of the previous seed
+    int current_starts[NMLENS];  // stores the current seed start
+    int seedlen_cutoffs[NMLENS];
 
     // initialising all to -1
-    for (int _=0; _<NMOTIFS; _++) { last_starts[_] = -1; last_ends[_] = -1; current_starts[_] = -1; seedlen_cutoffs[_] = 10;}
+    for (int _=0; _<NMLENS; _++) { last_starts[_] = -1; last_ends[_] = -1; current_starts[_] = -1; seedlen_cutoffs[_] = 10;}
 
     int from_index = 0;
     vector<tuple<int, int, int, int>> seed_positions_substut;
 
     vector<boost::dynamic_bitset<>> window_bsets;
-    for (int midx=0; midx < NMOTIFS; midx++) {
+    for (int midx=0; midx < NMLENS; midx++) {
         boost::dynamic_bitset<> window_bset(window_length, 0ull);
         window_bsets.push_back(window_bset);   // initialised window bitset
         seedlen_cutoffs[midx] = ((midx+MINIMUM_MLEN) > 30) ? (midx+MINIMUM_MLEN)/3 : 10;
@@ -441,7 +428,7 @@ vector<tuple<int, int, int, int>> processShiftXORswithSubstitutions(vector<boost
 
         if (N_bset[xor_idx]) {
             // N is present at this position reset the window
-            for (int midx=min_idx; midx < NMOTIFS+min_idx; midx++) {
+            for (int midx=min_idx; midx < NMLENS+min_idx; midx++) {
                 didx = midx-min_idx; motif_length = MINIMUM_SHIFT + midx;
                 if (current_starts[didx] != -1) {
                     // No seed is being tracked currently
@@ -469,14 +456,14 @@ vector<tuple<int, int, int, int>> processShiftXORswithSubstitutions(vector<boost
         else {
             valid_position += 1;
 
-            for (int midx=min_idx; midx < NMOTIFS+min_idx; midx++) {
+            for (int midx=min_idx; midx < NMLENS+min_idx; midx++) {
                 didx = midx-min_idx;
                 window_bsets[didx] <<= 1;
                 window_bsets[didx][0] = motif_bsets[midx][xor_idx];
             }
 
             if (valid_position >= window_length) {
-                for (int midx=min_idx; midx < NMOTIFS+min_idx; midx++) {
+                for (int midx=min_idx; midx < NMLENS+min_idx; midx++) {
                     didx = midx-min_idx; motif_length = MINIMUM_SHIFT + midx;
                     window_bitcount = window_bsets[didx].count();
 
@@ -540,7 +527,7 @@ vector<tuple<int, int, int, int>> processShiftXORswithSubstitutions(vector<boost
         }
     }
 
-    for (int midx=min_idx; midx < NMOTIFS+min_idx; midx++) {
+    for (int midx=min_idx; midx < NMLENS+min_idx; midx++) {
         didx = midx-min_idx; motif_length = MINIMUM_SHIFT + midx;
         // handling the records after the end of the sequence
         if (last_ends[didx] == -1) {

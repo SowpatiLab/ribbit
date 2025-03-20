@@ -1,7 +1,9 @@
-#include <cstdint>
+#include <vector>
 #include <unordered_map>
+#include <iostream>
+#include <fstream>
+#include <boost/multiprecision/cpp_int.hpp>
 #include <time.h>
-#include <mutex>
 
 #ifndef GLOABL_VARIABLES_H
 #define GLOABL_VARIABLES_H
@@ -11,7 +13,6 @@ using namespace std;
 extern uint32_t **REPEAT_CLASSES;
 extern int NUM_MOTIFS;
 
-extern int *MOTIF_FREQUENCY;
 extern int *MOTIF_UNITS;
 extern int *MOTIF_START;
 extern int *MOTIF_END;
@@ -30,7 +31,7 @@ extern int RANK_N;
 extern int MINIMUM_MLEN;
 extern int MAXIMUM_MLEN;
 extern int SMALL_MLEN_LIMIT;
-extern int NMOTIFS;
+extern int NMLENS;
 extern int MINIMUM_SHIFT;
 extern int MAXIMUM_SHIFT;
 extern int NSHIFTS;

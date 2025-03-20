@@ -1,8 +1,3 @@
-#include <stdio.h>
-#include <fstream>
-#include <iostream>
-#include <unordered_map>
-
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
@@ -11,6 +6,7 @@ namespace po = boost::program_options;
 #include "concatenate_output.h"
 
 using namespace std;
+
 
 bool isNumber(const string &s) {
     /*
@@ -33,7 +29,8 @@ bool parseDualtypeArgs(po::variables_map &args, const string &option, unordered_
      *  @param maximum_motif_length maximum length of the motif
      *  @return bool for successful completion of the function
     */
-    int key, value;    
+
+    int key, value;
     if (isNumber(args[option].as<string>())) {
         // if the input is just a number; set the same cutoff for all motif lengths
         value = stoi(args[option].as<string>());
@@ -64,7 +61,6 @@ bool parseDualtypeArgs(po::variables_map &args, const string &option, unordered_
 }
 
 
-
 bool parseArguments(int &argc, char* argv[], string &input_file, string &out_file, int &window_length,
                      int &window_bitcount_threshold, int &anchor_length, int &continuous_ones_threshold) {
     /*
@@ -81,13 +77,13 @@ bool parseArguments(int &argc, char* argv[], string &input_file, string &out_fil
     */
     po::options_description argparser("Below are the running options for the tool.");
     argparser.add_options()
-        ("help,h", "Ribbit tool identifies short tandem repeats with allowed levels of impurity.")
+        ("help,h", "Ribbit is designed to identify tandem repeats in DNA sequences with specific focus on annotating complex TR loci.")
 
         ("input-file,i", po::value<string>(), "File path for the input fasta file.")
-        ("output-file,o", po::value<string>(), "File path for the input fasta file. Default: adds a ribbit suffix to input file.")        
+        ("output-file,o", po::value<string>(), "File path for the input fasta file. Default: adds a ribbit suffix to input file.")
 
-        ("min-motif-length,m", po::value<int>(), "The minimum length of the motif of the repeats to be identified. Default: 2")
-        ("max-motif-length,M", po::value<int>(), "The maximum length of the motif of the repeats to be identified, Default: 100")
+        ("min-motif-length,m", po::value<int>(), "The minimum length of the motif of identified TR loci. Default: 2")
+        ("max-motif-length,M", po::value<int>(), "The maximum length of the motif of identified TR loci. Default: 100")
 
         ("purity,p", po::value<double>(), "The purity of complete repeat. Default: 0.85")
         ("motif-purity,q", po::value<double>(), "Average match of each motif with consensus motif. Default: 0.8")
@@ -231,8 +227,9 @@ int main(int argc, char *argv[]) {
 
     cerr << "Minimum motif:\t" << MINIMUM_MLEN << "\n";
     cerr << "Maximum motif:\t" << MAXIMUM_MLEN << "\n";
+    
     // minimum shift XOR to be generated; should be one less than the minimum motif size
-    NMOTIFS = MAXIMUM_MLEN - MINIMUM_MLEN + 1;
+    NMLENS = MAXIMUM_MLEN - MINIMUM_MLEN + 1;
     MINIMUM_SHIFT = (MINIMUM_MLEN > 2) ? MINIMUM_MLEN-2 : 1;
     MAXIMUM_SHIFT = MAXIMUM_MLEN + 2;
     NSHIFTS = MAXIMUM_SHIFT - MINIMUM_SHIFT + 1;
@@ -240,22 +237,21 @@ int main(int argc, char *argv[]) {
     cerr << "Purity threshold: " << PURITY_THRESHOLD << "\n";
     cerr << "Motif purity threshold: " << MOTIFPURITY_THRESHOLD << "\n\n";
 
-    cerr << "NOTE: Purity threshold is a strict cutoff for VNTRs but for STRs the cutoff is flexible\n      as length of the perfect stretchs is also considered.\n\n";
+    cerr << "NOTE: Purity threshold is a strict cutoff for VNTRs (motif length >= 7bp) but for STRs (motif length <= 6bp) the cutoff is flexible\n\
+             as length of the perfect stretches is also considered for STRs.\n\n";
 
     // Dynamically allocate memory for the matrix
-    SMALL_MLEN_LIMIT = 6;    // only save repeat classes for smaller motif sizes
     REPEAT_CLASSES = new uint32_t*[SMALL_MLEN_LIMIT];
     NUM_MOTIFS = pow(4, SMALL_MLEN_LIMIT);
     for (int i = 0; i < SMALL_MLEN_LIMIT; ++i) {
         REPEAT_CLASSES[i] = new uint32_t[NUM_MOTIFS];
     }
-    MOTIF_FREQUENCY = new int[NUM_MOTIFS];
-    MOTIF_UNITS = new int[NUM_MOTIFS];
-    MOTIF_START = new int[NUM_MOTIFS];
-    MOTIF_END = new int[NUM_MOTIFS];
-    MOTIF_GAPS = new int[NUM_MOTIFS];
+    MOTIF_START   = new int[NUM_MOTIFS];
+    MOTIF_END     = new int[NUM_MOTIFS];
+    MOTIF_NEXT    = new uint32_t[NUM_MOTIFS];
+    MOTIF_UNITS   = new int[NUM_MOTIFS];
+    MOTIF_GAPS    = new int[NUM_MOTIFS];
     MOTIF_GAPSIZE = new int[NUM_MOTIFS];
-    MOTIF_NEXT = new uint32_t[NUM_MOTIFS];
 
     // Initialize the matrix (optional)
     for (int i = 0; i < SMALL_MLEN_LIMIT; ++i) {
@@ -271,13 +267,12 @@ int main(int argc, char *argv[]) {
         delete[] REPEAT_CLASSES[i];
     }
     delete[] REPEAT_CLASSES;
-    delete[] MOTIF_FREQUENCY;
-    delete[] MOTIF_UNITS;
     delete[] MOTIF_START;
     delete[] MOTIF_END;
+    delete[] MOTIF_NEXT;
+    delete[] MOTIF_UNITS;
     delete[] MOTIF_GAPS;
     delete[] MOTIF_GAPSIZE;
-    delete[] MOTIF_NEXT;
     
     double seconds_since_start = difftime( time(0), START_TIME);
     std::cerr << "Total time elapsed: " << seconds_since_start << "secs\n";

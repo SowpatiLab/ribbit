@@ -1,16 +1,3 @@
-/*
- * Different methods for parsing shift XOR and identification of tandem repeats
-*/
-
-
-#include <iostream>
-#include <fstream>
-#include <unordered_map>
-#include <bitset>
-#include <boost/dynamic_bitset.hpp>
-#include <cmath>
-
-#include "global_variables.h"
 #include "parse_perfect_shiftxor.h"
 
 using namespace std;
@@ -332,12 +319,13 @@ vector<tuple<int, int, int, int>> processShiftXORsPerfect(vector<boost::dynamic_
 
     int min_idx = MINIMUM_MLEN-MINIMUM_SHIFT, cutoff, didx, motif_length;
 
+    // initialising all positional information to -1
     int last_starts[NMOTIFS] = {-1};  // initialising a last record
     int last_ends[NMOTIFS] = {-1};  // initialising a last record
     int current_starts[NMOTIFS] = {-1};  // initialising a last record
 
     vector<boost::dynamic_bitset<>> window_bsets;
-    for (int midx=0; midx < NMOTIFS; midx++) {
+    for (int midx=0; midx < NMLENS; midx++) {
         boost::dynamic_bitset<> window_bset(window_length, 0ull);
         window_bsets.push_back(window_bset);   // initialised window bitset
     }
@@ -348,7 +336,7 @@ vector<tuple<int, int, int, int>> processShiftXORsPerfect(vector<boost::dynamic_
 
         if (N_bset[xor_idx]) {
             // N is present at this position reset the window
-            for (int midx=min_idx; midx < min_idx+NMOTIFS; midx++) {
+            for (int midx=min_idx; midx < min_idx+NMLENS; midx++) {
                 didx = midx-min_idx; motif_length = MINIMUM_SHIFT + midx;
                 cutoff = (motif_length <= 6) ? 12-motif_length : motif_length;
                 if (last_starts[didx] != -1) {
@@ -367,7 +355,7 @@ vector<tuple<int, int, int, int>> processShiftXORsPerfect(vector<boost::dynamic_
         }
 
         else {
-            for (int midx=min_idx; midx < min_idx+NMOTIFS; midx++) {
+            for (int midx=min_idx; midx < min_idx+NMLENS; midx++) {
                 didx = midx-min_idx; motif_length = MINIMUM_SHIFT + midx;
                 cutoff = (motif_length <= 6) ? 12-motif_length : motif_length;
                 if (motif_bsets[midx][xor_idx]) {
@@ -396,7 +384,7 @@ vector<tuple<int, int, int, int>> processShiftXORsPerfect(vector<boost::dynamic_
 
     // handling the repeat at the end of the sequence
     window_position -= 1;
-    for (int midx=min_idx; midx < min_idx+NMOTIFS; midx++) {
+    for (int midx=min_idx; midx < min_idx+NMLENS; midx++) {
         didx = midx-min_idx; motif_length = MINIMUM_SHIFT + midx;
         cutoff = (motif_length <= 6) ? 12-motif_length : motif_length;
         if (last_starts[didx] != -1) {
