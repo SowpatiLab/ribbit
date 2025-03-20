@@ -320,9 +320,9 @@ vector<tuple<int, int, int, int>> processShiftXORsPerfect(vector<boost::dynamic_
     int min_idx = MINIMUM_MLEN-MINIMUM_SHIFT, cutoff, didx, motif_length;
 
     // initialising all positional information to -1
-    int last_starts[NMOTIFS] = {-1};  // initialising a last record
-    int last_ends[NMOTIFS] = {-1};  // initialising a last record
-    int current_starts[NMOTIFS] = {-1};  // initialising a last record
+    int last_starts[NMLENS] = {-1};  // initialising a last record
+    int last_ends[NMLENS] = {-1};  // initialising a last record
+    int current_starts[NMLENS] = {-1};  // initialising a last record
 
     vector<boost::dynamic_bitset<>> window_bsets;
     for (int midx=0; midx < NMLENS; midx++) {

@@ -3,6 +3,7 @@
 #include <iostream>
 #include <fstream>
 #include <boost/multiprecision/cpp_int.hpp>
+#include <mutex>
 #include <time.h>
 
 #ifndef GLOABL_VARIABLES_H
