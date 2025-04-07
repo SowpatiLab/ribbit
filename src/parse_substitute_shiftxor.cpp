@@ -232,7 +232,7 @@ int addSeedToSeedPositionsSubstitutions(int seed_start, int seed_end, int motif_
                     if (last_type != RANK_P) {
                         seed_positions_substut[i] = tuple<int, int, int, int> {last_start, last_end, last_mlen, RANK_N};
                         from_index = addSeedToSeedPositionsSubstitutions(seed_start, seed_end, motif_length, seed_positions_perfect, seed_positions_substut,
-                                                                        threshold_seedlen, motif_bsets, bset_size, from_index, RANK_Q);
+                                                                         threshold_seedlen, motif_bsets, bset_size, from_index, RANK_Q);
                         return from_index;
                     }
                 }
@@ -245,14 +245,14 @@ int addSeedToSeedPositionsSubstitutions(int seed_start, int seed_end, int motif_
                     if (seed_length/motif_length > 3 && last_rlen >= (3*motif_length) - 1) {
                         if (last_type != RANK_P) { seed_positions_substut[i] = tuple<int, int, int, int> {last_start, last_end, last_mlen, RANK_N}; }
                         from_index = addSeedToSeedPositionsSubstitutions(seed_start, seed_end, last_mlen, seed_positions_perfect, seed_positions_substut,
-                                                                        threshold_seedlen, motif_bsets, bset_size, from_index, RANK_Q);
+                                                                         threshold_seedlen, motif_bsets, bset_size, from_index, RANK_Q);
                         return from_index;
                     }
 
                     else if ( (seed_length/motif_length <= 3) && ((last_rlen >= motif_length - 1) || (last_rlen >= seed_length - 1))) {
                         if (last_type != RANK_P) { seed_positions_substut[i] = tuple<int, int, int, int> {last_start, last_end, last_mlen, RANK_N}; }
                         from_index = addSeedToSeedPositionsSubstitutions(seed_start, seed_end, last_mlen, seed_positions_perfect, seed_positions_substut,
-                                                                        threshold_seedlen, motif_bsets, bset_size, from_index, RANK_Q);
+                                                                         threshold_seedlen, motif_bsets, bset_size, from_index, RANK_Q);
                         return from_index;
                     }
                     // else add the seed separately
@@ -338,7 +338,7 @@ int addSeedToSeedPositionsSubstitutions(int seed_start, int seed_end, int motif_
                     if (last_type != RANK_P) {
                         seed_positions_substut[i] = tuple<int, int, int, int> {last_start, last_end, last_mlen, RANK_N};
                         from_index = addSeedToSeedPositionsSubstitutions(merge_start, merge_end, motif_length, seed_positions_perfect, seed_positions_substut,
-                                                                        threshold_seedlen, motif_bsets, bset_size, from_index, RANK_Q);
+                                                                         threshold_seedlen, motif_bsets, bset_size, from_index, RANK_Q);
                         return from_index;
                     }
                 }
@@ -348,7 +348,7 @@ int addSeedToSeedPositionsSubstitutions(int seed_start, int seed_end, int motif_
                     if (last_type != RANK_P) {
                         seed_positions_substut[i] = tuple<int, int, int, int> {last_start, last_end, last_mlen, RANK_N};
                         from_index = addSeedToSeedPositionsSubstitutions(merge_start, merge_end, motif_length, seed_positions_perfect, seed_positions_substut,
-                                                                        threshold_seedlen, motif_bsets, bset_size, from_index, RANK_Q);
+                                                                         threshold_seedlen, motif_bsets, bset_size, from_index, RANK_Q);
                         return from_index;
                     }
                 }
@@ -359,14 +359,14 @@ int addSeedToSeedPositionsSubstitutions(int seed_start, int seed_end, int motif_
                 if (seed_length/motif_length > 3 && overlap_length >= (3*motif_length) - 1) {
                     if (last_type != RANK_P) { seed_positions_substut[i] = tuple<int, int, int, int> {last_start, last_end, last_mlen, RANK_N}; }
                     from_index = addSeedToSeedPositionsSubstitutions(merge_start, merge_end, last_mlen, seed_positions_perfect, seed_positions_substut,
-                                                                    threshold_seedlen, motif_bsets, bset_size, from_index, RANK_Q);
+                                                                     threshold_seedlen, motif_bsets, bset_size, from_index, RANK_Q);
                     return from_index;
                 }
 
                 else if ( (seed_length/motif_length <= 3) && ((overlap_length >= motif_length - 1) || (overlap_length >= seed_length - 1))) {
                     if (last_type != RANK_P) { seed_positions_substut[i] = tuple<int, int, int, int> {last_start, last_end, last_mlen, RANK_N}; }
                     from_index = addSeedToSeedPositionsSubstitutions(merge_start, merge_end, last_mlen, seed_positions_perfect, seed_positions_substut,
-                                                                    threshold_seedlen, motif_bsets, bset_size, from_index, RANK_Q);
+                                                                     threshold_seedlen, motif_bsets, bset_size, from_index, RANK_Q);
                     return from_index;
                 }
             }
