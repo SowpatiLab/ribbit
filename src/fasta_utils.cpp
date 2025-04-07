@@ -52,9 +52,9 @@ void parseFasta(string fasta_file, int window_length, int window_bitcount_thresh
      * @param continuous_ones_threshold minimum continuous set bits in the window
      * @param out_file output file name
     */
-    vector<string> seq_names;
+    vector<string> sequence_ids;
     ifstream fastain(fasta_file);
-    string line, seq_name, sequence="";
+    string line;
 
     if (THREADS == 1) {
         // assigns the output to either a file or standard output
@@ -72,17 +72,17 @@ void parseFasta(string fasta_file, int window_length, int window_bitcount_thresh
 
         while (getline(fastain, line)) {
             if (line[0] == '>') {
-                if (sequence != "") {
-                    processSequence(seq_name, sequence, window_length, window_bitcount_threshold, anchor_length,
+                if (SEQUENCE != "") {
+                    processSequence(SEQUENCE_ID, SEQUENCE, window_length, window_bitcount_threshold, anchor_length,
                                     continuous_ones_threshold, out);
                 }
-                seq_name = line.substr(1, line.find(' ') - 1);
-                seq_names.push_back(seq_name);
-                sequence = "";
+                SEQUENCE_ID = line.substr(1, line.find(' ') - 1);
+                sequence_ids.push_back(SEQUENCE_ID);
+                SEQUENCE = "";
             }
-            else { sequence += line; }
+            else { SEQUENCE += line; }
         }
-        processSequence(seq_name, sequence, window_length, window_bitcount_threshold, anchor_length,
+        processSequence(SEQUENCE_ID, SEQUENCE, window_length, window_bitcount_threshold, anchor_length,
                         continuous_ones_threshold, out);
         fastain.close(); outstream.close();
     }
@@ -105,41 +105,41 @@ void parseFasta(string fasta_file, int window_length, int window_bitcount_thresh
 
         while (getline(fastain, line)) {
             if (line[0] == '>') {
-                if (sequence != "") {
+                if (SEQUENCE != "") {
                     threads.clear();
-                    output_name = out_file + "_" + seq_name + "_" + to_string(tnum);
-                    threads.emplace_back(processSequenceThread, seq_name, sequence, seq_start, window_length, window_bitcount_threshold,
+                    output_name = out_file + "_" + SEQUENCE_ID + "_" + to_string(tnum);
+                    threads.emplace_back(processSequenceThread, SEQUENCE_ID, SEQUENCE, seq_start, window_length, window_bitcount_threshold,
                                         anchor_length, continuous_ones_threshold, tnum, output_name);
                     for (int _=0; _<THREADS; _++) { threads[_].join(); }
                 }
                 tnum = 1; seq_start = 0;
-                seq_name = line.substr(1, line.find(' ') - 1);
-                seq_names.push_back(seq_name);
-                chunk_size = ((seq_lens[seq_name] + (THREADS*toverlap))/THREADS) + 10;
-                sequence = "";
+                SEQUENCE_ID = line.substr(1, line.find(' ') - 1);
+                sequence_ids.push_back(SEQUENCE_ID);
+                chunk_size = ((seq_lens[SEQUENCE_ID] + (THREADS*toverlap))/THREADS) + 10;
+                SEQUENCE = "";
             }
             else {
-                sequence += line;
-                if (sequence.length() >= chunk_size) {
-                    output_name = out_file + "_" + seq_name + "_" + to_string(tnum);
-                    threads.emplace_back(processSequenceThread, seq_name, sequence, seq_start, window_length, window_bitcount_threshold,
+                SEQUENCE += line;
+                if (SEQUENCE.length() >= chunk_size) {
+                    output_name = out_file + "_" + SEQUENCE_ID + "_" + to_string(tnum);
+                    threads.emplace_back(processSequenceThread, SEQUENCE_ID, SEQUENCE, seq_start, window_length, window_bitcount_threshold,
                                          anchor_length, continuous_ones_threshold, tnum, output_name);
-                    seq_start += sequence.length() - toverlap;
-                    sequence = "" + sequence.substr(sequence.length() - (toverlap + 1), toverlap);
+                    seq_start += SEQUENCE.length() - toverlap;
+                    SEQUENCE = "" + SEQUENCE.substr(SEQUENCE.length() - (toverlap + 1), toverlap);
                     tnum += 1;
                 }
             }
         }
 
-        if (sequence != "") {
-            output_name = out_file + "_" + seq_name + "_" + to_string(tnum);
-            threads.emplace_back(processSequenceThread, seq_name, sequence, seq_start, window_length, window_bitcount_threshold,
+        if (SEQUENCE != "") {
+            output_name = out_file + "_" + SEQUENCE_ID + "_" + to_string(tnum);
+            threads.emplace_back(processSequenceThread, SEQUENCE_ID, SEQUENCE, seq_start, window_length, window_bitcount_threshold,
                                  anchor_length, continuous_ones_threshold, tnum, output_name);
             for (int _=0; _<THREADS; _++) { threads[_].join(); }
         }
 
         if (THREADS > 1) {
-            concatenateOutputs(out_file, seq_names, THREADS);
+            concatenateOutputs(out_file, sequence_ids, THREADS);
         }
     }
 }

@@ -20,6 +20,9 @@ extern int *MOTIF_GAPS;
 extern int *MOTIF_GAPSIZE;
 extern uint32_t *MOTIF_NEXT;
 
+extern string SEQUENCE_ID;
+extern string SEQUENCE;
+
 extern int RANK_P;
 extern int RANK_Q;
 extern int RANK_S;

@@ -24,6 +24,9 @@ int NSHIFTS = 100;
 int THREADS = 1;
 std::mutex MTX;
 
+string SEQUENCE_ID = "";
+string SEQUENCE = "";
+
 int RANK_P = 5;
 int RANK_Q = 4;
 int RANK_S = 3;
