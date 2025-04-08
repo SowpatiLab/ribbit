@@ -1,5 +1,9 @@
 #include "global_variables.h"
 #include "process_cigar.h"
+#include "cigar_utils.h"
+#include "ssw_cpp.h"
+
+#include <cmath>
 
 using namespace std;
 using namespace boost;

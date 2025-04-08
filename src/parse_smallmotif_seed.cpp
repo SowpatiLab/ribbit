@@ -295,6 +295,7 @@ void processSeedMotifWise(tuple<int, int> seed_position, int seq_start, int &mot
 
         // if match units are more than 10 and the number of interruptions is less than 80% of the match units
         if (match_units > 10 && interruptions > 0.8*match_units) { continue; }
+        if (repeat_units == 2 && purity < 1) { continue; }
 
         if ((match_units >= PERFECT_UNITS[atomicity] && match_units >= (0.7*repeat_units))
             && (motifwise_purity >= MOTIFPURITY_THRESHOLD || avg_matchlen > 2*atomicity)
