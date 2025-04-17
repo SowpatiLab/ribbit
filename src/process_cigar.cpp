@@ -628,7 +628,7 @@ void processCIGARMotifWise(int seed_start, int seed_sequence_length, string &cig
 
             case 'X':
                 qpos += clength; alignment_length += clength;
-                match_length += clength;
+                match_length += clength; interruptions += 1;
 
                 new_cigar += to_string(clength) + ctype;
 
@@ -647,7 +647,7 @@ void processCIGARMotifWise(int seed_start, int seed_sequence_length, string &cig
                 break;
             case 'I':
                 qpos += clength; alignment_length += clength;
-                match_lens.push_back(match_length); match_length = 0;
+                match_lens.push_back(match_length); match_length = 0; interruptions += 1;
 
                 new_cigar += to_string(clength) + ctype;
 
@@ -655,7 +655,7 @@ void processCIGARMotifWise(int seed_start, int seed_sequence_length, string &cig
                 break;
             case 'D':
                 alignment_length += clength;
-                match_lens.push_back(match_length); match_length = 0;
+                match_lens.push_back(match_length); match_length = 0; interruptions += 1;
 
                 new_cigar += to_string(clength) + ctype;
 
@@ -714,7 +714,6 @@ void processCIGARMotifWise(int seed_start, int seed_sequence_length, string &cig
         avg_motifindels = avg_motifindels / motifwise_indels.size();
     }
 
-    interruptions = match_lens.size() - 1;
     avg_matchlen = 0;
     if (match_lens.size() > 0) {
         for (int _=0; _<match_lens.size(); _++) { avg_matchlen += match_lens[_]; }
