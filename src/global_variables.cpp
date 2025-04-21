@@ -12,6 +12,7 @@ int *MOTIF_END = nullptr;
 int *MOTIF_GAPS = nullptr;
 int *MOTIF_GAPSIZE = nullptr;
 uint32_t *MOTIF_NEXT = nullptr;
+int *SEEDLEN_CUTOFF = nullptr;
 
 // Define rclasses matrix
 int MINIMUM_MLEN = 2;

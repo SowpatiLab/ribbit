@@ -35,19 +35,16 @@ string buildCigar(tuple<vector<int>, vector<char>> &cigar_values) {
 }
 
 
-int getAlignmentLength(string &cigar) {
+int getAlignmentLength(vector<int> &clens, vector<char> &ctypes) {
     /*
-     * calculates the alignment length from the cigar string
-     * @param cigar the cigar string
+     * calculates the alignment length from the lengths and types of cigar operations
+     * @param clens vector of lengths of cigar operations
+     * @param ctypes vector of types of cigar operations
      * @return int the alignment length
     */
-
-    tuple<vector<int>, vector<char>> csplit = cigarSplit(cigar);
-    vector<int> clens = get<0> (csplit);
-    vector<char> ctypes = get<1> (csplit);
     int alignment_length = 0;
     for (int _=0; _<clens.size(); _++) {
-        if (ctypes[_] == '=' || ctypes[_] == 'M' || ctypes[_] == 'X' || ctypes[_] == 'I') {
+        if (ctypes[_] == '=' || ctypes[_] == 'M' || ctypes[_] == 'X' || ctypes[_] == 'I' || ctypes[_] == 'D') {
             alignment_length += clens[_];
         }
     }
@@ -63,17 +60,25 @@ int getAlignmentLength(tuple<vector<int>, vector<char>> &cigar_values) {
     */
     vector<int> clens = get<0> (cigar_values);
     vector<char> ctypes = get<1> (cigar_values);
-    int alignment_length = 0;
-    for (int _=0; _<clens.size(); _++) {
-        if (ctypes[_] == '=' || ctypes[_] == 'M' || ctypes[_] == 'X' || ctypes[_] == 'I') {
-            alignment_length += clens[_];
-        }
-    }
-    return alignment_length;
+    return getAlignmentLength(clens, ctypes);
 }
 
 
-int getAlignmentLength(vector<int> &clens, vector<char> &ctypes) {
+int getAlignmentLength(string &cigar) {
+    /*
+     * calculates the alignment length from the cigar string
+     * @param cigar the cigar string
+     * @return int the alignment length
+    */
+
+    tuple<vector<int>, vector<char>> csplit = cigarSplit(cigar);
+    vector<int> clens = get<0> (csplit);
+    vector<char> ctypes = get<1> (csplit);
+    return getAlignmentLength(clens, ctypes);
+}
+
+
+int getRepeatLength(vector<int> &clens, vector<char> &ctypes) {
     /*
      * calculates the alignment length from the lengths and types of cigar operations
      * @param clens vector of lengths of cigar operations
@@ -90,7 +95,19 @@ int getAlignmentLength(vector<int> &clens, vector<char> &ctypes) {
 }
 
 
-int getAlignmentLengthWithDeletions(string &cigar) {
+int getRepeatLength(tuple<vector<int>, vector<char>> &cigar_values) {
+    /*
+     * calculates the alignment length from the lengths and types of cigar operations
+     * @param cigar_values tuple of lengths and types of cigar operations
+     * @return int the alignment length
+    */
+    vector<int> clens = get<0> (cigar_values);
+    vector<char> ctypes = get<1> (cigar_values);
+    return getRepeatLength(clens, ctypes);
+}
+
+
+int getRepeatLength(string &cigar) {
     /*
      * calculates the alignment length from the cigar string
      * @param cigar the cigar string
@@ -100,13 +117,7 @@ int getAlignmentLengthWithDeletions(string &cigar) {
     tuple<vector<int>, vector<char>> csplit = cigarSplit(cigar);
     vector<int> clens = get<0> (csplit);
     vector<char> ctypes = get<1> (csplit);
-    int alignment_length = 0;
-    for (int _=0; _<clens.size(); _++) {
-        if (ctypes[_] == '=' || ctypes[_] == 'M' || ctypes[_] == 'X' || ctypes[_] == 'I' || ctypes[_] == 'D') {
-            alignment_length += clens[_];
-        }
-    }
-    return alignment_length;
+    return getRepeatLength(clens, ctypes);
 }
 
 
@@ -255,6 +266,18 @@ tuple<vector<int>, vector<char>> extractDownCigar(tuple<vector<int>, vector<char
 }
 
 
+tuple<vector<int>, vector<char>> extractDownCigar(string &cigar, int start, int end) {
+    /*
+     * extracts the downstream cigar from the start position
+     * @param cigar tuple of lengths and types of cigar operations
+     * @param start start position of the downstream locus
+     * @param end end position of the downstream locus
+    */
+    tuple<vector<int>, vector<char>> csplit = cigarSplit(cigar);
+    return extractDownCigar(csplit, start, end);
+}
+
+
 tuple<vector<int>, vector<char>> extractUpCigar(tuple<vector<int>, vector<char>> &cigar, int start, int end) {
     /*
      * extracts the upstream cigar from the end position
@@ -277,11 +300,23 @@ tuple<vector<int>, vector<char>> extractUpCigar(tuple<vector<int>, vector<char>>
         if (rpos <= end) break;
     }
 
-
     new_clens  = vector<int>(clens.begin() + i, clens.end());
     new_ctypes = vector<char>(ctypes.begin() + i, ctypes.end());
     if (rpos < end) new_clens[0] -= (end - rpos);
     return tuple<vector<int>, vector<char>> {new_clens, new_ctypes};
+}
+
+
+tuple<vector<int>, vector<char>> extractUpCigar(string &cigar, int start, int end) {
+    /*
+     * extracts the upstream cigar from the end position
+     * @param cigar tuple of lengths and types of cigar operations
+     * @param start start position of the upstream locus
+     * @param end end position of the upstream locus
+    */
+
+    tuple<vector<int>, vector<char>> csplit = cigarSplit(cigar);
+    return extractUpCigar(csplit, start, end);
 }
 
 
@@ -401,6 +436,23 @@ tuple<vector<int>, vector<char>> extractRegionCigar(tuple<vector<int>, vector<ch
     }
 
     return tuple<vector<int>, vector<char>> {new_clens, new_ctypes};
+}
+
+
+tuple<vector<int>, vector<char>> extractRegionCigar(string &cigar, int start, int end) {
+    /*
+     * extracts the cigar between two coordinates within a locus
+     *  @param cigar tuple of lengths nd types of cigar operations
+     *  @param start the start of the region for which cigar should be pulled
+     *  @param end the end of the region for which cigar should be pulled
+     *  @return the cigar of the the region to be extracted as tuple<vector<int>, vector<char>>
+    */
+
+    tuple<vector<int>, vector<char>> cigar_values = cigarSplit(cigar);
+    vector<int> clens = get<0> (cigar_values);
+    vector<char> ctypes = get<1> (cigar_values);
+
+    return extractRegionCigar(cigar_values, start, end);
 }
 
 

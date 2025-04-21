@@ -401,6 +401,9 @@ void motifwiseParameters(string &cigar, int motif_length, double &avg_motifpurit
                     excess = (motif_covered+clength) % motif_length;
                     motif_covered += clength - excess;
                     motif_matches += clength - excess;
+                    if (clength > motif_length) {
+                        for(int _=0; _< clength/motif_length; _++) motifwise_matchpercent.push_back(1.0);
+                    }
                     motifwise_matchpercent.push_back((double) motif_matches/ (double) (motif_matches + motif_mismatches + motif_indels));
                     motifwise_indels.push_back(motif_indels);
                     motif_covered = excess, motif_matches = excess, motif_mismatches = 0, motif_indels = 0;

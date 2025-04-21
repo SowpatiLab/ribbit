@@ -19,6 +19,7 @@ extern int *MOTIF_END;
 extern int *MOTIF_GAPS;
 extern int *MOTIF_GAPSIZE;
 extern uint32_t *MOTIF_NEXT;
+extern int *SEEDLEN_CUTOFF;
 
 extern string SEQUENCE_ID;
 extern string SEQUENCE;

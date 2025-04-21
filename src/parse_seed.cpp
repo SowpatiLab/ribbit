@@ -210,7 +210,7 @@ void processSeed(tuple<int, int> seed_position, int seq_start, int &motif_length
     }
 
     // if the length of the seed is shorter than the motif size
-    if (seed_end - seed_start < 0.9*motif_length) return;
+    if (seed_end - seed_start < SEEDLEN_CUTOFF[motif_length - MINIMUM_MLEN]) return;
 
     // if the longest continuous stretch of 1s in the seed is lesser than threshold
     int longest_stretch = longestContinuousMatches(seed_bset);
@@ -273,11 +273,14 @@ void processSeed(tuple<int, int> seed_position, int seq_start, int &motif_length
 
     if (alignment_length >= MINIMUM_LENGTH[atomicity]) {
         repeat_length = repeat_end - repeat_start;
-        if (((atomicity <= 10 && match_units >= PERFECT_UNITS[atomicity]) || ((atomicity > 10)
-            && (((purity * repeat_length) >= 3*atomicity) || (purity > 0.9 && purity*repeat_length >= 2*atomicity))))
-            && purity >= PURITY_THRESHOLD && repeat_length >= MINIMUM_LENGTH[atomicity] && motifwise_purity >= MOTIFPURITY_THRESHOLD
-            && atomicity >= MINIMUM_MLEN && atomicity <= MAXIMUM_MLEN) {
-            repeat_units = repeat_length/atomicity;
+        repeat_units = repeat_length/atomicity;
+
+        if ((   (atomicity < 10  && (match_units >= PERFECT_UNITS[atomicity] || (purity > 0.9 && purity*repeat_length >= 2*atomicity))) 
+             || ((atomicity >= 10) && (((purity * repeat_length) >= 3*atomicity) || (purity > 0.9 && purity*repeat_length >= 2*atomicity))))
+            && atomicity >= MINIMUM_MLEN && atomicity <= MAXIMUM_MLEN
+            && repeat_length >= MINIMUM_LENGTH[atomicity] 
+            && purity >= PURITY_THRESHOLD 
+            && motifwise_purity >= MOTIFPURITY_THRESHOLD) {
 
             addLocusToOutput(sequence_id, repeat_start, repeat_end, motif.substr(0, atomicity), purity, cigar_string,
                              atomicity, repeat_length, repeat_units, out, repeat_loci);

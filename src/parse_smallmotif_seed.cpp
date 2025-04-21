@@ -32,7 +32,7 @@ int longestContinuousMatches(boost::dynamic_bitset<> &bset) {
 }
 
 
-int calculateMotifUnits(boost::dynamic_bitset<> &left_bset, boost::dynamic_bitset<> &right_bset, int &start,
+int calculateMotifUnits(boost::dynamic_bitset<> &left_bset, boost::dynamic_bitset<> &right_bset, int &seed_start,
                         int &length, int &motif_length, int &sequence_length, uint32_t motif_unit) {
     /*
      * calculates the number of perfect motif units in a repeat sequence
@@ -49,14 +49,14 @@ int calculateMotifUnits(boost::dynamic_bitset<> &left_bset, boost::dynamic_bitse
     unordered_map<uint32_t, int> motif_position, motif_units;
     unordered_map<uint32_t, int> maxfrequency_motifs;
     uint32_t motif;
-    int seed_end = start + length;
+    int seed_end = seed_start + length;
     if (seed_end > sequence_length - 1) { seed_end = sequence_length - 1; }
 
     boost::dynamic_bitset<> window(2*motif_length, 0ull); // window to track the motif
-    for (int j = start; j < seed_end; j++) {
+    for (int j = seed_start; j < seed_end; j++) {
         window[0] = right_bset[sequence_length -1 -j]; window[1] = left_bset[sequence_length -1 -j];
 
-        if (j-start >= (0.9*motif_length)-1) {   // window is atleast the size of motif length
+        if (j-seed_start >= motif_length) {   // window is atleast the size of motif length
             motif = calculateRepeatClass(window, motif_length);
 
             if (motif_position.find(motif) == motif_position.end()) {
@@ -113,7 +113,7 @@ void possibleMotifs(boost::dynamic_bitset<> &left_bset, boost::dynamic_bitset<> 
         wstart = j - (motif_length - 1);
         wend = j + 1;
 
-        if (j-seed_start >= (0.9*motif_length)-1) {   // window is atleast the size of motif length
+        if (j-seed_start >= motif_length) {   // window is atleast the size of motif length
 
             if (new_motif_start.find(motif) == new_motif_start.end()) {
                 // if the motif is not tracked for its position
@@ -125,13 +125,13 @@ void possibleMotifs(boost::dynamic_bitset<> &left_bset, boost::dynamic_bitset<> 
                 MOTIF_GAPS[motif] = 0;
                 MOTIF_GAPSIZE[motif] = 0;
                 MOTIF_NEXT[motif] = ((window << 2) | (window >> (motif_length-1)*2)).to_ulong();
-
             }
 
             else {
                 if (wstart - MOTIF_END[motif] > 3*motif_length) {
                     // if the new position of the motif is beyond three motif lengths of the old
-                    if (MOTIF_END[motif] - MOTIF_START[motif] >= MINIMUM_LENGTH[motif_length] && MOTIF_UNITS[motif] >= PERFECT_UNITS[motif_length]) {
+                    if (MOTIF_END[motif] - MOTIF_START[motif] >= MINIMUM_LENGTH[motif_length]
+                        && MOTIF_UNITS[motif] >= PERFECT_UNITS[motif_length]) {
                         // check if the previous repeat is of valid length and
                             motifs.push_back(motif);
                             starts.push_back(MOTIF_START[motif]);
@@ -150,7 +150,7 @@ void possibleMotifs(boost::dynamic_bitset<> &left_bset, boost::dynamic_bitset<> 
 
                 else {
                     // if the motif is not occurring consecutively
-                    if (j > MOTIF_END[motif] < j) {
+                    if (MOTIF_END[motif] < j) {
                         if (j - MOTIF_END[motif] < motif_length) {
                             MOTIF_GAPS[motif] += 1;
                             MOTIF_GAPSIZE[motif] += 1;
@@ -164,6 +164,7 @@ void possibleMotifs(boost::dynamic_bitset<> &left_bset, boost::dynamic_bitset<> 
                             MOTIF_GAPSIZE[motif] += (j - MOTIF_END[motif]);
                         }
                     }
+
                     else if (MOTIF_END[motif] == j && MOTIF_NEXT[motif] != window.to_ulong()) {
                         MOTIF_GAPS[motif] += 1;
                         MOTIF_GAPSIZE[motif] += 1;
@@ -187,7 +188,8 @@ void possibleMotifs(boost::dynamic_bitset<> &left_bset, boost::dynamic_bitset<> 
     for (auto& it: new_motif_start) {
         // reiterate through all the left over motifs and record them
         motif = it.first;
-        if (MOTIF_END[motif] - MOTIF_START[motif] >= MINIMUM_LENGTH[motif_length] && MOTIF_UNITS[motif] >= PERFECT_UNITS[motif_length]) {
+        if (MOTIF_END[motif] - MOTIF_START[motif] >= MINIMUM_LENGTH[motif_length]
+            && MOTIF_UNITS[motif] >= PERFECT_UNITS[motif_length]) {
             motifs.push_back(motif);
             starts.push_back(MOTIF_START[motif]);
             ends.push_back(MOTIF_END[motif]);
@@ -262,7 +264,6 @@ void processSeedMotifWise(tuple<int, int> seed_position, int seq_start, int &mot
     double purity = 0, motifwise_purity = 0;
     string cigar_string, motif_seed_sequence;
 
-
     int motif_idx; uint32_t motif_unit;
     for(motif_idx=0; motif_idx < motifs.size(); motif_idx++) {
         motif_unit = motifs[motif_idx];
@@ -294,14 +295,13 @@ void processSeedMotifWise(tuple<int, int> seed_position, int seq_start, int &mot
         repeat_units = repeat_length/atomicity;
 
         // if match units are more than 10 and the number of interruptions is less than 80% of the match units
-        if (match_units > 10 && interruptions > 0.8*match_units) { continue; }
+        if (match_units > 10 && interruptions > 0.7*match_units) { continue; }
         if (repeat_units == 2 && purity < 1) { continue; }
 
-        if ((match_units >= PERFECT_UNITS[atomicity] && match_units >= (0.7*repeat_units))
-            && (motifwise_purity >= MOTIFPURITY_THRESHOLD || avg_matchlen > 2*atomicity)
-            && repeat_length >= MINIMUM_LENGTH[atomicity]
-            && atomicity >= MINIMUM_MLEN && atomicity <= MAXIMUM_MLEN
-            && (!(repeat_units < 3 && purity < PURITY_THRESHOLD))) {
+        if (atomicity >= MINIMUM_MLEN && atomicity <= MAXIMUM_MLEN
+            && (match_units >= PERFECT_UNITS[atomicity])
+            && (repeat_length >= MINIMUM_LENGTH[atomicity])
+            && (motifwise_purity >= MOTIFPURITY_THRESHOLD || avg_matchlen >= 2*atomicity)) {
             // a small motif seed is considered valid based on a set of criteria
             // - match units are more than threshold AND 70% of the total units are perfect
             // - average motif purity is 80% OR the average continuous match length twice the atomicity

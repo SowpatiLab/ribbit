@@ -234,6 +234,11 @@ void processSequence(string sequence_id, string sequence, int window_length, int
         seed_positions_substut = processShiftXORswithSubstitutions(lshift_xor_bsets, N_bset, window_length, window_bitcount_threshold, seed_positions_perfect);
         failed_seeds = failedSeeds(seed_positions_perfect); failed_seeds += failedSeeds(seed_positions_substut);
 
+        // for (int _=0; _<seed_positions_perfect.size(); _++) {
+        //     if (get<0> (seed_positions_perfect[_]) >= 557310 && get<1> (seed_positions_perfect[_]) <= 559000 && motif_length==7)
+        //     cout << get<0> (seed_positions_perfect[_]) << "\t" << get<1> (seed_positions_perfect[_]) << "\t" << get<2> (seed_positions_perfect[_]) << "\t" << get<3> (seed_positions_perfect[_]) << "\n";
+        // }
+
         // generating the anchor bitsets for all shift sizes
         vector<boost::dynamic_bitset<>> lsxor_anchor_bsets;     // vector of dynamic bitsets for anchor bitsets
         generateAnchoredShiftXORs(lshift_xor_bsets, N_bset, lsxor_anchor_bsets, anchor_length);
@@ -266,12 +271,6 @@ void processSequence(string sequence_id, string sequence, int window_length, int
     StripedSmithWaterman::Aligner   aligner;
     StripedSmithWaterman::Filter    filter;
     StripedSmithWaterman::Alignment alignment;
-
-    // shift XORs for desired motif sizes; combination of shift XOR and anchor XOR
-    int seedlen_cutoffs[NMLENS];
-    for (int midx=0; midx < NMLENS; midx++) {
-        seedlen_cutoffs[midx] = ((midx+MINIMUM_MLEN) > SMALL_MLEN_LIMIT) ? 0.9*(midx+MINIMUM_MLEN) : (12-(midx+MINIMUM_MLEN));
-    }
 
     tuple<int,int,int,int> seed;
     int seed_start, seed_end, seed_mlen, seed_type, seed_bset_size;
@@ -310,17 +309,19 @@ void processSequence(string sequence_id, string sequence, int window_length, int
         seed_mlen  = get<2> (seed);
 
         seed_bset_size = seed_end - seed_start;
-        if (seed_bset_size < seedlen_cutoffs[seed_mlen - MINIMUM_MLEN]) { continue; }
-
+        if (seed_bset_size < SEEDLEN_CUTOFF[seed_mlen - MINIMUM_MLEN]) { continue; }
+        
         boost::dynamic_bitset<> seed_bset(seed_bset_size, 0ull);
         for (int j = seed_start; j < seed_end; j++) {
             seed_bset[seed_end - 1 - j] = lshift_xor_bsets[seed_mlen-MINIMUM_SHIFT][sequence_length - 1 - j];
         }
-
-        if (seed_bset_size >= 0.9*seed_mlen) {
+        
+        if (seed_bset_size >= SEEDLEN_CUTOFF[seed_mlen - MINIMUM_MLEN]) {
             // process seed if it is alteast the size of the motif length
             processed_seeds += 1;
-
+            // if (seed_start >= 557310 && seed_end <= 558000 && seed_mlen==7) {
+            //     cout << "Seed: " << sequence_id << "\t" << seed_start << "\t" << seed_end << "\t" << seed_mlen << "\t" << seed_end-seed_start << "\t" << seed_type << "\n";
+            // }
             int slice_length = 20000 - 2*seed_mlen;
             if (seed_bset_size > slice_length) {
                 int slice_start = 0, slice_end = 0;
@@ -345,10 +346,11 @@ void processSequence(string sequence_id, string sequence, int window_length, int
             }
 
             else {
+
                 if (seed_mlen <= SMALL_MLEN_LIMIT) {
                     processSeedMotifWise(tuple<int, int> { seed_start, seed_end }, 0, seed_mlen, seed_type, sequence_id, sequence,
-                                        sequence_length, lshift_xor_bsets[seed_mlen-MINIMUM_SHIFT], left_bset, right_bset, N_bset,
-                                        continuous_ones_threshold, out, aligner, filter, alignment, repeat_loci);
+                                         sequence_length, lshift_xor_bsets[seed_mlen-MINIMUM_SHIFT], left_bset, right_bset, N_bset,
+                                         continuous_ones_threshold, out, aligner, filter, alignment, repeat_loci);
                 }
 
                 else {
@@ -562,7 +564,7 @@ void processSequenceThread(string sequence_id, string sequence, int seq_start, i
             seed_bset[seed_end - 1 - j] = lshift_xor_bsets[seed_mlen-MINIMUM_SHIFT][sequence_length - 1 - j];
         }
 
-        if (seed_end - seed_start >= 0.9*seed_mlen) {
+        if (seed_end - seed_start >= SEEDLEN_CUTOFF[seed_mlen - MINIMUM_MLEN]) {
 
             processed_seeds += 1;
 
