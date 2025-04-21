@@ -2,6 +2,7 @@
 #include <unordered_map>
 #include <iostream>
 #include <fstream>
+#include <mutex>
 #include <boost/multiprecision/cpp_int.hpp>
 #include <time.h>
 

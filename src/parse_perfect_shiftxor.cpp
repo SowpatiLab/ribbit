@@ -322,21 +322,9 @@ vector<tuple<int, int, int, int>> processShiftXORsPerfect(vector<boost::dynamic_
     int min_idx = MINIMUM_MLEN-MINIMUM_SHIFT, didx, motif_length;
 
     // initialising all positional information to -1
-    int *last_starts = new int[NMLENS];
-    for (int _ = 0; _ < NMLENS; _++) { last_starts[_] = -1; }
-    int *last_ends = new int[NMLENS];
-    for (int _ = 0; _ < NMLENS; _++) { last_ends[_] = -1; }
-    int *current_starts = new int[NMLENS];
-    for (int _ = 0; _ < NMLENS; _++) { current_starts[_] = -1; }
-
-    int seedlen_cutoffs[NMLENS];
-    for (int _=0; _<NMLENS; _++) {
-        if (_+MINIMUM_MLEN <= 4) seedlen_cutoffs[_] = 8 - (_+MINIMUM_MLEN);
-        else if (_+MINIMUM_MLEN <= 6) seedlen_cutoffs[_] = 10 - (_+MINIMUM_MLEN);
-        else if (_+MINIMUM_MLEN <= 8) seedlen_cutoffs[_] = 4;
-        else if (_+MINIMUM_MLEN <= 20) seedlen_cutoffs[_] = 0.5*(_+MINIMUM_MLEN);
-        else seedlen_cutoffs[_] = 0.3*(_+MINIMUM_MLEN);
-    }
+    int last_starts[NMLENS] = {-1};  // initialising a last record
+    int last_ends[NMLENS] = {-1};  // initialising a last record
+    int current_starts[NMLENS] = {-1};  // initialising a last record
 
     vector<boost::dynamic_bitset<>> window_bsets;
     for (int midx=0; midx < NMLENS; midx++) {
