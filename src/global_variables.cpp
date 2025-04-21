@@ -12,6 +12,7 @@ int *MOTIF_END = nullptr;
 int *MOTIF_GAPS = nullptr;
 int *MOTIF_GAPSIZE = nullptr;
 uint32_t *MOTIF_NEXT = nullptr;
+int *SEEDLEN_CUTOFF = nullptr;
 
 // Define rclasses matrix
 int MINIMUM_MLEN = 2;
@@ -23,6 +24,9 @@ int MAXIMUM_SHIFT = 100;
 int NSHIFTS = 100;
 int THREADS = 1;
 std::mutex MTX;
+
+string SEQUENCE_ID = "";
+string SEQUENCE = "";
 
 int RANK_P = 5;
 int RANK_Q = 4;

@@ -401,6 +401,9 @@ void motifwiseParameters(string &cigar, int motif_length, double &avg_motifpurit
                     excess = (motif_covered+clength) % motif_length;
                     motif_covered += clength - excess;
                     motif_matches += clength - excess;
+                    if (clength > motif_length) {
+                        for(int _=0; _< clength/motif_length; _++) motifwise_matchpercent.push_back(1.0);
+                    }
                     motifwise_matchpercent.push_back((double) motif_matches/ (double) (motif_matches + motif_mismatches + motif_indels));
                     motifwise_indels.push_back(motif_indels);
                     motif_covered = excess, motif_matches = excess, motif_mismatches = 0, motif_indels = 0;
@@ -628,7 +631,7 @@ void processCIGARMotifWise(int seed_start, int seed_sequence_length, string &cig
 
             case 'X':
                 qpos += clength; alignment_length += clength;
-                match_length += clength;
+                match_length += clength; interruptions += 1;
 
                 new_cigar += to_string(clength) + ctype;
 
@@ -647,7 +650,7 @@ void processCIGARMotifWise(int seed_start, int seed_sequence_length, string &cig
                 break;
             case 'I':
                 qpos += clength; alignment_length += clength;
-                match_lens.push_back(match_length); match_length = 0;
+                match_lens.push_back(match_length); match_length = 0; interruptions += 1;
 
                 new_cigar += to_string(clength) + ctype;
 
@@ -655,7 +658,7 @@ void processCIGARMotifWise(int seed_start, int seed_sequence_length, string &cig
                 break;
             case 'D':
                 alignment_length += clength;
-                match_lens.push_back(match_length); match_length = 0;
+                match_lens.push_back(match_length); match_length = 0; interruptions += 1;
 
                 new_cigar += to_string(clength) + ctype;
 
@@ -714,7 +717,6 @@ void processCIGARMotifWise(int seed_start, int seed_sequence_length, string &cig
         avg_motifindels = avg_motifindels / motifwise_indels.size();
     }
 
-    interruptions = match_lens.size() - 1;
     avg_matchlen = 0;
     if (match_lens.size() > 0) {
         for (int _=0; _<match_lens.size(); _++) { avg_matchlen += match_lens[_]; }

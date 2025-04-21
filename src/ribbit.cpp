@@ -253,6 +253,11 @@ int main(int argc, char *argv[]) {
     MOTIF_GAPS    = new int[NUM_MOTIFS];
     MOTIF_GAPSIZE = new int[NUM_MOTIFS];
 
+    SEEDLEN_CUTOFF = new int[NMLENS];
+    for (int i = 0; i < NMLENS; ++i) {
+        SEEDLEN_CUTOFF[i] = ((i+MINIMUM_MLEN) > SMALL_MLEN_LIMIT) ? 0.9*(i+MINIMUM_MLEN) : (10-(i+MINIMUM_MLEN));
+    }
+
     // Initialize the matrix (optional)
     for (int i = 0; i < SMALL_MLEN_LIMIT; ++i) {
         for (int j = 0; j < NUM_MOTIFS; ++j) {
