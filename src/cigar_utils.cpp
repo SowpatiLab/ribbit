@@ -521,4 +521,3 @@ void separateCigarsOverlappingLoci(int upstart, int upend, tuple<vector<int>, ve
     }
     dn_nolseg_cigarvalues = { vector<int>(dn_clens.begin() + i + 1, dn_clens.end()), vector<char>(dn_ctypes.begin() + i + 1, dn_ctypes.end()) };
 }
-

@@ -36,4 +36,3 @@ void getMatches(vector<int> &clens, vector<char> &ctypes, int &matches, int &lon
 int getMatches(string &cigar);
 int getMatches(tuple<vector<int>, vector<char>> &cigar);
 int getMatches(vector<int> &clens, vector<char> &ctypes);
-
