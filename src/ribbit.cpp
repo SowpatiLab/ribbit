@@ -191,7 +191,7 @@ int main(int argc, char *argv[]) {
 
     // defaults which are not be changed
     int window_length = 8;
-    int window_bitcount_threshold = 7;  // initialised for identifying repeats with substitutions
+    int window_bitcount_threshold = 6;  // initialised for identifying repeats with substitutions
     int anchor_length = 3, continuous_ones_threshold = 3;
 
     bool success = parseArguments(argc, argv, input_file, out_file, window_length,
@@ -255,7 +255,7 @@ int main(int argc, char *argv[]) {
 
     SEEDLEN_CUTOFF = new int[NMLENS];
     for (int i = 0; i < NMLENS; ++i) {
-        SEEDLEN_CUTOFF[i] = ((i+MINIMUM_MLEN) > SMALL_MLEN_LIMIT) ? 0.9*(i+MINIMUM_MLEN) : (10-(i+MINIMUM_MLEN));
+        SEEDLEN_CUTOFF[i] = ((i+MINIMUM_MLEN) > SMALL_MLEN_LIMIT) ? 0.9*(i+MINIMUM_MLEN) : (MINIMUM_LENGTH[i+MINIMUM_MLEN]-(i+MINIMUM_MLEN));
     }
 
     // Initialize the matrix (optional)

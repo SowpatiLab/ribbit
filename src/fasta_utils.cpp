@@ -220,7 +220,6 @@ void processSequence(string sequence_id, string sequence, int window_length, int
     vector<tuple<int, int, int, int>> seed_positions_perfect;
     vector<tuple<int, int, int, int>> seed_positions_substut;
     vector<tuple<int, int, int, int>> seed_positions_anchored;
-    int failed_seeds = 0;
 
     vector<tuple<string, int, int, string, double, string, int, int, int>> repeat_loci;
 
@@ -231,9 +230,9 @@ void processSequence(string sequence_id, string sequence, int window_length, int
     else {
         seed_positions_perfect = processShiftXORsPerfect(lshift_xor_bsets, N_bset, window_length);
 
-        seed_positions_substut = processShiftXORswithSubstitutions(lshift_xor_bsets, N_bset, window_length, window_bitcount_threshold, seed_positions_perfect);
-        failed_seeds = failedSeeds(seed_positions_perfect); failed_seeds += failedSeeds(seed_positions_substut);
-
+        seed_positions_substut = processShiftXORswithSubstitutions(lshift_xor_bsets, N_bset, window_length,
+                                                                   window_bitcount_threshold, seed_positions_perfect);
+        filterPerfectSeeds(seed_positions_perfect, seed_positions_substut);
         // generating the anchor bitsets for all shift sizes
         vector<boost::dynamic_bitset<>> lsxor_anchor_bsets;     // vector of dynamic bitsets for anchor bitsets
         generateAnchoredShiftXORs(lshift_xor_bsets, N_bset, lsxor_anchor_bsets, anchor_length);
@@ -254,11 +253,13 @@ void processSequence(string sequence_id, string sequence, int window_length, int
             lshift_xor_bsets[motif_length-MINIMUM_SHIFT] = anchor_bset;
         }
         lsxor_anchor_bsets.clear();
-
+        window_length = 8;  // window length for the anchored shift XORs
         window_bitcount_threshold = 6;  // threshold selected for identifying repeats with indels
+        for (int i=MINIMUM_MLEN; i <= MAXIMUM_MLEN; i++) {
+            lshift_xor_bsets[i-MINIMUM_SHIFT] |= (lshift_xor_bsets[i-MINIMUM_SHIFT] >> i);
+        }
         seed_positions_anchored = processShiftXORsAnchored(lshift_xor_bsets, N_bset, window_length, window_bitcount_threshold,
                                                            seed_positions_perfect, seed_positions_substut);
-        failed_seeds = failedSeeds(seed_positions_perfect); failed_seeds += failedSeeds(seed_positions_substut); failed_seeds += failedSeeds(seed_positions_anchored);
     }
 
 
@@ -298,7 +299,7 @@ void processSequence(string sequence_id, string sequence, int window_length, int
         }
 
         seed_type  = get<3> (seed);
-        if (seed_type == -1) { continue; }
+        if (seed_type == RANK_N) { continue; }
         seed_start = get<0> (seed);
         seed_end   = get<1> (seed);
         seed_mlen  = get<2> (seed);
@@ -310,49 +311,49 @@ void processSequence(string sequence_id, string sequence, int window_length, int
         for (int j = seed_start; j < seed_end; j++) {
             seed_bset[seed_end - 1 - j] = lshift_xor_bsets[seed_mlen-MINIMUM_SHIFT][sequence_length - 1 - j];
         }
-        
-        if (seed_bset_size >= SEEDLEN_CUTOFF[seed_mlen - MINIMUM_MLEN]) {
-            // process seed if it is alteast the size of the motif length
-            processed_seeds += 1;
-            int slice_length = 20000 - 2*seed_mlen;
-            if (seed_bset_size > slice_length) {
-                int slice_start = 0, slice_end = 0;
-                while (slice_end < seed_bset_size) {
-                    if (slice_start + slice_length > seed_bset_size) { slice_end = seed_bset_size; }
-                    else { slice_end = slice_start + slice_length; }
 
-                    if (seed_mlen <= SMALL_MLEN_LIMIT) {
-                        processSeedMotifWise(tuple<int, int> { seed_start + slice_start, seed_start + slice_end }, 0, seed_mlen,
-                                             seed_type, sequence_id, sequence, sequence_length, lshift_xor_bsets[seed_mlen-MINIMUM_SHIFT],
-                                             left_bset, right_bset, N_bset, continuous_ones_threshold, out, aligner, filter, alignment, repeat_loci);
-                    }
+        cout << sequence_id << "\t" << seed_start << "\t" << seed_end << "\t" << seed_mlen << "\t" << seed_type << "\n";
+        continue;
 
-                    else {
-                        processSeed(tuple<int, int> { seed_start + slice_start, seed_start + slice_end }, 0, seed_mlen,
-                                    seed_type, sequence_id, sequence, sequence_length, lshift_xor_bsets[seed_mlen-MINIMUM_SHIFT],
-                                    left_bset, right_bset, N_bset, continuous_ones_threshold, out, lshift_xor_bsets, MATRIX,
-                                    aligner, filter, alignment, repeat_loci);
-                    }
-
-                    slice_start += slice_length - 500;
-                }
-            }
-
-            else {
+        // process seed if it is alteast the size of the motif length
+        processed_seeds += 1;
+        int slice_length = 20000 - 2*seed_mlen;
+        if (seed_bset_size > slice_length) {
+            int slice_start = 0, slice_end = 0;
+            while (slice_end < seed_bset_size) {
+                if (slice_start + slice_length > seed_bset_size) { slice_end = seed_bset_size; }
+                else { slice_end = slice_start + slice_length; }
 
                 if (seed_mlen <= SMALL_MLEN_LIMIT) {
-                    processSeedMotifWise(tuple<int, int> { seed_start, seed_end }, 0, seed_mlen, seed_type, sequence_id, sequence,
-                                         sequence_length, lshift_xor_bsets[seed_mlen-MINIMUM_SHIFT], left_bset, right_bset, N_bset,
-                                         continuous_ones_threshold, out, aligner, filter, alignment, repeat_loci);
+                    processSeedMotifWise(tuple<int, int> { seed_start + slice_start, seed_start + slice_end }, 0, seed_mlen,
+                                            seed_type, sequence_id, sequence, sequence_length, lshift_xor_bsets[seed_mlen-MINIMUM_SHIFT],
+                                            left_bset, right_bset, N_bset, continuous_ones_threshold, out, aligner, filter, alignment, repeat_loci);
                 }
 
                 else {
-                    processSeed(tuple<int, int> { seed_start, seed_end }, 0, seed_mlen, seed_type, sequence_id, sequence, sequence_length,
-                                lshift_xor_bsets[seed_mlen-MINIMUM_SHIFT], left_bset, right_bset, N_bset, continuous_ones_threshold,
-                                out, lshift_xor_bsets, MATRIX, aligner, filter, alignment, repeat_loci);
+                    processSeed(tuple<int, int> { seed_start + slice_start, seed_start + slice_end }, 0, seed_mlen,
+                                seed_type, sequence_id, sequence, sequence_length, lshift_xor_bsets[seed_mlen-MINIMUM_SHIFT],
+                                left_bset, right_bset, N_bset, continuous_ones_threshold, out, lshift_xor_bsets, MATRIX,
+                                aligner, filter, alignment, repeat_loci);
                 }
+
+                slice_start += slice_length - 500;
+            }
+        }
+
+        else {
+
+            if (seed_mlen <= SMALL_MLEN_LIMIT) {
+                processSeedMotifWise(tuple<int, int> { seed_start, seed_end }, 0, seed_mlen, seed_type, sequence_id, sequence,
+                                        sequence_length, lshift_xor_bsets[seed_mlen-MINIMUM_SHIFT], left_bset, right_bset, N_bset,
+                                        continuous_ones_threshold, out, aligner, filter, alignment, repeat_loci);
             }
 
+            else {
+                processSeed(tuple<int, int> { seed_start, seed_end }, 0, seed_mlen, seed_type, sequence_id, sequence, sequence_length,
+                            lshift_xor_bsets[seed_mlen-MINIMUM_SHIFT], left_bset, right_bset, N_bset, continuous_ones_threshold,
+                            out, lshift_xor_bsets, MATRIX, aligner, filter, alignment, repeat_loci);
+            }
         }
     }
     if (repeat_loci.size() > 0) {
@@ -450,7 +451,6 @@ void processSequenceThread(string sequence_id, string sequence, int seq_start, i
     vector<tuple<int, int, int, int>> seed_positions_perfect;
     vector<tuple<int, int, int, int>> seed_positions_substut;
     vector<tuple<int, int, int, int>> seed_positions_anchored;
-    int failed_seeds = 0;
 
     vector<tuple<string, int, int, string, double, string, int, int, int>> repeat_loci;
 
@@ -466,7 +466,6 @@ void processSequenceThread(string sequence_id, string sequence, int seq_start, i
         // std::cerr << "Thread " << tnum << ": Total number of perfect seeds: " << seed_positions_perfect.size() << "\t Time elapsed: " << seconds_since_start << "secs\n";
 
         seed_positions_substut = processShiftXORswithSubstitutions(lshift_xor_bsets, N_bset, window_length, window_bitcount_threshold, seed_positions_perfect);
-        failed_seeds = failedSeeds(seed_positions_perfect); failed_seeds += failedSeeds(seed_positions_substut);
         seconds_since_start = difftime( time(0), START_TIME);
         // std::cerr << "Thread " << tnum << ": Total number of seeds considering substitutions: " << seed_positions_perfect.size() + seed_positions_substut.size() - failed_seeds
                 // << "\t Time elapsed: " << seconds_since_start << "secs\n";
@@ -499,7 +498,6 @@ void processSequenceThread(string sequence_id, string sequence, int seq_start, i
         seed_positions_anchored = processShiftXORsAnchored(lshift_xor_bsets, N_bset, window_length, window_bitcount_threshold,
                                                         seed_positions_perfect, seed_positions_substut);
         seconds_since_start = difftime( time(0), START_TIME);
-        failed_seeds = failedSeeds(seed_positions_perfect); failed_seeds += failedSeeds(seed_positions_substut); failed_seeds += failedSeeds(seed_positions_anchored);
         // std::cerr << "Thread " << tnum << ": Total number of seeds considering indels: "
                 //   << seed_positions_perfect.size() + seed_positions_substut.size() + seed_positions_anchored.size() - failed_seeds
                 //   << "\t Time elapsed: " << seconds_since_start << "secs\n";

@@ -113,7 +113,7 @@ void possibleMotifs(boost::dynamic_bitset<> &left_bset, boost::dynamic_bitset<> 
         wstart = j - (motif_length - 1);
         wend = j + 1;
 
-        if (j-seed_start >= motif_length) {   // window is atleast the size of motif length
+        if (j-seed_start >= motif_length-1) {   // window is atleast the size of motif length
 
             if (new_motif_start.find(motif) == new_motif_start.end()) {
                 // if the motif is not tracked for its position
@@ -274,6 +274,12 @@ void processSeedMotifWise(tuple<int, int> seed_position, int seq_start, int &mot
         motif = motif.substr(0, atomicity);
         motif_unit >>= 2*(motif_length - atomicity);
 
+        if (seed_start == 3864 && seed_end == 4138) {
+            cout << motif << "\t" << atomicity << "\t" << starts[motif_idx] << "\t" << ends[motif_idx] << "\n";
+        }
+
+        if (motifs.size() == 1) { starts[motif_idx] = seed_start; ends[motif_idx] = seed_end + motif_length; }
+
         // seed sequence limiting to the coordinates where full motif alignment matches are found 
         motif_seed_sequence = sequence.substr(starts[motif_idx], ends[motif_idx] - starts[motif_idx]);
         motif_seed_length = ends[motif_idx] - starts[motif_idx];
@@ -283,7 +289,6 @@ void processSeedMotifWise(tuple<int, int> seed_position, int seq_start, int &mot
         while(perfect_repeat.length() <= ppr_length) perfect_repeat += motif;
         
         aligner.Align(motif_seed_sequence.c_str(), perfect_repeat.c_str(), ppr_length, filter, &alignment, 15);
-
         processCIGARMotifWise(starts[motif_idx], motif_seed_length, alignment.cigar_string, motif_seed_sequence, atomicity,
                               repeat_start, repeat_end, alignment_length, cigar_string, purity, interruptions, motifwise_purity,
                               motifwise_indels, avg_matchlen);
@@ -296,7 +301,7 @@ void processSeedMotifWise(tuple<int, int> seed_position, int seq_start, int &mot
 
         // if match units are more than 10 and the number of interruptions is less than 80% of the match units
         if (match_units > 10 && interruptions > 0.7*match_units) { continue; }
-        if (repeat_units == 2 && purity < 1) { continue; }
+        if (repeat_length < 3*atomicity && purity < 1) { continue; }
 
         if (atomicity >= MINIMUM_MLEN && atomicity <= MAXIMUM_MLEN
             && (match_units >= PERFECT_UNITS[atomicity])
