@@ -24,6 +24,8 @@ extern int *SEEDLEN_CUTOFF;
 extern string SEQUENCE_ID;
 extern string SEQUENCE;
 
+extern bool CIGAROUTPUT;
+
 extern int RANK_P;
 extern int RANK_Q;
 extern int RANK_S;

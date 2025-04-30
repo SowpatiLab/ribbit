@@ -15,8 +15,10 @@ void printRepeatsToOutput(ostream &out, vector<tuple<string, int, int, string, d
 
     for (int i=0; i<=end_index; i++) {
         out << get<0> (repeat_loci[i]) << "\t" << get<1> (repeat_loci[i]) << "\t" << get<2> (repeat_loci[i]) << "\t"
-            << get<3> (repeat_loci[i]) << "\t" << get<4> (repeat_loci[i]) << "\t+\t" << get<5> (repeat_loci[i]) << "\t"
-            << get<6> (repeat_loci[i]) << "\t" << get<7> (repeat_loci[i]) << "\t" << get<8> (repeat_loci[i]) << "\n";
+            << get<3> (repeat_loci[i]) << "\t" << get<4> (repeat_loci[i]) << "\t+\t" << get<6> (repeat_loci[i]) << "\t" 
+            << get<7> (repeat_loci[i]) << "\t" << get<8> (repeat_loci[i]);
+        if (CIGAROUTPUT) { out << "\t" << get<5> repeat_loci[i]; }
+        out << "\n";
     }
 
     repeat_loci.erase(repeat_loci.begin(), repeat_loci.begin() + end_index + 1);

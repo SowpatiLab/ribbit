@@ -28,6 +28,8 @@ std::mutex MTX;
 string SEQUENCE_ID = "";
 string SEQUENCE = "";
 
+bool CIGAROUTPUT = false;
+
 int RANK_P = 5;
 int RANK_Q = 4;
 int RANK_S = 3;

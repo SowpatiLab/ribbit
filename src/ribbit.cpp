@@ -86,14 +86,15 @@ bool parseArguments(int &argc, char* argv[], string &input_file, string &out_fil
         ("max-motif-length,M", po::value<int>(), "The maximum length of the motif of identified TR loci. Default: 100")
 
         ("purity,p", po::value<double>(), "The purity of complete repeat. Default: 0.85")
-        ("motif-purity,q", po::value<double>(), "Average match of each motif with consensus motif. Default: 0.8")
+        ("average-motif-purity,q", po::value<double>(), "Average match of each motif with consensus motif. Default: 0.8")
 
         ("min-length,l", po::value<string>(), "The minimum length of the repeat. Default: 12")
         ("min-units", po::value<string>(), "The minimum number of units of the repeat. Can be a integer value, for cutoff across all motif sizes.\
                                             Tab separated file with two columns, first is the motif size and second unit cutoff. Default: 2")
         ("perfect-units", po::value<string>(), "The minimum number of complete units of the repeat. Can be a integer value, for cutoff across all motif sizes.\
                                                 Tab separated file with two columns, first is the motif size and second unit cutoff. Default: 2")
-
+        
+        ("cigar-output", po::bool_switch()->default_value(false), "Include cigar string in the output. Default is off." )
         ("threads,t", po::value<int>(), "Number of threads to be used for running. default: 1")
 
         /*
@@ -141,7 +142,6 @@ bool parseArguments(int &argc, char* argv[], string &input_file, string &out_fil
       if (args.count("cones-threshold")) continuous_ones_threshold = args["cones-threshold"].as<int>();
     */
 
-
     if (args.count("min-length")) {
         // either take minimum length as the input or minimum units
         parseDualtypeArgs(args, "min-length", MINIMUM_LENGTH, MINIMUM_MLEN, MAXIMUM_MLEN);
@@ -174,6 +174,9 @@ bool parseArguments(int &argc, char* argv[], string &input_file, string &out_fil
             }
         }
     }
+
+    // cigar to be included in the output
+    if (args.count("cigar-output")) CIGAROUTPUT = args["cigar-output"].as<bool>();
 
     return 1;
 }
