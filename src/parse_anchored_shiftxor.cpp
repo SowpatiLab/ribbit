@@ -86,8 +86,7 @@ tuple<int,int> addSeedToSeedPositionsAnchored(int seed_start, int seed_end, int 
     if (seed_end-seed_start < seedlen_cutoffs[motif_length-MINIMUM_MLEN]) { return tuple<int,int>{from_index_perfect, from_index_substut}; }
 
     vector<int> last_types, last_indices;
-    mergeAllLists(seed_positions_perfect, seed_positions_substut, seed_positions_anchored,
-                  from_index_perfect, from_index_substut, last_types, last_indices, seed_start);
+    mergeAllLists(seed_positions_perfect, seed_positions_substut, from_index_perfect, from_index_substut, last_types, last_indices, seed_start);
 
     int seed_rend   = seed_end + motif_length;
     int seed_length = seed_end - seed_start;
@@ -100,7 +99,6 @@ tuple<int,int> addSeedToSeedPositionsAnchored(int seed_start, int seed_end, int 
 
     vector<tuple<int, int>> support;
     unordered_map<int, vector<tuple<int, int>>> against_map;
-    tuple<int,int> from_indices_new = {0, 0};
 
     for (int _=0; _<last_indices.size(); _++) {
 
@@ -119,13 +117,6 @@ tuple<int,int> addSeedToSeedPositionsAnchored(int seed_start, int seed_end, int 
             last_end   = get<1> (seed_positions_substut[i]);
             last_rend  = get<1> (seed_positions_substut[i]) + last_mlen;
             last_type  = get<3> (seed_positions_substut[i]);
-        }
-        else if (last_types[_] == RANK_A) {
-            last_start = get<0> (seed_positions_anchored[i]);
-            last_mlen  = get<2> (seed_positions_anchored[i]);
-            last_end   = get<1> (seed_positions_anchored[i]);
-            last_rend  = get<1> (seed_positions_anchored[i]) + last_mlen;
-            last_type  = get<3> (seed_positions_anchored[i]);
         }
 
         // seed positions are sorted based on the end position

@@ -17,7 +17,7 @@ void printRepeatsToOutput(ostream &out, vector<tuple<string, int, int, string, d
         out << get<0> (repeat_loci[i]) << "\t" << get<1> (repeat_loci[i]) << "\t" << get<2> (repeat_loci[i]) << "\t"
             << get<3> (repeat_loci[i]) << "\t" << get<4> (repeat_loci[i]) << "\t+\t" << get<6> (repeat_loci[i]) << "\t" 
             << get<7> (repeat_loci[i]) << "\t" << get<8> (repeat_loci[i]);
-        if (CIGAROUTPUT) { out << "\t" << get<5> repeat_loci[i]; }
+        if (CIGAROUTPUT) { out << "\t" << get<5> (repeat_loci[i]); }
         out << "\n";
     }
 
@@ -710,12 +710,12 @@ void addLocusToOutput(string &sequence_id, int repeat_start, int repeat_end, str
                 if (motif.length() > last_mlen) {
                     string reference = motif + motif;
                     levenshtein_distance = leastDistance(reference, last_motif);
-                    distance_threshold = motif.length()/ 10;
+                    distance_threshold = 0.2 * motif.length();
                 }
                 else {
                     string reference = last_motif + last_motif;
                     levenshtein_distance = leastDistance(reference, motif);
-                    distance_threshold = last_mlen/ 10;
+                    distance_threshold = 0.2 * last_mlen;
                 }
             }
 

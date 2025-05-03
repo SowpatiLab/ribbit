@@ -67,8 +67,9 @@ void parseFasta(string fasta_file, int window_length, int window_bitcount_thresh
         ostream out(buf);
 
         // adding header to the output file
-        out << "#Chrom\t" << "Start\t" << "Stop\t" << "Motif\t" << "Purity\t"  << "Strand\t" << "Cigar\t" << "Motif length\t"
-            << "Repeat length\t" << "Repeat Units\n";
+        out << "#Chrom\t" << "Start\t" << "Stop\t" << "Motif\t" << "Purity\t"  << "Strand\t" << "Motif length\t"
+            << "Repeat length\t" << "Repeat Units";
+        if (CIGAROUTPUT) {out << "\tCigar"; } out << "\n";
 
         while (getline(fastain, line)) {
             if (line[0] == '>') {
@@ -232,7 +233,10 @@ void processSequence(string sequence_id, string sequence, int window_length, int
 
         seed_positions_substut = processShiftXORswithSubstitutions(lshift_xor_bsets, N_bset, window_length,
                                                                    window_bitcount_threshold, seed_positions_perfect);
+        
+        // filtering out the perfect seeds which are inside substituted seeds with short flanks
         filterPerfectSeeds(seed_positions_perfect, seed_positions_substut);
+        
         // generating the anchor bitsets for all shift sizes
         vector<boost::dynamic_bitset<>> lsxor_anchor_bsets;     // vector of dynamic bitsets for anchor bitsets
         generateAnchoredShiftXORs(lshift_xor_bsets, N_bset, lsxor_anchor_bsets, anchor_length);
@@ -252,9 +256,9 @@ void processSequence(string sequence_id, string sequence, int window_length, int
 
             lshift_xor_bsets[motif_length-MINIMUM_SHIFT] = anchor_bset;
         }
+
         lsxor_anchor_bsets.clear();
-        window_length = 8;  // window length for the anchored shift XORs
-        window_bitcount_threshold = 6;  // threshold selected for identifying repeats with indels
+        window_length = 8; window_bitcount_threshold = 6;  // threshold selected for identifying repeats with indels
         for (int i=MINIMUM_MLEN; i <= MAXIMUM_MLEN; i++) {
             lshift_xor_bsets[i-MINIMUM_SHIFT] |= (lshift_xor_bsets[i-MINIMUM_SHIFT] >> i);
         }
@@ -313,7 +317,7 @@ void processSequence(string sequence_id, string sequence, int window_length, int
         }
 
         cout << sequence_id << "\t" << seed_start << "\t" << seed_end << "\t" << seed_mlen << "\t" << seed_type << "\n";
-        continue;
+        // continue;
 
         // process seed if it is alteast the size of the motif length
         processed_seeds += 1;
@@ -358,9 +362,11 @@ void processSequence(string sequence_id, string sequence, int window_length, int
     }
     if (repeat_loci.size() > 0) {
         for (int i=0; i<repeat_loci.size(); i++) {
-            out << get<0> (repeat_loci[i]) << "\t" << get<1> (repeat_loci[i]) << "\t"    << get<2> (repeat_loci[i]) << "\t"
-                << get<3> (repeat_loci[i]) << "\t" << get<4> (repeat_loci[i]) << "\t+\t" << get<5> (repeat_loci[i]) << "\t"
-                << get<6> (repeat_loci[i]) << "\t" << get<7> (repeat_loci[i]) << "\t"    << get<8> (repeat_loci[i]) << "\n";
+            out << get<0> (repeat_loci[i]) << "\t" << get<1> (repeat_loci[i]) << "\t" << get<2> (repeat_loci[i]) << "\t"
+                << get<3> (repeat_loci[i]) << "\t" << get<4> (repeat_loci[i]) << "\t+\t" << get<6> (repeat_loci[i]) << "\t" 
+                << get<7> (repeat_loci[i]) << "\t" << get<8> (repeat_loci[i]);
+            if (CIGAROUTPUT) { out << "\t" << get<5> (repeat_loci[i]); }
+            out << "\n";
         }
     }
 
@@ -576,9 +582,11 @@ void processSequenceThread(string sequence_id, string sequence, int seq_start, i
 
     if (repeat_loci.size() > 0) {
         for (int i=0; i<repeat_loci.size(); i++) {
-            out << get<0> (repeat_loci[i]) << "\t" << get<1> (repeat_loci[i]) << "\t"    << get<2> (repeat_loci[i]) << "\t"
-                << get<3> (repeat_loci[i]) << "\t" << get<4> (repeat_loci[i]) << "\t+\t" << get<5> (repeat_loci[i]) << "\t"
-                << get<6> (repeat_loci[i]) << "\t" << get<7> (repeat_loci[i]) << "\t"    << get<8> (repeat_loci[i]) << "\n";
+            out << get<0> (repeat_loci[i]) << "\t" << get<1> (repeat_loci[i]) << "\t" << get<2> (repeat_loci[i]) << "\t"
+                << get<3> (repeat_loci[i]) << "\t" << get<4> (repeat_loci[i]) << "\t+\t" << get<6> (repeat_loci[i]) << "\t" 
+                << get<7> (repeat_loci[i]) << "\t" << get<8> (repeat_loci[i]);
+            if (CIGAROUTPUT) { out << "\t" << get<5> (repeat_loci[i]); }
+            out << "\n";
         }
     }
 

@@ -282,6 +282,10 @@ void processSeed(tuple<int, int> seed_position, int seq_start, int &motif_length
             && purity >= PURITY_THRESHOLD 
             && motifwise_purity >= MOTIFPURITY_THRESHOLD) {
 
+            // cout << sequence_id << "\t" << repeat_start << "\t" << repeat_end << "\t"
+            //      << motif << "\t" << purity << "\t+\t" << cigar_string << "\t" << atomicity << "\t"
+            //      << repeat_length << "\t" << repeat_units << "\n"; 
+
             addLocusToOutput(sequence_id, repeat_start, repeat_end, motif.substr(0, atomicity), purity, cigar_string,
                              atomicity, repeat_length, repeat_units, out, repeat_loci);
         }

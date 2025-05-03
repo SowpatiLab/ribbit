@@ -259,7 +259,7 @@ void processSeedMotifWise(tuple<int, int> seed_position, int seq_start, int &mot
 
     int repeat_start, repeat_end, match_nucs, mismatch_nucs, match_units;
     int repeat_length, repeat_units;
-    int alignment_length, interruptions, atomicity;
+    int alignment_length, substitutions, indels, atomicity;
     int motif_seed_length, motifwise_indels, avg_matchlen;
     double purity = 0, motifwise_purity = 0;
     string cigar_string, motif_seed_sequence;
@@ -274,9 +274,9 @@ void processSeedMotifWise(tuple<int, int> seed_position, int seq_start, int &mot
         motif = motif.substr(0, atomicity);
         motif_unit >>= 2*(motif_length - atomicity);
 
-        if (seed_start == 3864 && seed_end == 4138) {
-            cout << motif << "\t" << atomicity << "\t" << starts[motif_idx] << "\t" << ends[motif_idx] << "\n";
-        }
+        // if (seed_start == 3864 && seed_end == 4138) {
+        //     cout << motif << "\t" << atomicity << "\t" << starts[motif_idx] << "\t" << ends[motif_idx] << "\n";
+        // }
 
         if (motifs.size() == 1) { starts[motif_idx] = seed_start; ends[motif_idx] = seed_end + motif_length; }
 
@@ -290,7 +290,7 @@ void processSeedMotifWise(tuple<int, int> seed_position, int seq_start, int &mot
         
         aligner.Align(motif_seed_sequence.c_str(), perfect_repeat.c_str(), ppr_length, filter, &alignment, 15);
         processCIGARMotifWise(starts[motif_idx], motif_seed_length, alignment.cigar_string, motif_seed_sequence, atomicity,
-                              repeat_start, repeat_end, alignment_length, cigar_string, purity, interruptions, motifwise_purity,
+                              repeat_start, repeat_end, alignment_length, cigar_string, purity, substitutions, indels, motifwise_purity,
                               motifwise_indels, avg_matchlen);
         repeat_length = repeat_end - repeat_start;
         if (THREADS > 1) MTX.lock();
@@ -299,8 +299,14 @@ void processSeedMotifWise(tuple<int, int> seed_position, int seq_start, int &mot
 
         repeat_units = repeat_length/atomicity;
 
+        // if (repeat_start == 3866 && repeat_end == 4134) {
+        //     cout << repeat_start << "\t" << repeat_end << "\t" << motif << "\t"
+        //          << purity << "\t" << motifwise_purity << "\t" << substitutions << "\t"
+        //          << "\t" << indels << "\t" << match_units << "\t" << 0.7*match_units << "\t" << repeat_units << "\n";
+        // }
+
         // if match units are more than 10 and the number of interruptions is less than 80% of the match units
-        if (match_units > 10 && interruptions > 0.7*match_units) { continue; }
+        if (match_units > 10 && indels > 0.7*match_units) { continue; }
         if (repeat_length < 3*atomicity && purity < 1) { continue; }
 
         if (atomicity >= MINIMUM_MLEN && atomicity <= MAXIMUM_MLEN
@@ -310,7 +316,10 @@ void processSeedMotifWise(tuple<int, int> seed_position, int seq_start, int &mot
             // a small motif seed is considered valid based on a set of criteria
             // - match units are more than threshold AND 70% of the total units are perfect
             // - average motif purity is 80% OR the average continuous match length twice the atomicity
-
+            
+            // cout << sequence_id << "\t" << repeat_start << "\t" << repeat_end << "\t"
+            //      << motif << "\t" << purity << "\t+\t" << cigar_string << "\t" << atomicity << "\t"
+            //      << repeat_length << "\t" << repeat_units << "\n"; 
             addLocusToOutput(sequence_id, repeat_start, repeat_end, motif.substr(0, atomicity), purity, cigar_string,
                              atomicity, repeat_length, repeat_units, out, repeat_loci);
         }

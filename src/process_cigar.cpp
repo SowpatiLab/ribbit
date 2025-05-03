@@ -573,7 +573,7 @@ void processCIGARWithPruning(int seed_start, int seed_sequence_length, string &c
 
 void processCIGARMotifWise(int seed_start, int seed_sequence_length, string &cigar, string &seed_sequence, int motif_length,
                            int &repeat_start, int &repeat_end, int &alignment_length, string &new_cigar, double &purity,
-                           int &interruptions, double &avg_motifpurity, int &avg_motifindels, int &avg_matchlen) {
+                           int &substitutions, int &indels, double &avg_motifpurity, int &avg_motifindels, int &avg_matchlen) {
     /*
      * processes the CIGAR string and returns the repeat based on the purity threshold
      * @param seed_start position of the start of the seed sequence
@@ -599,7 +599,7 @@ void processCIGARMotifWise(int seed_start, int seed_sequence_length, string &cig
 
     if (ctypes.size()==1 && ctypes[0]=='S') { return; }
     alignment_length = 0;
-    interruptions = 0;
+    substitutions = 0, indels = 0;
 
     // initialise the repeat coordinates to the seed coordinates
     repeat_start = seed_start, repeat_end = seed_start + seed_sequence_length;
@@ -631,7 +631,7 @@ void processCIGARMotifWise(int seed_start, int seed_sequence_length, string &cig
 
             case 'X':
                 qpos += clength; alignment_length += clength;
-                match_length += clength; interruptions += 1;
+                match_length += clength; substitutions += 1;
 
                 new_cigar += to_string(clength) + ctype;
 
@@ -650,7 +650,7 @@ void processCIGARMotifWise(int seed_start, int seed_sequence_length, string &cig
                 break;
             case 'I':
                 qpos += clength; alignment_length += clength;
-                match_lens.push_back(match_length); match_length = 0; interruptions += 1;
+                match_lens.push_back(match_length); match_length = 0; indels += 1;
 
                 new_cigar += to_string(clength) + ctype;
 
@@ -658,7 +658,7 @@ void processCIGARMotifWise(int seed_start, int seed_sequence_length, string &cig
                 break;
             case 'D':
                 alignment_length += clength;
-                match_lens.push_back(match_length); match_length = 0; interruptions += 1;
+                match_lens.push_back(match_length); match_length = 0; indels += 1;
 
                 new_cigar += to_string(clength) + ctype;
 
@@ -735,6 +735,11 @@ void processCIGARMotifWise(int seed_start, int seed_sequence_length, string &cig
         trim = true;
     }
 
+    // if (repeat_start == 3866 && repeat_end == 4134) {
+    //     cout << repeat_start << "\t" << repeat_end << "\t" << cigar << "\n";
+    //     cout << avg_motifpurity << "\t" << trim << "\n";
+    // }
+
 
     if (trim) {
         trim_edges = calculateTrimEdgesMotifPurity(MOTIFPURITY_THRESHOLD, avg_motifpurity, clens, ctypes, alignment_length, motif_length);
@@ -757,7 +762,7 @@ void processCIGARMotifWise(int seed_start, int seed_sequence_length, string &cig
         }
         processCIGARMotifWise(repeat_start, repeat_end-repeat_start, cigar, seed_sequence, motif_length,
                               repeat_start, repeat_end, alignment_length, new_cigar, purity,
-                              interruptions, avg_motifpurity, avg_motifindels, avg_matchlen);
+                              substitutions, indels, avg_motifpurity, avg_motifindels, avg_matchlen);
         return;
     }
 }
