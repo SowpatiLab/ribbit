@@ -1,10 +1,9 @@
 CXX      = g++	# GNU c++ compiler
-CXXFLAGS = -O3 -std=c++1z -w	# optimisation level flag; suppress warnings
+CXXFLAGS = -O3 -w # optimisation level flag; suppress warnings
 
-BOOST_VERSION = $(shell ls /opt/homebrew/Cellar/boost/ | tail -n 1)
-BOOST_LIB  = -L/opt/homebrew/Cellar/boost/$(BOOST_VERSION)/lib	# boost library path
-BOOST_PROGRAM_OPTIONS_LIB = -lboost_program_options		#i boost program options library path
-INCLUDE    = -I/opt/homebrew/Cellar/boost/$(BOOST_VERSION)/include/	# boost include path
+BOOST_LIB  = -lboost_system		# include the boost library
+BOOST_PROGRAM_OPTIONS_LIB = -lboost_program_options		# including the program options library from boost
+PTHREAD_LIB = -lpthread
 
 # library includes for striped-smithwaterman alignment
 SRC_SSW    = src/ssw.c src/ssw_cpp.cpp
@@ -15,12 +14,9 @@ SRC_RIBBIT = src/global_variables.cpp src/concatenate_output.cpp src/cigar_utils
 			 src/parse_anchored_shiftxor.cpp src/parse_substitute_shiftxor.cpp src/parse_perfect_shiftxor.cpp \
 			 src/bitseq_utils.cpp src/fasta_utils.cpp src/ribbit.cpp
 
-
 # if there is a change in any of the ribbit source file make builds the executable
 ribbit: $(SRC_RIBBIT)
-	@echo "Boost version identified: " ${BOOST_VERSION}
-	$(CXX) $(CXXFLAGS) $(INCLUDE) $(BOOST_LIB) $(SRC_SSW) $(SRC_RIBBIT) $(BOOST_PROGRAM_OPTIONS_LIB) -o ribbit
-
+	$(CXX) $(CXXFLAGS) $(BOOST_LIB) $(SRC_SSW) $(SRC_RIBBIT) $(BOOST_PROGRAM_OPTIONS_LIB) $(PTHREAD_LIB) -o ribbit
 # clean removes the executable
 clean:
 	@rm -f ribbit
