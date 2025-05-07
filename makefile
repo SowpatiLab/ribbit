@@ -14,10 +14,32 @@ SRC_RIBBIT = src/global_variables.cpp src/concatenate_output.cpp src/cigar_utils
 			 src/parse_anchored_shiftxor.cpp src/parse_substitute_shiftxor.cpp src/parse_perfect_shiftxor.cpp \
 			 src/bitseq_utils.cpp src/fasta_utils.cpp src/ribbit.cpp
 
+# Identify the operating system
+OS := $(shell uname -s)
+ifeq ($(OS),Darwin)
+	CXXFLAGS = -O3 -std=c++1z -w	# optimisation level flag; suppress warnings
+	BOOST_VERSION = $(shell ls /opt/homebrew/Cellar/boost/ | tail -n 1)
+	BOOST_LIB  = -L/opt/homebrew/Cellar/boost/$(BOOST_VERSION)/lib	# boost library path
+	BOOST_PROGRAM_OPTIONS_LIB = -lboost_program_options		#i boost program options library path
+	INCLUDE    = -I/opt/homebrew/Cellar/boost/$(BOOST_VERSION)/include/	# boost include path
+endif
+
 # if there is a change in any of the ribbit source file make builds the executable
 ribbit: $(SRC_RIBBIT)
+	
+ifeq ($(OS),Darwin)
+	@echo "Operating System: macOS"
+	@echo "Boost version identified: " ${BOOST_VERSION}
+	$(CXX) $(CXXFLAGS) $(INCLUDE) $(BOOST_LIB) $(SRC_SSW) $(SRC_RIBBIT) $(BOOST_PROGRAM_OPTIONS_LIB) -o ribbit
+else ifeq ($(OS),Linux)
+	@echo "Operating System: Linux"
 	$(CXX) $(CXXFLAGS) $(BOOST_LIB) $(SRC_SSW) $(SRC_RIBBIT) $(BOOST_PROGRAM_OPTIONS_LIB) $(PTHREAD_LIB) -o ribbit
+else
+	@echo "Operating System: Unknown"
+endif
+
 # clean removes the executable
 clean:
 	@rm -f ribbit
 	@echo "Clean done!"
+

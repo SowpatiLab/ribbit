@@ -306,7 +306,7 @@ void processSeedMotifWise(tuple<int, int> seed_position, int seq_start, int &mot
         // }
 
         // if match units are more than 10 and the number of interruptions is less than 80% of the match units
-        if (match_units > 10 && indels > 0.7*match_units) { continue; }
+        if (match_units > 10 && (indels > 0.7*match_units || substitutions > 0.9*match_units)) { continue; }
         if (repeat_length < 3*atomicity && purity < 1) { continue; }
 
         if (atomicity >= MINIMUM_MLEN && atomicity <= MAXIMUM_MLEN
