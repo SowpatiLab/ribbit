@@ -208,13 +208,13 @@ void addSeedToSeedPositionsPerfect(int seed_start, int seed_end, int motif_lengt
 
         // identical
         if (last_start == seed_start && last_rend == seed_rend) {
-            if (last_mlen < motif_length) { return; }
+            if (last_mlen <= motif_length) { return; }
             else { remove_seeds.push_back(i); }
         }
 
         // if the seed positions are identical
         else if (last_start == seed_start && last_end == seed_end) {
-            if (last_mlen < motif_length && (seed_length >= motif_length && seed_length >= 2*last_mlen)) { return; }
+            if (last_mlen <= motif_length && (seed_length >= motif_length && seed_length >= 2*last_mlen)) { return; }
             else if (seed_length >= last_mlen && seed_length >= 2*motif_length) { remove_seeds.push_back(i); }
         }
 
@@ -237,7 +237,7 @@ void addSeedToSeedPositionsPerfect(int seed_start, int seed_end, int motif_lengt
                 if (last_rlen >= 2*motif_length) {
                     remove_seeds.push_back(i);
                     for (int _=0; _<remove_seeds.size(); _++) seed_positions.erase(seed_positions.begin() + remove_seeds[_]);
-                    addPerfectRepeatPositions(seed_start, seed_end, last_mlen, seed_positions, motif_bsets, bset_size);
+                    addSeedToSeedPositionsPerfect(seed_start, seed_end, last_mlen, seed_positions, motif_bsets, bset_size);
                     return;
                 }
             }
@@ -259,14 +259,18 @@ void addSeedToSeedPositionsPerfect(int seed_start, int seed_end, int motif_lengt
             }
 
             if (last_mlen == motif_length) {
-                addSeedToSeedPositionsPerfect(merge_start, merge_end, last_mlen, seed_positions, motif_bsets, bset_size);
-                return;
+                if (overlap_length >= motif_length) {
+                    remove_seeds.push_back(i);
+                    for (int _=0; _<remove_seeds.size(); _++) seed_positions.erase(seed_positions.begin() + remove_seeds[_]);
+                    addSeedToSeedPositionsPerfect(merge_start, merge_end, last_mlen, seed_positions, motif_bsets, bset_size);
+                    return;
+                }
             }
 
             else if (last_mlen < motif_length) {
                 // if the overlap length is at least 1 less than the larger motif size
                 // the longer motif repeat with more than 3 units is retained
-                if (motif_length - overlap_length <= 1 && seed_rlen/motif_length < 3) {
+                if (overlap_length >= 2*motif_length && overlap_length >= 2*last_mlen) {
                     addSeedToSeedPositionsPerfect(merge_start, merge_end, last_mlen, seed_positions,
                                                   motif_bsets, bset_size);
                     return;
@@ -279,7 +283,7 @@ void addSeedToSeedPositionsPerfect(int seed_start, int seed_end, int motif_lengt
             else if (motif_length < last_mlen) {
                 // if the overlap length is at least 1 less than the larger motif size
                 // the longer motif repeat with more than 3 units is retained
-                if (last_mlen - overlap_length <= 1 && last_rlen/last_mlen < 3) {
+                if (overlap_length >= 2*last_mlen && overlap_length >= 2*motif_length) {
                     remove_seeds.push_back(i);
                     for (int _=0; _<remove_seeds.size(); _++) seed_positions.erase(seed_positions.begin() + remove_seeds[_]);
                     addSeedToSeedPositionsPerfect(merge_start, merge_end, motif_length, seed_positions,

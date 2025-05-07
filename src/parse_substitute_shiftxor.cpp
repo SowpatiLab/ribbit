@@ -550,19 +550,23 @@ void filterPerfectSeeds(vector<tuple<int, int, int, int>> &seed_positions_perfec
     */
 
     int start_index = 0;
-    int perfect_start, perfect_end, perfect_mlen;
-    int substut_start, substut_end, substut_mlen;
+    int perfect_start, perfect_end, perfect_mlen, perfect_type;
+    int substut_start, substut_end, substut_mlen, substut_type;
     for (int i=0; i<seed_positions_perfect.size(); i++) {
         perfect_start = get<0> (seed_positions_perfect[i]);
         perfect_end   = get<1> (seed_positions_perfect[i]);
         perfect_mlen  = get<2> (seed_positions_perfect[i]);
+        perfect_type  = get<3> (seed_positions_perfect[i]);
         
         for (int j=start_index; j<seed_positions_substut.size(); j++) {
             substut_start = get<0> (seed_positions_substut[j]);
             substut_end   = get<1> (seed_positions_substut[j]);
             substut_mlen  = get<2> (seed_positions_substut[j]);
+            substut_type  = get<3> (seed_positions_substut[j]);
 
             if (substut_end < perfect_start - MAXIMUM_MLEN) start_index = j;
+
+            if (perfect_type == RANK_N || substut_type == RANK_N) continue;
 
             if (perfect_mlen == substut_mlen) {
                 if (substut_start <= perfect_start && substut_end >= perfect_end && 

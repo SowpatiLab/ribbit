@@ -94,7 +94,7 @@ bool parseArguments(int &argc, char* argv[], string &input_file, string &out_fil
         ("perfect-units", po::value<string>(), "The minimum number of complete units of the repeat. Can be a integer value, for cutoff across all motif sizes.\
                                                 Tab separated file with two columns, first is the motif size and second unit cutoff. Default: 2")
         
-        ("cigar-output", po::bool_switch()->default_value(false), "Include cigar string in the output. Default is off." )
+        ("cigar", po::bool_switch()->default_value(false), "Include cigar string in the output. Default is off." )
         ("threads,t", po::value<int>(), "Number of threads to be used for running. default: 1")
 
         /*
@@ -176,7 +176,7 @@ bool parseArguments(int &argc, char* argv[], string &input_file, string &out_fil
     }
 
     // cigar to be included in the output
-    if (args.count("cigar-output")) CIGAROUTPUT = args["cigar-output"].as<bool>();
+    if (args.count("cigar")) CIGAROUTPUT = args["cigar"].as<bool>();
 
     return 1;
 }

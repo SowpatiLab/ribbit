@@ -234,6 +234,7 @@ void processSeed(tuple<int, int> seed_position, int seq_start, int &motif_length
     motif_unit = mostFrequentLongMotif(left_bset, right_bset, seed_start, seed_sequence_length,
                                             motif_length, sequence_length, MATRIX);
     atomicity = calculateAtomicityLongMotif(motif_unit, motif_length);
+
     if (atomicity <= SMALL_MLEN_LIMIT) {
         processSeedMotifWise(tuple<int, int> { seed_start, seed_end }, seq_start, atomicity, seed_type, sequence_id, sequence,
                                 sequence_length, lshift_xor_bsets[atomicity-MINIMUM_SHIFT], left_bset, right_bset, N_bset,
@@ -281,10 +282,6 @@ void processSeed(tuple<int, int> seed_position, int seq_start, int &motif_length
             && repeat_length >= MINIMUM_LENGTH[atomicity] 
             && purity >= PURITY_THRESHOLD 
             && motifwise_purity >= MOTIFPURITY_THRESHOLD) {
-
-            // cout << sequence_id << "\t" << repeat_start << "\t" << repeat_end << "\t"
-            //      << motif << "\t" << purity << "\t+\t" << cigar_string << "\t" << atomicity << "\t"
-            //      << repeat_length << "\t" << repeat_units << "\n"; 
 
             addLocusToOutput(sequence_id, repeat_start, repeat_end, motif.substr(0, atomicity), purity, cigar_string,
                              atomicity, repeat_length, repeat_units, out, repeat_loci);
