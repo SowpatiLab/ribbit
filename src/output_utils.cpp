@@ -534,6 +534,81 @@ void addLocusToOutput(string &sequence_id, int repeat_start, int repeat_end, str
                 tuple<vector<int>, vector<char>> segment_cigarvalues = extractRegionCigar(last_cigar, repeat_start-last_start, repeat_end-last_start);
                 double segment_purity = ((double) getMatches(segment_cigarvalues)) / ((double) getAlignmentLength(segment_cigarvalues));
                 if (purity < segment_purity) return;
+
+                if (last_mlen >= 2*motif_length) {
+                    double mcomp_purity = 0.0; int mcomp_start = 0, mcomp_end = 2*last_mlen; string mcomp_cigar = "";
+                    string full_sequence = last_motif + last_motif;
+                    alignSequenceWithPerfectRepeat(full_sequence, motif, mcomp_start, mcomp_end, mcomp_purity, mcomp_cigar);
+                    if (mcomp_purity > 0.9 && mcomp_end-mcomp_start > last_mlen) {
+                        remove_loci.push_back(i);
+                        for (int j: remove_loci) { repeat_loci.erase(repeat_loci.begin() + j, repeat_loci.begin() + j + 1);}
+                        repeat_start = last_start;
+                        repeat_end = last_end;
+                        string full_sequence = SEQUENCE.substr(repeat_start, repeat_end-repeat_start);
+                        alignSequenceWithPerfectRepeat(full_sequence, motif, repeat_start, repeat_end, purity, cigar_string);
+                        repeat_length = repeat_end - repeat_start; repeat_units = repeat_length / motif_length;
+                        addLocusToOutput(sequence_id, repeat_start, repeat_end, motif, purity, cigar_string,
+                                         motif_length, repeat_length, repeat_units, out, repeat_loci);
+                        return;
+                    }
+                }
+
+                if (segment_purity > PURITY_THRESHOLD) {
+                    // keep both repeats as it is
+                }
+
+                else {
+                    int upflank_length = repeat_start - last_start;
+                    int downflank_length = last_end - repeat_end;
+                    if (upflank_length < 2*last_mlen && downflank_length < 2*last_mlen) {
+                        remove_loci.push_back(i);
+                        for (int j: remove_loci) { repeat_loci.erase(repeat_loci.begin() + j, repeat_loci.begin() + j + 1);}
+                        repeat_start = last_start;
+                        repeat_end = last_end;
+                        string full_sequence = SEQUENCE.substr(last_start, last_end-last_start);
+                        alignSequenceWithPerfectRepeat(full_sequence, motif, repeat_start, repeat_end, purity, cigar_string);
+                        repeat_length = repeat_end - repeat_start; repeat_units = repeat_length / motif_length;
+                        addLocusToOutput(sequence_id, repeat_start, repeat_end, motif, purity, cigar_string,
+                                         motif_length, repeat_length, repeat_units, out, repeat_loci);
+                        return;
+                    }
+                    else if (upflank_length < 2*last_mlen) {
+                        remove_loci.push_back(i);
+                        for (int j: remove_loci) { repeat_loci.erase(repeat_loci.begin() + j, repeat_loci.begin() + j + 1);}
+                        tuple<vector<int>, vector<char>> dnflank_cigarvalues = extractUpCigar(last_cigar, last_end, repeat_end);
+                        string dnflank_cigar = buildCigar(dnflank_cigarvalues);
+                        double dnflank_purity = ((double) getMatches(dnflank_cigar)) / ((double) getAlignmentLength(dnflank_cigar));
+                        addLocusToOutput(sequence_id, repeat_end, last_end, last_motif, dnflank_purity, dnflank_cigar,
+                                         last_mlen, last_end-repeat_end, (last_end-repeat_end)/last_mlen, out, repeat_loci);
+                        repeat_start = last_start;
+                        string full_sequence = SEQUENCE.substr(last_start, repeat_end-last_start);
+                        alignSequenceWithPerfectRepeat(full_sequence, motif, repeat_start, repeat_end, purity, cigar_string);
+                        repeat_length = repeat_end - repeat_start; repeat_units = repeat_length / motif_length;
+                        addLocusToOutput(sequence_id, repeat_start, repeat_end, motif, purity, cigar_string,
+                                         motif_length, repeat_length, repeat_units, out, repeat_loci);
+                        return;
+                    }
+                    else if (downflank_length < 2*last_mlen) {
+                        remove_loci.push_back(i);
+                        for (int j: remove_loci) { repeat_loci.erase(repeat_loci.begin() + j, repeat_loci.begin() + j + 1);}
+                        tuple<vector<int>, vector<char>> upflank_cigarvalues = extractDownCigar(last_cigar, last_start, repeat_start);
+                        string upflank_cigar = buildCigar(upflank_cigarvalues);
+                        double upflank_purity = ((double) getMatches(upflank_cigar)) / ((double) getAlignmentLength(upflank_cigar));
+                        addLocusToOutput(sequence_id, last_start, repeat_start, last_motif, upflank_purity, upflank_cigar,
+                                         last_mlen, repeat_start-last_start, (repeat_start-last_start)/last_mlen, out, repeat_loci);
+                        repeat_end = last_end;
+                        string full_sequence = SEQUENCE.substr(repeat_start, last_end-repeat_start);
+                        alignSequenceWithPerfectRepeat(full_sequence, motif, repeat_start, repeat_end, purity, cigar_string);
+                        repeat_length = repeat_end - repeat_start; repeat_units = repeat_length / motif_length;
+                        addLocusToOutput(sequence_id, repeat_start, repeat_end, motif, purity, cigar_string,
+                                         motif_length, repeat_length, repeat_units, out, repeat_loci);
+                        return;
+                    }
+                }
+                // if (purity <= last_purity || motif.length() > last_mlen || motif == last_motif || checkCyclicalVariation(motif, last_motif)
+                //     || (motif.length() > SMALL_MLEN_LIMIT && last_mlen > SMALL_MLEN_LIMIT && absolute(motif.length() - last_mlen) <= 2)) {
+                //     return;
+                // }
             }
         }
 
@@ -547,6 +622,59 @@ void addLocusToOutput(string &sequence_id, int repeat_start, int repeat_end, str
                 double segment_purity = ((double) getMatches(segment_cigarvalues)) / ((double) getAlignmentLength(segment_cigarvalues));
 
                 if (last_purity < segment_purity) remove_loci.push_back(i);
+
+                else {
+                    // if the unique region of the parent is more than twice of the motif length, the parent repeat is retained
+                    int upflank_length = last_start - repeat_start;
+                    int downflank_length = repeat_end - last_end;
+                    if (upflank_length < 2*motif_length && downflank_length < 2*motif_length) {
+                        remove_loci.push_back(i);
+                        for (int j: remove_loci) { repeat_loci.erase(repeat_loci.begin() + j, repeat_loci.begin() + j + 1);}
+                        string full_sequence = SEQUENCE.substr(repeat_start, repeat_length);
+                        alignSequenceWithPerfectRepeat(full_sequence, last_motif, repeat_start, repeat_end, purity, cigar_string);
+                        repeat_length = repeat_end - repeat_start; repeat_units = repeat_length / last_mlen;
+                        addLocusToOutput(sequence_id, repeat_start, repeat_end, last_motif, purity, cigar_string,
+                                         last_mlen, repeat_length, repeat_units, out, repeat_loci);
+                        return;
+                    }
+                    else if (upflank_length < 2*motif_length) {
+                        remove_loci.push_back(i);
+                        for (int j: remove_loci) { repeat_loci.erase(repeat_loci.begin() + j, repeat_loci.begin() + j + 1);}
+                        tuple<vector<int>, vector<char>> dnflank_cigarvalues = extractUpCigar(cigar_string, repeat_end, last_end);
+                        string dnflank_cigar = buildCigar(dnflank_cigarvalues);
+                        double dnflank_purity = ((double) getMatches(dnflank_cigar)) / ((double) getAlignmentLength(dnflank_cigar));
+                        repeat_length = repeat_end - last_end; repeat_units = repeat_length / motif_length;
+                        addLocusToOutput(sequence_id, last_end, repeat_end, motif, dnflank_purity, dnflank_cigar,
+                                         motif_length, repeat_length, repeat_units, out, repeat_loci);
+                        repeat_end = last_end;
+                        string full_sequence = SEQUENCE.substr(repeat_start, last_end-repeat_start);
+                        alignSequenceWithPerfectRepeat(full_sequence, last_motif, repeat_start, repeat_end, purity, cigar_string);
+                        repeat_length = repeat_end - repeat_start; repeat_units = repeat_length / last_mlen;
+                        addLocusToOutput(sequence_id, repeat_start, repeat_end, last_motif, purity, cigar_string,
+                                         last_mlen, repeat_length, repeat_units, out, repeat_loci);
+                        return;
+                    }
+                    else if (downflank_length < 2*motif_length) {
+                        remove_loci.push_back(i);
+                        for (int j: remove_loci) { repeat_loci.erase(repeat_loci.begin() + j, repeat_loci.begin() + j + 1);}
+                        tuple<vector<int>, vector<char>> upflank_cigarvalues = extractDownCigar(cigar_string, repeat_start, last_start);
+                        string upflank_cigar = buildCigar(upflank_cigarvalues);
+                        double upflank_purity = ((double) getMatches(upflank_cigar)) / ((double) getAlignmentLength(upflank_cigar));
+                        addLocusToOutput(sequence_id, repeat_start, last_start, motif, upflank_purity, upflank_cigar,
+                                         motif_length, last_start-repeat_start, (last_start-repeat_start)/motif_length, out, repeat_loci);
+                        repeat_start = last_start;
+                        string full_sequence = SEQUENCE.substr(repeat_start, repeat_end-last_start);
+                        alignSequenceWithPerfectRepeat(full_sequence, last_motif, repeat_start, repeat_end, purity, cigar_string);
+                        repeat_length = repeat_end - repeat_start; repeat_units = repeat_length / last_mlen;
+                        addLocusToOutput(sequence_id, repeat_start, repeat_end, last_motif, purity, cigar_string,
+                                         last_mlen, repeat_length, repeat_units, out, repeat_loci);
+                        return;
+                    }
+                }
+                // if (last_purity <= purity || last_mlen > motif.length() || motif == last_motif || checkCyclicalVariation(motif, last_motif)
+                //     || (motif.length() > SMALL_MLEN_LIMIT && last_mlen > SMALL_MLEN_LIMIT && absolute(motif.length() - last_mlen) <= 2)) {
+                //     remove_loci.push_back(i);
+                // }
             }
         }
 
