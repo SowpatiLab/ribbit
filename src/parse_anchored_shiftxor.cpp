@@ -210,7 +210,7 @@ tuple<int,int> addSeedToSeedPositionsAnchored(int seed_start, int seed_end, int 
         if (against_cov > max_against_cov) { max_against_cov = against_cov; }
     }
 
-    if (support_cov > 0.7 && max_against_cov < 0.7) {
+    if (support_cov >= 0.6) {
         seed_positions_anchored.push_back(tuple<int, int, int, int> {seed_start, seed_end, motif_length, seed_type});
     }
 

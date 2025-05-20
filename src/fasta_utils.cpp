@@ -187,22 +187,23 @@ void processSequence(string sequence_id, string sequence, int window_length, int
         switch (nuc) {
             case 'A': case 'a': // 00
                 left_bset[bidx] = 0; right_bset[bidx] = 0;
-                MATRIX.push_back(&A); A[bidx] = 1;
-                C[bidx] = 0; G[bidx] = 0; T[bidx] = 0; break;
+                MATRIX.push_back(&A);
+                A[bidx] = 1; C[bidx] = 0; G[bidx] = 0; T[bidx] = 0; break;
             case 'C': case 'c': // 01
                 left_bset[bidx] = 0; right_bset[bidx] = 1;
-                MATRIX.push_back(&C); C[bidx] = 1;
-                A[bidx] = 0; G[bidx] = 0; T[bidx] = 0; break;
+                MATRIX.push_back(&C);
+                C[bidx] = 1; A[bidx] = 0; G[bidx] = 0; T[bidx] = 0; break;
             case 'G': case 'g': // 10
                 left_bset[bidx] = 1; right_bset[bidx] = 0;
-                MATRIX.push_back(&G); G[bidx] = 1;
-                A[bidx] = 0; C[bidx] = 0; T[bidx] = 0; break;
+                MATRIX.push_back(&G);
+                G[bidx] = 1; A[bidx] = 0; C[bidx] = 0; T[bidx] = 0; break;
             case 'T': case 't': // 11
                 left_bset[bidx] = 1; right_bset[bidx] = 1;
-                MATRIX.push_back(&T); T[bidx] = 1;
-                A[bidx] = 0; C[bidx] = 0; G[bidx] = 0; break;
+                MATRIX.push_back(&T);
+                T[bidx] = 1; A[bidx] = 0; C[bidx] = 0; G[bidx] = 0; break;
             default: // no match probably N or any other nuc
-                N_bset[bidx] = 1; MATRIX.push_back(NULL);
+                N_bset[bidx] = 1;
+                MATRIX.push_back(NULL);
                 A[bidx] = 0; C[bidx] = 0; G[bidx] = 0; T[bidx] = 0; break;
         }
     }
@@ -214,7 +215,6 @@ void processSequence(string sequence_id, string sequence, int window_length, int
         lshift_xor_bsets.push_back( ~(left_bset ^ (left_bset<<(i))) & ~(right_bset ^ (right_bset<<(i))) );
     }
     seconds_since_start = difftime( time(0), START_TIME);
-    // std::cerr << "Generated shift XORs!\t Time elapsed:" << seconds_since_start << "secs\n";
 
 
     // generating seed positions; vector of tuple with start and end of the seeds
@@ -230,13 +230,14 @@ void processSequence(string sequence_id, string sequence, int window_length, int
 
     else {
         seed_positions_perfect = processShiftXORsPerfect(lshift_xor_bsets, N_bset, window_length);
+        return;
 
         seed_positions_substut = processShiftXORswithSubstitutions(lshift_xor_bsets, N_bset, window_length,
                                                                    window_bitcount_threshold, seed_positions_perfect);
-        
+
         // filtering out the perfect seeds which are inside substituted seeds with short flanks
         filterPerfectSeeds(seed_positions_perfect, seed_positions_substut);
-        
+
         // generating the anchor bitsets for all shift sizes
         vector<boost::dynamic_bitset<>> lsxor_anchor_bsets;     // vector of dynamic bitsets for anchor bitsets
         generateAnchoredShiftXORs(lshift_xor_bsets, N_bset, lsxor_anchor_bsets, anchor_length);
@@ -310,14 +311,14 @@ void processSequence(string sequence_id, string sequence, int window_length, int
 
         seed_bset_size = seed_end - seed_start;
         if (seed_bset_size < SEEDLEN_CUTOFF[seed_mlen - MINIMUM_MLEN]) { continue; }
-        
+
         boost::dynamic_bitset<> seed_bset(seed_bset_size, 0ull);
         for (int j = seed_start; j < seed_end; j++) {
             seed_bset[seed_end - 1 - j] = lshift_xor_bsets[seed_mlen-MINIMUM_SHIFT][sequence_length - 1 - j];
         }
-
-        cout << sequence_id << "\t" << seed_start << "\t" << seed_end << "\t" << seed_mlen << "\t" << seed_type << "\n";
-        // continue;
+        if (seed_start >= 467250 && seed_start <= 467360) {
+            cout << sequence_id << "\t" << seed_start << "\t" << seed_end << "\t" << seed_mlen << "\t" << seed_type << "\n";
+        }
 
         // process seed if it is alteast the size of the motif length
         processed_seeds += 1;
@@ -473,9 +474,6 @@ void processSequenceThread(string sequence_id, string sequence, int seq_start, i
 
         seed_positions_substut = processShiftXORswithSubstitutions(lshift_xor_bsets, N_bset, window_length, window_bitcount_threshold, seed_positions_perfect);
         seconds_since_start = difftime( time(0), START_TIME);
-        // std::cerr << "Thread " << tnum << ": Total number of seeds considering substitutions: " << seed_positions_perfect.size() + seed_positions_substut.size() - failed_seeds
-                // << "\t Time elapsed: " << seconds_since_start << "secs\n";
-
 
         // generating the anchor bitsets for all shift sizes
         vector<boost::dynamic_bitset<>> lsxor_anchor_bsets;     // vector of dynamic bitsets for anchor bitsets
@@ -499,7 +497,7 @@ void processSequenceThread(string sequence_id, string sequence, int seq_start, i
         lsxor_anchor_bsets.clear();
         seconds_since_start = difftime( time(0), START_TIME);
         // std::cerr << "Thread " << tnum << ": Generated anchored shift XORs!\t Time elapsed: " << seconds_since_start << "secs\n";
-
+        window_length = 8; // window length for indel detection
         window_bitcount_threshold = 6;
         seed_positions_anchored = processShiftXORsAnchored(lshift_xor_bsets, N_bset, window_length, window_bitcount_threshold,
                                                         seed_positions_perfect, seed_positions_substut);
