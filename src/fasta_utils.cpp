@@ -230,7 +230,6 @@ void processSequence(string sequence_id, string sequence, int window_length, int
 
     else {
         seed_positions_perfect = processShiftXORsPerfect(lshift_xor_bsets, N_bset, window_length);
-        return;
 
         seed_positions_substut = processShiftXORswithSubstitutions(lshift_xor_bsets, N_bset, window_length,
                                                                    window_bitcount_threshold, seed_positions_perfect);
