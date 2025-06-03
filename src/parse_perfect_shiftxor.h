@@ -12,3 +12,6 @@ bool retainNestedSeed(vector<boost::dynamic_bitset<>> &motif_bsets, int start, i
 
 bool retainIdenticalSeeds(vector<boost::dynamic_bitset<>> &motif_bsets, int start, int end,
                            int nested_midx, int parent_midx, int bset_size);
+
+int calculateBitCount(vector<boost::dynamic_bitset<>> &motif_bsets, int start, int end,
+                      int midx, int bset_size);

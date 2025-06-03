@@ -81,9 +81,9 @@ int addSeedToSeedPositionsSubstitutions(int seed_start, int seed_end, int motif_
 
         // if neither are exhausted
         else {
-            perfect_end = get<1> (seed_positions_perfect[perfect_index]);
+            perfect_end  = get<1> (seed_positions_perfect[perfect_index]);
             perfect_type = get<3> (seed_positions_perfect[perfect_index]);
-            substut_end = get<1> (seed_positions_substut[substut_index]);
+            substut_end  = get<1> (seed_positions_substut[substut_index]);
             substut_type = get<3> (seed_positions_substut[substut_index]);
 
             // adding the seed which has the greater end
@@ -147,6 +147,7 @@ int addSeedToSeedPositionsSubstitutions(int seed_start, int seed_end, int motif_
 
         // current seed and last seed have identical coordinates
         if (seed_start == last_start && seed_end == last_end) {
+
             //  last seed is a pefect seed ~ do not add the current seed
             if (seed_type < last_type) { return from_index; }
 

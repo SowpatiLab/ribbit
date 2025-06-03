@@ -26,6 +26,26 @@ bool retainNestedSeed(vector<boost::dynamic_bitset<>> &motif_bsets, int start, i
 }
 
 
+int calculateBitCount(vector<boost::dynamic_bitset<>> &motif_bsets, int start, int end,
+                      int midx, int bset_size) {
+    /*
+     *  compares the number of matches in the nested and the parent bitsets and decides to retain the nested repeat
+     *  @param motif_bsets shift XOR bsets of all shift sizes
+     *  @param start start of the nested locus
+     *  @param end end of the nested locus
+     *  @param nested_midx index for the shift XOR bitset of the nested repeat
+     *  @param parent_midx index for the shift XOR bitset of the parent repeat
+     *  @param bset_size size of the shift XOR bitset
+     *  @return bool if the nested repeat should be retained or not
+    */
+    int count = 0;
+    for(int i=start; i<end; i++) {
+        if (motif_bsets[midx][bset_size - 1 - i] == 1) count += 1;
+    }
+    return count;
+}
+
+
 bool retainIdenticalSeeds(vector<boost::dynamic_bitset<>> &motif_bsets, int start, int end,
                            int nested_midx, int parent_midx, int bset_size) {
     /*
@@ -182,11 +202,10 @@ void addSeedToSeedPositionsPerfect(int seed_start, int seed_end, int motif_lengt
     int last_start, last_end, last_rend, last_mlen;       // coordinate variables for existing seeds
     int seed_length = seed_end - seed_start;
     int seed_rend   = seed_end + motif_length;
-    int seed_rlen   = seed_rend - seed_start;
 
     // indices for different shifts in motif_bsets
     int seed_midx = motif_length - MINIMUM_SHIFT;
-    int last_slen, last_rlen, overlap_length;
+    int overlap_length;
 
     vector<int> remove_seeds;   // the indices of seeds that need to be removed
 
@@ -196,50 +215,46 @@ void addSeedToSeedPositionsPerfect(int seed_start, int seed_end, int motif_lengt
         last_end    = get<1> (seed_positions[i]);
         last_mlen   = get<2> (seed_positions[i]);
         last_rend   = last_end + last_mlen;
-        last_slen   = last_end - last_start;
-        last_rlen   = last_slen + last_mlen;
 
         // seed positions are sorted based on the end position
         // once we encounter a seed that is beyond the start of the current seed
-        if (last_end < seed_start) break;
+        if (last_rend < seed_start) break;
 
         int merge_start = 0, merge_end = 0;
         if (last_start < seed_start) {
-            overlap_length = last_end - seed_start + last_mlen;
-            merge_start = last_start; merge_end = seed_end;
+            if (seed_rend <= last_rend) { overlap_length = seed_rend - seed_start; merge_start = last_start; merge_end = last_end; }
+            else { overlap_length = last_rend - seed_start; merge_start = last_start; merge_end = seed_end; }
         }
         else {
-            overlap_length = seed_end - last_start + motif_length;
-            merge_start = seed_start; merge_end = last_end;
+            if (last_rend <= seed_rend) { overlap_length = last_rend - last_start; merge_start = seed_start; merge_end = seed_end; }
+            else { overlap_length = seed_rend - last_start; merge_start = seed_start; merge_end = last_end; }
         }
 
-        if (last_mlen == motif_length) {
+        if (overlap_length <= 0) continue;
+
+        if (last_mlen == motif_length && overlap_length >= motif_length) {
             remove_seeds.push_back(i);
             for (int _=0; _<remove_seeds.size(); _++) seed_positions.erase(seed_positions.begin() + remove_seeds[_]);
             addSeedToSeedPositionsPerfect(merge_start, merge_end, last_mlen, seed_positions, bset_size);
             return;
         }
 
-        else if (last_mlen % motif_length == 0) {
+        else if (last_mlen % motif_length == 0 && overlap_length >= last_mlen) {
             // if the overlap length is at least 1 less than the larger motif size
             // the longer motif repeat with more than 3 units is retained
-            if (overlap_length >= last_mlen) {
-                remove_seeds.push_back(i);
-                for (int _=0; _<remove_seeds.size(); _++) seed_positions.erase(seed_positions.begin() + remove_seeds[_]);
-                addSeedToSeedPositionsPerfect(merge_start, merge_end, last_mlen, seed_positions, bset_size);
-                return;
-            }
+            remove_seeds.push_back(i);
+            for (int _=0; _<remove_seeds.size(); _++) seed_positions.erase(seed_positions.begin() + remove_seeds[_]);
+            addSeedToSeedPositionsPerfect(merge_start, merge_end, motif_length, seed_positions, bset_size);
+            return;
         }
 
-        else if (motif_length % last_mlen == 0) {
+        else if (motif_length % last_mlen == 0 && overlap_length >= motif_length) {
             // if the overlap length is at least 1 less than the larger motif size
             // the longer motif repeat with more than 3 units is retained
-            if (overlap_length >= motif_length) {
-                remove_seeds.push_back(i);
-                for (int _=0; _<remove_seeds.size(); _++) seed_positions.erase(seed_positions.begin() + remove_seeds[_]);
-                addSeedToSeedPositionsPerfect(merge_start, merge_end, motif_length, seed_positions, bset_size);
-                return;
-            }
+            remove_seeds.push_back(i);
+            for (int _=0; _<remove_seeds.size(); _++) seed_positions.erase(seed_positions.begin() + remove_seeds[_]);
+            addSeedToSeedPositionsPerfect(merge_start, merge_end, last_mlen, seed_positions, bset_size);
+            return;
         }
     }
 

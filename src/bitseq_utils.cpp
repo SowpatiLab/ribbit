@@ -121,12 +121,14 @@ int calculateAtomicityLongMotif(uint256_t &motif, int &motif_length) {
     uint256_t mask;
     int length_limit = (motif_length >= 10) ? 0.67*motif_length : 0.5*motif_length;
     for (int f=1; f <= length_limit; f++) {
-        mask = 0;
-        for (int i=0; i<2*(motif_length-f); i++) { mask <<= 1; mask |= 1; }
-        shift = motif >> 2*f;
-        original = mask & motif;
-        if (shift == original) {
-            return f;
+        if (motif_length % f == 0 || motif_length - f <= 2) {
+            mask = 0;
+            for (int i=0; i<2*(motif_length-f); i++) { mask <<= 1; mask |= 1; }
+            shift = motif >> 2*f;
+            original = mask & motif;
+            if (shift == original) {
+                return f;
+            }
         }
     }
 

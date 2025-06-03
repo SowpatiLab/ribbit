@@ -315,9 +315,6 @@ void processSequence(string sequence_id, string sequence, int window_length, int
         for (int j = seed_start; j < seed_end; j++) {
             seed_bset[seed_end - 1 - j] = lshift_xor_bsets[seed_mlen-MINIMUM_SHIFT][sequence_length - 1 - j];
         }
-        if (seed_start >= 467250 && seed_start <= 467360) {
-            cout << sequence_id << "\t" << seed_start << "\t" << seed_end << "\t" << seed_mlen << "\t" << seed_type << "\n";
-        }
 
         // process seed if it is alteast the size of the motif length
         processed_seeds += 1;

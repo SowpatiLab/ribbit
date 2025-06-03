@@ -48,7 +48,7 @@ int calculateMotifUnits(boost::dynamic_bitset<> &left_bset, boost::dynamic_bitse
 
     unordered_map<uint32_t, int> motif_position, motif_units;
     unordered_map<uint32_t, int> maxfrequency_motifs;
-    uint32_t motif;
+    uint32_t motif = 0ull;
     int seed_end = seed_start + length;
     if (seed_end > sequence_length - 1) { seed_end = sequence_length - 1; }
 
@@ -56,7 +56,7 @@ int calculateMotifUnits(boost::dynamic_bitset<> &left_bset, boost::dynamic_bitse
     for (int j = seed_start; j < seed_end; j++) {
         window[0] = right_bset[sequence_length -1 -j]; window[1] = left_bset[sequence_length -1 -j];
 
-        if (j-seed_start >= motif_length) {   // window is atleast the size of motif length
+        if (j-seed_start >= motif_length-1) {   // window is atleast the size of motif length
             motif = calculateRepeatClass(window, motif_length);
 
             if (motif_position.find(motif) == motif_position.end()) {
@@ -149,13 +149,18 @@ void possibleMotifs(boost::dynamic_bitset<> &left_bset, boost::dynamic_bitset<> 
                 }
 
                 else {
+                    // if the motif end is j the motif is coming bookended
                     // if the motif is not occurring consecutively
                     if (MOTIF_END[motif] < j) {
                         if (j - MOTIF_END[motif] < motif_length) {
                             MOTIF_GAPS[motif] += 1;
                             MOTIF_GAPSIZE[motif] += 1;
+                            if (motif_length > 2 && (motif_length - (j - MOTIF_END[motif])) == 1) {
+                                // for motifs longer than 2, if the gap is less than motif length
+                                MOTIF_UNITS[motif] += 1;
+                            }
                         }
-                        else if ((j - MOTIF_END[motif]) % motif_length > 0) {
+                        else if ((wstart - MOTIF_END[motif]) % motif_length > 0) {
                             MOTIF_GAPS[motif] += ((j - MOTIF_END[motif]) / motif_length) + 1;
                             MOTIF_GAPSIZE[motif] += (j - MOTIF_END[motif]) + 1;
                         }
@@ -198,6 +203,86 @@ void possibleMotifs(boost::dynamic_bitset<> &left_bset, boost::dynamic_bitset<> 
 }
 
 
+void orderMotifs(vector<uint32_t> &motifs, vector<int> &starts, vector<int> &ends, int seed_start, int seed_end, int motif_length) {
+    /*
+     * orders the motifs and adjusts the starts and ends such that the whole seed is covered
+     * @param motifs the vector of identified possible motifs; passed as reference; updated
+     * @param starts the vector of starts of the identified motifs
+     * @param ends the vector of the ends of the identified motifs
+     * @param seed_start start coordinate of the seed sequence
+     * @param seed_end end coordinate of the seed sequence
+     * @param motif_length length of the motif
+     * @returns none updates motifs, starts and ends of the identified motifs
+    */
+
+    seed_end = seed_end + motif_length; // extend the seed end by motif length to cover the last motif
+    int motif_start = 0, motif_end = 0;
+    int upstream_start = 0, upstream_end = 0;
+    int downstream_start = 0, downstream_end = 0;
+    vector<int> new_starts(motifs.size()), new_ends(motifs.size()); int d,u;
+    vector<int> sorted_indices(ends.size());
+    iota(sorted_indices.begin(), sorted_indices.end(), 0);
+    sort(sorted_indices.begin(), sorted_indices.end(), [&ends](int i, int j) { return ends[i] < ends[j]; });
+    int idx; int min_start = seed_end, min_idx = 0;
+    for (int _=sorted_indices.size()-1; _ >= 0; _--) {
+        idx = sorted_indices[_];
+        motif_start = starts[idx];
+        motif_end = ends[idx];
+        // if the motif is the last one in the list or the motif ends one motif length away from the seed end
+        if (_ == sorted_indices.size()-1 || (seed_end - motif_end <= motif_length)) { motif_end = seed_end; }
+        
+        // if the motif is the first one in the list or the motif starts one motif length away from the seed start
+        if (motif_start - seed_start <= motif_length) { motif_start = seed_start; }
+
+        if (motif_start < min_start)  { min_start = motif_start; min_idx = idx; }
+
+        d = 1;
+        while ( _ + d < sorted_indices.size()) {
+            downstream_start = starts[sorted_indices[_ + d]]; downstream_end = ends[sorted_indices[_ + d]];
+            if (motif_start > downstream_start && motif_end <= downstream_end) {
+                break;
+            }
+            else if (downstream_start >= motif_start && downstream_end <= motif_end) {
+                d = d + 1;
+            }
+            else {
+                if (motif_end - downstream_start < motif_length) {
+                    motif_end = downstream_start + motif_length;
+                    if (motif_end > seed_end) motif_end = seed_end;
+                }
+                break;
+            }
+        }
+
+        u = 1;
+        while ( _ - u >= 0) {
+            upstream_start = starts[sorted_indices[_ - u]]; upstream_end = ends[sorted_indices[_ - u]];
+            if (motif_start > upstream_start && motif_end <= upstream_end) {
+                break;
+            }
+            else if (upstream_start >= motif_start && upstream_end <= motif_end) {
+                u = u + 1;
+            }
+            else {
+                if (upstream_end - motif_start < motif_length) {
+                    motif_start = upstream_end - motif_length;
+                    if (motif_start < seed_start) motif_start = seed_start;
+                }
+                break;
+            }
+        }
+        new_starts[idx] = motif_start;
+        new_ends[idx] = motif_end;
+    }
+
+    for (int _=0; _ < motifs.size(); _++) {
+        starts[_] = new_starts[_];
+        ends[_] = new_ends[_];
+    }
+    starts[min_idx] = seed_start;
+}
+
+
 void processSeedMotifWise(tuple<int, int> seed_position, int seq_start, int &motif_length, int &seed_type, string &sequence_id, string &sequence,
                           int &sequence_length, boost::dynamic_bitset<> &xor_bset, boost::dynamic_bitset<> &left_bset, boost::dynamic_bitset<> &right_bset,
                           boost::dynamic_bitset<> &N_bset, int &continuous_threshold, ostream &out,
@@ -230,7 +315,7 @@ void processSeedMotifWise(tuple<int, int> seed_position, int seq_start, int &mot
     int seed_bset_size = seed_end - seed_start;
     int seed_sequence_length = seed_bset_size + motif_length;
 
-    for (int s=seed_start; s<seed_end+motif_length; s++) {
+    for (int s=seed_start; s < seed_end+motif_length; s++) {
         if (N_bset[sequence_length-1-s] == 1) {
             seed_sequence_length = s - seed_start;
             break;
@@ -247,11 +332,31 @@ void processSeedMotifWise(tuple<int, int> seed_position, int seq_start, int &mot
     if (longest_stretch < continuous_threshold) { return; }
     if (THREADS > 1) MTX.lock();
     vector<uint32_t> motifs; vector<int> starts, ends;
-    possibleMotifs(left_bset, right_bset, seed_start, seed_sequence_length,
-                   motif_length, sequence_length, motifs, starts, ends, sequence);
+
+    if (seed_type == RANK_P) {
+        uint32_t motif = 0ull;
+        for (int _=0; _ < motif_length; _++) {
+            motif <<= 1; motif |= left_bset[sequence_length - 1 - (seed_start + _)];
+            motif <<= 1; motif |= right_bset[sequence_length - 1 - (seed_start + _)];
+        }
+        dynamic_bitset<> window(2*motif_length, motif); // window to track the motif
+        motifs.push_back(calculateRepeatClass(window, motif_length));
+        starts.push_back(seed_start); ends.push_back(seed_end + motif_length);
+    }
+    else {
+        possibleMotifs(left_bset, right_bset, seed_start, seed_sequence_length,
+                       motif_length, sequence_length, motifs, starts, ends, sequence);
+    }
 
     if (THREADS > 1) MTX.unlock();
     if (motifs.size() == 0) return;
+
+    if (motifs.size() == 1) {
+        starts[0] = seed_start; ends[0] = seed_end + motif_length;
+    }
+    else if (motifs.size() > 1) {
+        orderMotifs(motifs, starts, ends, seed_start, seed_end, motif_length);
+    }
 
     string perfect_repeat, motif;
     vector<int> cigar_values;
@@ -274,12 +379,6 @@ void processSeedMotifWise(tuple<int, int> seed_position, int seq_start, int &mot
         motif = motif.substr(0, atomicity);
         motif_unit >>= 2*(motif_length - atomicity);
 
-        // if (seed_start == 3864 && seed_end == 4138) {
-        //     cout << motif << "\t" << atomicity << "\t" << starts[motif_idx] << "\t" << ends[motif_idx] << "\n";
-        // }
-
-        if (motifs.size() == 1) { starts[motif_idx] = seed_start; ends[motif_idx] = seed_end + motif_length; }
-
         // seed sequence limiting to the coordinates where full motif alignment matches are found 
         motif_seed_sequence = sequence.substr(starts[motif_idx], ends[motif_idx] - starts[motif_idx]);
         motif_seed_length = ends[motif_idx] - starts[motif_idx];
@@ -287,7 +386,7 @@ void processSeedMotifWise(tuple<int, int> seed_position, int seq_start, int &mot
         ppr_length = motif_seed_length + motif_length + ((1-PURITY_THRESHOLD)* motif_seed_length);
         perfect_repeat = "";
         while(perfect_repeat.length() <= ppr_length) perfect_repeat += motif;
-        
+
         aligner.Align(motif_seed_sequence.c_str(), perfect_repeat.c_str(), ppr_length, filter, &alignment, 15);
         processCIGARMotifWise(starts[motif_idx], motif_seed_length, alignment.cigar_string, motif_seed_sequence, atomicity,
                               repeat_start, repeat_end, alignment_length, cigar_string, purity, substitutions, indels, motifwise_purity,
@@ -299,15 +398,10 @@ void processSeedMotifWise(tuple<int, int> seed_position, int seq_start, int &mot
 
         repeat_units = repeat_length/atomicity;
 
-        // if (repeat_start == 3866 && repeat_end == 4134) {
-        //     cout << repeat_start << "\t" << repeat_end << "\t" << motif << "\t"
-        //          << purity << "\t" << motifwise_purity << "\t" << substitutions << "\t"
-        //          << "\t" << indels << "\t" << match_units << "\t" << 0.7*match_units << "\t" << repeat_units << "\n";
-        // }
-
         // if match units are more than 10 and the number of interruptions is less than 80% of the match units
-        if (match_units > 10 && (indels > 0.7*match_units || substitutions > 0.9*match_units)) { continue; }
+        if (match_units > 10 && (indels > 0.8*match_units)) { continue; }
         if (repeat_length < 3*atomicity && purity < 1) { continue; }
+
 
         if (atomicity >= MINIMUM_MLEN && atomicity <= MAXIMUM_MLEN
             && (match_units >= PERFECT_UNITS[atomicity])
@@ -316,10 +410,7 @@ void processSeedMotifWise(tuple<int, int> seed_position, int seq_start, int &mot
             // a small motif seed is considered valid based on a set of criteria
             // - match units are more than threshold AND 70% of the total units are perfect
             // - average motif purity is 80% OR the average continuous match length twice the atomicity
-            
-            // cout << sequence_id << "\t" << repeat_start << "\t" << repeat_end << "\t"
-            //      << motif << "\t" << purity << "\t+\t" << cigar_string << "\t" << atomicity << "\t"
-            //      << repeat_length << "\t" << repeat_units << "\n"; 
+
             addLocusToOutput(sequence_id, repeat_start, repeat_end, motif.substr(0, atomicity), purity, cigar_string,
                              atomicity, repeat_length, repeat_units, out, repeat_loci);
         }
