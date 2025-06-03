@@ -617,6 +617,13 @@ void processCIGARMotifWise(int seed_start, int seed_sequence_length, string &cig
     vector<double> motifwise_matchpercent;
     vector<int> motifwise_indels;
     vector<int>  match_lens; int match_length = 0;
+    int clip_cigar_start = 0, clip_cigar_end = 0;
+    bool break_cigar_loop = false;
+
+    if (ctypes[ctypes.size()-1] == 'S') {
+        repeat_end -= clens[clens.size()-1];
+        clens.pop_back(); ctypes.pop_back();
+    }
 
     for ( ; cidx < clens.size(); cidx++) {
         clength = clens[cidx]; ctype = ctypes[cidx];
@@ -655,6 +662,22 @@ void processCIGARMotifWise(int seed_start, int seed_sequence_length, string &cig
                 new_cigar += to_string(clength) + ctype;
 
                 motif_indels += clength;
+                if (qpos - start_soft_clip - clength < motif_length && (motif_indels >= 3 || motif_indels >= motif_length)) {
+                    repeat_start = seed_start + qpos; clip_cigar_start = cidx + 1;
+                    alignment_length = 0; substitutions = 0, indels = 0;
+                    matches = 0, match_units = 0;
+                    new_cigar = "";
+                    motif_covered = 0; motif_matches = 0; motif_mismatches = 0;
+                    motif_indels = 0; excess = 0; match_length = 0;
+                    motifwise_matchpercent.clear(); motifwise_indels.clear(); match_lens.clear(); 
+                }
+                if (((repeat_end - repeat_start) - (qpos - start_soft_clip) < motif_length) && (clength >= 3 || clength >= motif_length)) {
+                    repeat_end = repeat_start + (qpos - start_soft_clip) - clength;
+                    clip_cigar_end = cidx;
+                    new_cigar = new_cigar.substr(0, new_cigar.size() - (1 + to_string(clength).size()));
+                    qpos -= clength; alignment_length -= clength; indels -= 1;
+                    break_cigar_loop = true;
+                }
                 break;
             case 'D':
                 alignment_length += clength;
@@ -673,6 +696,22 @@ void processCIGARMotifWise(int seed_start, int seed_sequence_length, string &cig
                 else {
                     motif_covered += clength;
                     motif_indels += clength;
+                }
+                if (qpos - start_soft_clip < motif_length && (motif_indels >= 3 || motif_indels >= motif_length)) {
+                    repeat_start = seed_start + qpos; clip_cigar_start = cidx + 1;
+                    alignment_length = 0; substitutions = 0, indels = 0;
+                    matches = 0, match_units = 0;
+                    new_cigar = "";
+                    motif_covered = 0; motif_matches = 0; motif_mismatches = 0;
+                    motif_indels = 0; excess = 0; match_length = 0;
+                    motifwise_matchpercent.clear(); motifwise_indels.clear(); match_lens.clear();
+                }
+                if (((repeat_end - repeat_start) - (qpos - start_soft_clip) < motif_length) && (clength >= 3 || clength >= motif_length)) {
+                    repeat_end = repeat_start + (qpos - start_soft_clip);
+                    clip_cigar_end = cidx;
+                    new_cigar = new_cigar.substr(0, new_cigar.size() - (1 + to_string(clength).size()));
+                    alignment_length -= clength; indels -= 1;
+                    break_cigar_loop = true;
                 }
                 break;
             case '=': case 'M':
@@ -697,6 +736,8 @@ void processCIGARMotifWise(int seed_start, int seed_sequence_length, string &cig
                 break;
             default: break;
         }
+
+        if (break_cigar_loop) { break; }
     }
 
     if (match_length > 0) match_lens.push_back(match_length);
@@ -735,13 +776,16 @@ void processCIGARMotifWise(int seed_start, int seed_sequence_length, string &cig
         trim = true;
     }
 
-    // if (repeat_start == 3866 && repeat_end == 4134) {
-    //     cout << repeat_start << "\t" << repeat_end << "\t" << cigar << "\n";
-    //     cout << avg_motifpurity << "\t" << trim << "\n";
-    // }
-
 
     if (trim) {
+        if (clip_cigar_start > 0) {
+            clens.erase(clens.begin(), clens.begin() + clip_cigar_start);
+            ctypes.erase(ctypes.begin(), ctypes.begin() + clip_cigar_start);
+        }
+        if (clip_cigar_end > 0) {
+            clens.erase(clens.begin() + clip_cigar_end, clens.end());
+            ctypes.erase(ctypes.begin() + clip_cigar_end, ctypes.end());
+        }
         trim_edges = calculateTrimEdgesMotifPurity(MOTIFPURITY_THRESHOLD, avg_motifpurity, clens, ctypes, alignment_length, motif_length);
         // based on the trim edges we adjust all the repeat parameters
         for (int i=0; i<get<0>(trim_edges); i++) {
