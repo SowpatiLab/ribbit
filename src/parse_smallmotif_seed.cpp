@@ -285,7 +285,7 @@ void orderMotifs(vector<uint32_t> &motifs, vector<int> &starts, vector<int> &end
 
 void processSeedMotifWise(tuple<int, int> seed_position, int seq_start, int &motif_length, int &seed_type, string &sequence_id, string &sequence,
                           int &sequence_length, boost::dynamic_bitset<> &xor_bset, boost::dynamic_bitset<> &left_bset, boost::dynamic_bitset<> &right_bset,
-                          boost::dynamic_bitset<> &N_bset, int &continuous_threshold, ostream &out,
+                          boost::dynamic_bitset<> &N_bset, ostream &out,
                           StripedSmithWaterman::Aligner &aligner, StripedSmithWaterman::Filter &filter, StripedSmithWaterman::Alignment &alignment,
                           vector<tuple<string, int, int, string, double, string, int, int, int>> &repeat_loci) {
     /*
@@ -301,7 +301,6 @@ void processSeedMotifWise(tuple<int, int> seed_position, int seq_start, int &mot
      * @param left_bset the dynamic bitset of the left bit of the sequence
      * @param right_bset the dynamic bitset of the right bit of the sequence
      * @param N_bset the bitset indicating the presence of Ns at a position
-     * @param continuous_threshold minimum length of continuous stretch of 1s in the seed
      * @param out output file name
      * @param aligner the aligner object pf ssw alignment
      * @param filter the filter object of ssw alignment
@@ -328,6 +327,7 @@ void processSeedMotifWise(tuple<int, int> seed_position, int seq_start, int &mot
         seed_bset[seed_end - 1 - j] = xor_bset[sequence_length -j - 1];
     }
 
+    int continuous_threshold = 3; // threshold for continuous matches
     int longest_stretch = longestContinuousMatches(seed_bset);
     if (longest_stretch < continuous_threshold) { return; }
     if (THREADS > 1) MTX.lock();
@@ -406,11 +406,13 @@ void processSeedMotifWise(tuple<int, int> seed_position, int seq_start, int &mot
         if (atomicity >= MINIMUM_MLEN && atomicity <= MAXIMUM_MLEN
             && (match_units >= PERFECT_UNITS[atomicity])
             && (repeat_length >= MINIMUM_LENGTH[atomicity])
-            && (motifwise_purity >= MOTIFPURITY_THRESHOLD || avg_matchlen >= 2*atomicity)) {
+            && (motifwise_purity >= MOTIFPURITY_THRESHOLD || avg_matchlen >= 2*atomicity)
+            && (purity >= PURITY_THRESHOLD)) {
             // a small motif seed is considered valid based on a set of criteria
             // - match units are more than threshold AND 70% of the total units are perfect
             // - average motif purity is 80% OR the average continuous match length twice the atomicity
 
+            repeat_start += CHUNK_START; repeat_end += CHUNK_START;
             addLocusToOutput(sequence_id, repeat_start, repeat_end, motif.substr(0, atomicity), purity, cigar_string,
                              atomicity, repeat_length, repeat_units, out, repeat_loci);
         }

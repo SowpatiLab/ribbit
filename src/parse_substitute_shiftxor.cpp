@@ -351,14 +351,11 @@ int addSeedToSeedPositionsSubstitutions(int seed_start, int seed_end, int motif_
 
 
 vector<tuple<int, int, int, int>> processShiftXORswithSubstitutions(vector<boost::dynamic_bitset<>> &motif_bsets, boost::dynamic_bitset<> &N_bset,
-                                                                    int &window_length, int &window_bitcount_threshold,
                                                                     vector<tuple<int, int, int, int>> &seed_positions_perfect) {
     /*
      *  parsing the shift XORs of all shift sizes and picking seeds from each shift
      *  @param motif_bsets shift XOR bsets of all shift sizes
      *  @param N_bset N position bitset
-     *  @param window_length length of the window to be scanned
-     *  @param window_bitcount_threshold the threshold number of set bits in the window
      *  @param seed_positions_perfect vector of identified perfect seed positions
      *  @return vector<tuple<int, int, int>> vector of end position sorted seeds from all motif sizes
     */
@@ -374,15 +371,25 @@ vector<tuple<int, int, int, int>> processShiftXORswithSubstitutions(vector<boost
     int current_starts[NMLENS];  // stores the current seed start
     int seedlen_cutoffs[NMLENS];
 
+    int window_length = 8;   // length of the window to be scanned
+    int window_bitcount_threshold = 6;   // the threshold number of set bits in the window
+
+    int long_motif_size = 20;
+    int long_window_length = 12;
+    int long_window_bitcount_threshold = 8;
+
+
     vector<boost::dynamic_bitset<>> window_bsets;
     // initialising all to -1
     for (int _=0; _<NMLENS; _++) {
         last_starts[_] = -1; last_ends[_] = -1; current_starts[_] = -1;
         boost::dynamic_bitset<> window_bset(window_length, 0ull);
+        if (_+MINIMUM_MLEN > long_motif_size) { window_bset.resize(long_window_length); }
         window_bsets.push_back(window_bset);   // initialised window bitset
         
         if (_+MINIMUM_MLEN <= 6) seedlen_cutoffs[_] = 12 - (_+MINIMUM_MLEN);
         else if (_+MINIMUM_MLEN < 20) seedlen_cutoffs[_] = 0.5*(_+MINIMUM_MLEN);
+        // else seedlen_cutoffs[_] = 10;   // a default cutoff of 10 for motifs longer than 20 bp
         else if (_+MINIMUM_MLEN <= 33) seedlen_cutoffs[_] = 10;
         else seedlen_cutoffs[_] = 0.3*(_+MINIMUM_MLEN);
     }
@@ -413,7 +420,8 @@ vector<tuple<int, int, int, int>> processShiftXORswithSubstitutions(vector<boost
                         last_starts[didx] = -1; last_ends[didx] = -1;
                     }
                 }
-                window_bsets[didx] <<= window_length;
+                if (motif_length > long_motif_size) { window_bsets[didx] <<= long_window_length; }
+                else { window_bsets[didx] <<= window_length; }
                 current_starts[didx] = -1;
             }
 
@@ -435,7 +443,10 @@ vector<tuple<int, int, int, int>> processShiftXORswithSubstitutions(vector<boost
                     didx = midx-min_idx; motif_length = MINIMUM_SHIFT + midx;
                     window_bitcount = window_bsets[didx].count();
 
-                    if (window_bitcount >= window_bitcount_threshold) {
+                    if ((motif_length > long_motif_size) && (valid_position < (long_window_length - window_length))) continue;
+
+                    if ((motif_length <= long_motif_size && window_bitcount >= window_bitcount_threshold) ||
+                        (motif_length > long_motif_size && window_bitcount >= long_window_bitcount_threshold)) {
                         // window bitcount is above the threshold
 
                         if (current_starts[didx] == -1) {
@@ -464,13 +475,23 @@ vector<tuple<int, int, int, int>> processShiftXORswithSubstitutions(vector<boost
                             if (last_starts[didx] == -1) {
                                 // last seed is not recorded; save the current seed as the last seed
                                 last_starts[didx] = current_starts[didx];
-                                last_ends[didx] = window_position + window_length - 1; // end is exclusive
+                                if (motif_length > long_motif_size) {
+                                    last_ends[didx] = window_position + long_window_length - 1; // end is exclusive
+                                }
+                                else {
+                                    last_ends[didx] = window_position + window_length - 1; // end is exclusive
+                                }
                             }
 
                             else {
                                 // if the last seed is recorded it means that it is within the overlapping range
                                 // hence we just update the end of the last record
-                                last_ends[didx] = window_position + window_length - 1; // reassign end
+                                if (motif_length > long_motif_size) {
+                                    last_ends[didx] = window_position + long_window_length - 1; // reassign end
+                                }
+                                else {
+                                    last_ends[didx] = window_position + window_length - 1; // reassign end
+                                }
                             }
 
                             current_starts[didx] = -1;
@@ -572,13 +593,36 @@ void filterPerfectSeeds(vector<tuple<int, int, int, int>> &seed_positions_perfec
             if (perfect_mlen == substut_mlen) {
                 if (substut_start <= perfect_start && substut_end >= perfect_end && 
                     perfect_start - substut_start < perfect_mlen && substut_end - perfect_end < perfect_mlen) {
-                    // cout << "\n" << perfect_start << "\t" << perfect_end << "\t" << perfect_mlen << "\t" << RANK_P << endl;
-                    // cout << substut_start << "\t" << substut_end << "\t" << substut_mlen << "\t" << RANK_S << endl;
                     seed_positions_perfect[i] = tuple<int, int, int, int> {perfect_start, perfect_end, perfect_mlen, RANK_N};
                 }
             }
             
             if (substut_end > perfect_end + perfect_mlen) break;
+        }
+    }
+}
+
+
+void filterShortSeeds(vector<tuple<int, int, int, int>> &seeds) {
+    /*
+     *  filter the perfect seeds from the substitute seeds
+     *  @param seed_positions_perfect vector of identified perfect repeat seeds
+     *  @param seed_positions_substut vector of identified repeat seeds with allowed substitutions
+     *  @return none
+    */
+
+    int seed_start, seed_end, seed_mlen, seed_type;
+    tuple<int, int, int, int> seed;
+    for (int i=0; i<seeds.size(); i++) {
+        seed = seeds[i];
+        seed_type  = get<3> (seed);
+        if (seed_type == RANK_N) { continue; }
+        seed_start = get<0> (seed);
+        seed_end   = get<1> (seed);
+        seed_mlen  = get<2> (seed);
+
+        if (seed_end - seed_start < SEEDLEN_CUTOFF[seed_mlen - MINIMUM_MLEN]) {
+            seeds[i] = tuple<int, int, int, int> {seed_start, seed_end, seed_mlen, RANK_N};
         }
     }
 }

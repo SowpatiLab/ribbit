@@ -671,8 +671,8 @@ void processCIGARMotifWise(int seed_start, int seed_sequence_length, string &cig
                     motif_indels = 0; excess = 0; match_length = 0;
                     motifwise_matchpercent.clear(); motifwise_indels.clear(); match_lens.clear(); 
                 }
-                if (((repeat_end - repeat_start) - (qpos - start_soft_clip) < motif_length) && (clength >= 3 || clength >= motif_length)) {
-                    repeat_end = repeat_start + (qpos - start_soft_clip) - clength;
+                if (((repeat_end - seed_start) - (qpos - start_soft_clip) < motif_length) && (clength >= 3 || clength >= motif_length)) {
+                    repeat_end = seed_start + qpos - clength;
                     clip_cigar_end = cidx;
                     new_cigar = new_cigar.substr(0, new_cigar.size() - (1 + to_string(clength).size()));
                     qpos -= clength; alignment_length -= clength; indels -= 1;
@@ -706,8 +706,8 @@ void processCIGARMotifWise(int seed_start, int seed_sequence_length, string &cig
                     motif_indels = 0; excess = 0; match_length = 0;
                     motifwise_matchpercent.clear(); motifwise_indels.clear(); match_lens.clear();
                 }
-                if (((repeat_end - repeat_start) - (qpos - start_soft_clip) < motif_length) && (clength >= 3 || clength >= motif_length)) {
-                    repeat_end = repeat_start + (qpos - start_soft_clip);
+                if (((repeat_end - seed_start) - (qpos - start_soft_clip) < motif_length) && (clength >= 3 || clength >= motif_length)) {
+                    repeat_end = seed_start + qpos;
                     clip_cigar_end = cidx;
                     new_cigar = new_cigar.substr(0, new_cigar.size() - (1 + to_string(clength).size()));
                     alignment_length -= clength; indels -= 1;

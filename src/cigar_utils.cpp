@@ -4,6 +4,40 @@ using namespace std;
 using namespace boost;
 
 
+void cleanCigar(string &cigar) {
+    /*
+     *  cleans the cigar string by removing any unnecessary operations
+     *  @param cigar the cigar string to be cleaned
+     *  @return string the cleaned cigar string
+    */
+    // This function would typically clean the cigar string by removing unnecessary operations.
+    // For now, it is just a placeholder.
+    tuple<vector<int>, vector<char>> cigar_values = cigarSplit(cigar);
+    cigar = "";
+    char ctype = 'N'; int clen = 0;
+    char pctype = 'N'; int pclen = 0;
+    for (int i = 0; i < get<0>(cigar_values).size(); i++) {
+        ctype = get<1>(cigar_values)[i];
+        clen = get<0>(cigar_values)[i];
+        if (pctype != ctype) {
+            if (pctype != 'N') {
+                // if the previous type is not empty, add it to the cigar string
+                cigar += to_string(pclen) + pctype;
+            }
+            pctype = ctype;  // update the previous type
+            pclen = clen;  // update the previous length
+        }
+        else {
+            pclen += clen;  // if the previous type is the same, add the length to the previous length
+        }
+    }
+    if (pctype != 'N') {
+        // if the last type is not empty, add it to the cigar string
+        cigar += to_string(pclen) + pctype;
+    }
+}
+
+
 string buildCigar(vector<int> &clens, vector<char> &ctypes) {
     /*
      * builds the cigar string from the lengths and types of cigar operations

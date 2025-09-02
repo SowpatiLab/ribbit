@@ -61,31 +61,26 @@ bool parseDualtypeArgs(po::variables_map &args, const string &option, unordered_
 }
 
 
-bool parseArguments(int &argc, char* argv[], string &input_file, string &out_file, int &window_length,
-                     int &window_bitcount_threshold, int &anchor_length, int &continuous_ones_threshold) {
+bool parseArguments(int &argc, char* argv[], string &input_file, string &out_file) {
     /*
      *  parsing input arguments for the program
      *  @param argc number of commandline arguments
      *  @param argv list of commandline arguments
      *  @param input_file stores the name of the fasta file
      *  @param out_file stores the name of the output file
-     *  @param window_length stores the length of the window
-     *  @param window_bitcount_threshold bitcount threshold in the window; default: 4
-     *  @param anchor_length minimum length of continuous ones to be considered in the neighboring shift; default 3
-     *  @param continuous_ones_threshold minimum number of continuous set bits in the shift XOR
      *  @return bool for successful completion of the function
     */
     po::options_description argparser("Below are the running options for the tool.");
     argparser.add_options()
         ("help,h", "Ribbit is designed to identify tandem repeats in DNA sequences with specific focus on annotating complex TR loci.")
-
+        
         ("input-file,i", po::value<string>(), "File path for the input fasta file.")
         ("output-file,o", po::value<string>(), "File path for the input fasta file. Default: adds a ribbit suffix to input file.")
 
         ("min-motif-length,m", po::value<int>(), "The minimum length of the motif of identified TR loci. Default: 2")
         ("max-motif-length,M", po::value<int>(), "The maximum length of the motif of identified TR loci. Default: 100")
 
-        ("purity,p", po::value<double>(), "The purity of complete repeat. Default: 0.85")
+        ("purity,p", po::value<double>(), "The purity of complete repeat. Default: 0.8")
         ("average-motif-purity,q", po::value<double>(), "Average match of each motif with consensus motif. Default: 0.8")
 
         ("min-length,l", po::value<string>(), "The minimum length of the repeat. Default: 12")
@@ -96,15 +91,6 @@ bool parseArguments(int &argc, char* argv[], string &input_file, string &out_fil
         
         ("cigar", po::bool_switch()->default_value(false), "Include cigar string in the output. Default is off." )
         ("threads,t", po::value<int>(), "Number of threads to be used for running. default: 1")
-
-        /*
-          currently all are set to default parameters and non-accessible to the user
-          ("anchor", "Run the identification in anchor mode.")        // should be on by default; making non-accessible to the user
-          ("window-length,w", po::value<int>(), "The length of window to be considered during seed identification. Default: 8")
-          ("window-threshold,t", po::value<int>(), "The threshold value for number of 1s in the window. Defaut: 4")        
-          ("anchor-length,a", po::value<int>(), "If running in anchor mode the length of the anchor to be considered. Default: 3")
-          ("cones-threshold,c", po::value<int>(), "Threshold value for cotinuous number of ones found in a seed. Default: 0")        
-        */
     ;
 
     po::variables_map args;
@@ -132,15 +118,6 @@ bool parseArguments(int &argc, char* argv[], string &input_file, string &out_fil
     if (args.count("purity")) { PURITY_THRESHOLD = args["purity"].as<double>(); }
     if (args.count("motif-purity")) { MOTIFPURITY_THRESHOLD = args["motif-purity"].as<double>(); }
     if (args.count("threads")) { THREADS = args["threads"].as<int>(); }
-
-    /*
-      currently all are set to default parameters and non-accessible to the user
-      if (args.count("anchor")) run_mode = "anchor";
-      if (args.count("window-length")) window_length = args["window-length"].as<int>();
-      if (args.count("window-threshold")) window_bitcount_threshold = args["window-threshold"].as<int>();
-      if (args.count("anchor-length")) anchor_length = args["anchor-length"].as<int>();
-      if (args.count("cones-threshold")) continuous_ones_threshold = args["cones-threshold"].as<int>();
-    */
 
     if (args.count("min-length")) {
         // either take minimum length as the input or minimum units
@@ -192,13 +169,7 @@ int main(int argc, char *argv[]) {
     // exception for handling missing fasta index files handling gzip inputs
     string input_file = "", out_file = "";
 
-    // defaults which are not be changed
-    int window_length = 8;
-    int window_bitcount_threshold = 6;  // initialised for identifying repeats with substitutions
-    int anchor_length = 3, continuous_ones_threshold = 3;
-
-    bool success = parseArguments(argc, argv, input_file, out_file, window_length,
-                                  window_bitcount_threshold, anchor_length, continuous_ones_threshold);
+    bool success = parseArguments(argc, argv, input_file, out_file);
     if (!success) exit(1);
 
     if (!LENGTH_CUTOFF_MODE) {
@@ -234,7 +205,12 @@ int main(int argc, char *argv[]) {
     // minimum shift XOR to be generated; should be one less than the minimum motif size
     NMLENS = MAXIMUM_MLEN - MINIMUM_MLEN + 1;
     MINIMUM_SHIFT = (MINIMUM_MLEN > 2) ? MINIMUM_MLEN-2 : 1;
-    MAXIMUM_SHIFT = MAXIMUM_MLEN + 2;
+
+    // maximum anchor jump based on maximum motif size
+    if      (MAXIMUM_MLEN <= 6)  { MAXIMUM_SHIFT = MAXIMUM_MLEN + 1; }
+    else if (MAXIMUM_MLEN <= 20) { MAXIMUM_SHIFT = MAXIMUM_MLEN + (2 * MAXIMUM_MLEN) / 10; }
+    else                         { MAXIMUM_SHIFT = MAXIMUM_MLEN + 4; }
+
     NSHIFTS = MAXIMUM_SHIFT - MINIMUM_SHIFT + 1;
 
     cerr << "Purity threshold: " << PURITY_THRESHOLD << "\n";
@@ -268,7 +244,7 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    parseFasta(input_file, window_length, window_bitcount_threshold, anchor_length, continuous_ones_threshold, out_file);
+    parseFasta(input_file, out_file);
 
     // Don't forget to free the memory when done
     for (int i = 0; i < SMALL_MLEN_LIMIT; ++i) {

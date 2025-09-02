@@ -16,13 +16,7 @@ using namespace std;
 void parseFai(string infai, int &nseqs, unordered_map<string, int> &seq_lens);
 
 // function to parse the fasta file
-void parseFasta(string fasta_file, int window_length, int window_bitcount_threshold,
-                int anchor_length, int continuous_ones_threshold, string out_file);
+void parseFasta(string fasta_file, string out_file);
 
-// process sequence using dynamic bitset
-void processSequence(string sequence_id, string sequence, int window_length, int window_bitcount_threshold, int anchor_size,
-                     int continuous_threshold, ostream &out);
-
-// process sequence using dynamic bitset
-void processSequenceThread(string sequence_id, string sequence, int seq_start, int window_length, int window_bitcount_threshold,
-                           int anchor_size, int continuous_threshold, int tnum, string out_file);
+void processSequence(string sequence_id, string &sequence, ostream &out, int chunk_start, int chunk_end,
+                     vector<tuple<string, int, int, string, double, string, int, int, int>> &repeat_loci);

@@ -7,6 +7,8 @@ using namespace boost;
 string buildCigar(vector<int> &clens, vector<char> &ctypes);
 string buildCigar(tuple<vector<int>, vector<char>> &cigar_values);
 
+void cleanCigar(string &cigar);
+
 tuple<vector<int>, vector<char>> extractDownCigar(tuple<vector<int>, vector<char>> &cigar, int start, int end);
 tuple<vector<int>, vector<char>> extractDownCigar(string &cigar, int start, int end);
 tuple<vector<int>, vector<char>> extractUpCigar(tuple<vector<int>, vector<char>> &cigar, int start, int end);

@@ -5,6 +5,7 @@
 #include <boost/multiprecision/cpp_int.hpp>
 #include <time.h>
 #include <mutex>
+#include <cmath>
 
 #ifndef GLOABL_VARIABLES_H
 #define GLOABL_VARIABLES_H
@@ -24,6 +25,10 @@ extern int *SEEDLEN_CUTOFF;
 
 extern string SEQUENCE_ID;
 extern string SEQUENCE;
+
+extern int SPLIT_LENGTH;
+extern int SPLIT_OVERLAP;
+extern int CHUNK_START;
 
 extern bool CIGAROUTPUT;
 
@@ -48,6 +53,7 @@ extern std::mutex MTX;
 extern unordered_map<int, int> MINIMUM_LENGTH;
 extern unordered_map<int, int> MINIMUM_UNITS;
 extern unordered_map<int, int> PERFECT_UNITS;
+extern unordered_map<int, int> THRESHOLD_BITS;
 
 extern bool LENGTH_CUTOFF_MODE;
 

@@ -28,6 +28,10 @@ std::mutex MTX;
 string SEQUENCE_ID = "";
 string SEQUENCE = "";
 
+extern int SPLIT_LENGTH = 10000000;
+extern int SPLIT_OVERLAP = 2000;
+extern int CHUNK_START = 0;
+
 bool CIGAROUTPUT = false;
 
 int RANK_P = 5;
@@ -41,11 +45,12 @@ int RANK_N = -1;
 unordered_map<int, int> MINIMUM_LENGTH;
 unordered_map<int, int> MINIMUM_UNITS;
 unordered_map<int, int> PERFECT_UNITS;
+unordered_map<int, int> THRESHOLD_BITS;
 
 bool LENGTH_CUTOFF_MODE = true;
 
 // cutoffs for different measures of purity
-double PURITY_THRESHOLD = 0.85;
+double PURITY_THRESHOLD = 0.8;
 double MOTIFPURITY_THRESHOLD = 0.8;
 int   INTERRUPTIONS_THRESHOLD = 0;
 time_t START_TIME = time(0);

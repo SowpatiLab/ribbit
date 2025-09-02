@@ -9,11 +9,20 @@ Ribbit is a tool to identify tandem repeats of variable motif sizes. The algorit
 converts DNA sequences to 2-bit format and uses basic bit operations to identify  tandem repeat sequences. <br>
 </p>
 
+## Overview of ribbit algorithm
 
-<h2>Install dependencies</h1>
+Ribbit identifies repetitive sequences by identifying sequence regions with high density of periodically matching nucleotides. Ribbit leverages bit operations to detect periodically matching nucleotides in a sequence. First we convert
+the sequence into bit sequences with each nucleotide denoted a combination of 2 bits. The bit sequences are converted to
+shift XORs which sets positions with periodically matching nucleotides as 1s. Ribbit parses these shift XOR sequences of 
+all the shifts to identify DNA tandem repeats of specific periodicity.
 
-```zsh
-foo@bar % brew install boost
-foo@bar % conda install libcxx
-foo@bar % conda install pybedtools
-```
+NOTE: Sequences longer than 10MB are chunked into 10MB sequences with an overlap of 2KB to reduce memory footprint.
+
+### Identification of seeds of perfect repeats
+
+Ribbit first identifies stretches of perfect seeds in all the shift XORs of the desired motif sizes. This step is required
+to not miss out on perfect repeat sequences based on the rules of the binomial distribution rules used to identify
+imperfect repeat sequences.
+
+### Identification of seeds of repeat sequences with only mismatch errors
+
