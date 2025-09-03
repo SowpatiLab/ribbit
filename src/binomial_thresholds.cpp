@@ -49,16 +49,33 @@ int minimumNumberOfSuccesses(int n, int r, long double p) {
      * @return minimum number of successes required
     */
 
+    /*
+     * This function calculates the threshold number of 1s in an anchor seed
+     * n i.e., the total number of trials is the length of the anchor seed
+     * r i.e., the continuous run of successes is the required minimum continuous 
+     *         matches in the anchor seed which is also the length of minimum number of 1s
+     *         when considering anchors from the neighboring shifts
+     * p i.e., the probability of success in a trial is the purity threshold of the repeat
+    */
+
     // Check if n is in THRESHOLD_BITS and return its value if found
     if (THRESHOLD_BITS.find(n) != THRESHOLD_BITS.end()) {
+        // the threshold number of 1s for an anchor seed length is stored as an unordered map
+        // this threshold only depends on the length of the anchor seed and agnostic to motif length
         return THRESHOLD_BITS.at(n);
     }
 
+    // For the total number of trials n, we calculated the probability for x number of successes with
+    // x ranging from 0 to n with at least one run of continuous successes of length r
     vector<long double> probabilities;
     for (int x = n; x >= 0; x--) {
         probabilities.push_back(probWithRunApprox(n, x, r, p));
     }
 
+    // Threshold number of successes is defined as the value x where cumulative probability from x to n
+    // values is >= 0.98
+    // This is analougous to 98% of the repeat sequences of purity p will have an anchor seed of length n
+    // with at least x number of 1s
     for (int x = 0; x < probabilities.size(); x++) {
         long double sumProb = 0.0;
         for (int j = 0; j <= x; j++) { sumProb += probabilities[j]; }
