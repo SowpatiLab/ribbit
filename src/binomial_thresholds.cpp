@@ -20,6 +20,7 @@ long double combination(int n, int r) {
     return result;
 }
 
+
 long double probWithRunApprox(int n, int x, int r, long double p) {
     /*
      * Returns the probability of having at least one run of length r given x successes in n trials.
@@ -30,6 +31,7 @@ long double probWithRunApprox(int n, int x, int r, long double p) {
      * @return long double approximate probability of having at least one run of length r
     */
 
+    // cout << n << "\t" << x << "\t" << nCr(n,x) << "\t" << combination(n, x) << "\n";
     long double binom_probability = combination(n, x) * pow(p, x) * pow(1 - p, n - x);
 
     // Approximate conditional probability of having ≥1 run of length r given x successes
@@ -67,20 +69,25 @@ int minimumNumberOfSuccesses(int n, int r, long double p) {
 
     // For the total number of trials n, we calculated the probability for x number of successes with
     // x ranging from 0 to n with at least one run of continuous successes of length r
-    vector<long double> probabilities;
-    for (int x = n; x >= 0; x--) {
-        probabilities.push_back(probWithRunApprox(n, x, r, p));
+    // vector<long double> probabilities;
+    long double sumProb = 0.0;
+    // for (int x = n; x >= 0; x--) {
+    //     probabilities.push_back(probWithRunApprox(n, x, r, p));
+    // }
+    for (int x = 0; x <= n; x++) {
+        sumProb += probWithRunApprox(n, x, r, p);
+        if (sumProb >= 0.02) { THRESHOLD_BITS[n] = x; return x; }
     }
 
     // Threshold number of successes is defined as the value x where cumulative probability from x to n
     // values is >= 0.98
     // This is analougous to 98% of the repeat sequences of purity p will have an anchor seed of length n
     // with at least x number of 1s
-    for (int x = 0; x < probabilities.size(); x++) {
-        long double sumProb = 0.0;
-        for (int j = 0; j <= x; j++) { sumProb += probabilities[j]; }
-        if (sumProb >= 0.98) { THRESHOLD_BITS[n] = n-x; return n-x; }
-    }
+    // for (int x = 0; x < probabilities.size(); x++) {
+    //     long double sumProb = 0.0;
+    //     for (int j = 0; j <= x; j++) { sumProb += probabilities[j]; }
+    //     if (sumProb >= 0.98) { THRESHOLD_BITS[n] = n-x; return n-x; }
+    // }
 }
 
 
@@ -123,4 +130,27 @@ unordered_map<int, pair<int, int>> getWindowThresholds(int minimum_mlen, int max
     }
 
     return thresholds;
+}
+
+
+void calculateWindowThresholds() {
+    /*
+     *  calculates the window lengths and thresholds for all motif lengths
+     *  @param none
+     *  @return void updates the global WINDOW_LENGTHS and WINDOW_THRESHOLDS variables
+    */
+
+    int window_length;
+    for (int mlen = MINIMUM_MLEN; mlen <= MAXIMUM_MLEN; mlen++) {
+        if (mlen <= 16) { window_length = 8; }
+        else { window_length = mlen/2; }
+        WINDOW_LENGTHS[mlen - MINIMUM_MLEN] = window_length;
+        for (int i = window_length; i >= 0; i--) {
+            if (cumulativeBinomialProbability(window_length, i, 0.85) >= 0.9) {
+                // If m is divisible by i, set the threshold
+                WINDOW_THRESHOLDS[mlen - MINIMUM_MLEN] = i;
+                break;
+            }
+        }
+    }
 }

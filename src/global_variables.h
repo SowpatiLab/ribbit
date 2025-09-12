@@ -15,6 +15,9 @@ using namespace std;
 extern uint32_t **REPEAT_CLASSES;
 extern int NUM_MOTIFS;
 
+extern int *WINDOW_LENGTHS;
+extern int *WINDOW_THRESHOLDS;
+
 extern int *MOTIF_UNITS;
 extern int *MOTIF_START;
 extern int *MOTIF_END;

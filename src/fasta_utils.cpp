@@ -142,6 +142,7 @@ void processSequence(string sequence_id, string &sequence, ostream &out, int chu
     buildBitDatastructures(sequence, sequence_length, left_bset, right_bset, N_bset, A, T, G, C, MATRIX);
 
     vector<boost::dynamic_bitset<>> lshift_xor_bsets;       // vector of dynamic bitsets for each shift XOR
+    vector<boost::dynamic_bitset<>> lshift_anchored_bsets;       // vector of dynamic bitsets for each shift XOR
     // generating the shift XORs from minimum shift size to maximum shift size
     for (int i = MINIMUM_SHIFT; i <= MAXIMUM_SHIFT; i++) {
         lshift_xor_bsets.push_back( ~(left_bset ^ (left_bset<<(i))) & ~(right_bset ^ (right_bset<<(i))) );
@@ -190,14 +191,14 @@ void processSequence(string sequence_id, string &sequence, ostream &out, int chu
                 else { anchor_bset |= lsxor_anchor_bsets[shift_idx]; }
             }
 
-            lshift_xor_bsets[motif_length-MINIMUM_SHIFT] = anchor_bset;
+            lshift_anchored_bsets.push_back(anchor_bset);
         }
 
         lsxor_anchor_bsets.clear();
         for (int i=MINIMUM_MLEN; i <= MAXIMUM_MLEN; i++) {
-            lshift_xor_bsets[i-MINIMUM_SHIFT] |= (lshift_xor_bsets[i-MINIMUM_SHIFT] >> i);
+            lshift_anchored_bsets[i-MINIMUM_MLEN] |= (lshift_anchored_bsets[i-MINIMUM_MLEN] >> i);
         }
-        seed_positions_anchored = processShiftXORsAnchored(lshift_xor_bsets, N_bset, seed_positions_perfect, seed_positions_substut);
+        seed_positions_anchored = processShiftXORsAnchored(lshift_anchored_bsets, lshift_xor_bsets, N_bset, seed_positions_perfect, seed_positions_substut);
         filterShortSeeds(seed_positions_perfect);
         filterShortSeeds(seed_positions_substut);
         filterShortSeeds(seed_positions_anchored);
@@ -260,8 +261,8 @@ void processSequence(string sequence_id, string &sequence, ostream &out, int chu
             seed_bset[seed_end - 1 - j] = lshift_xor_bsets[seed_mlen-MINIMUM_SHIFT][sequence_length - 1 - j];
         }
 
-        cout << sequence_id << "\t" << seed_start + CHUNK_START << "\t" << seed_end + CHUNK_START << "\t" << seed_mlen << "\t" << seed_end - seed_start
-             << "\t" << seed_type << "\n";
+        // cout << sequence_id << "\t" << seed_start + CHUNK_START << "\t" << seed_end + CHUNK_START << "\t" << seed_mlen << "\t" << seed_end - seed_start
+        //      << "\t" << seed_type << "\n";
         continue;
 
         // process seed if it is alteast the size of the motif length
@@ -332,7 +333,7 @@ void processSequence(string sequence_id, string &sequence, ostream &out, int chu
 }
 
 
-vector<tuple<size_t, size_t, string>> splitSequenceIntoBins(string& sequence, size_t bin_size = 5000000, size_t overlap = 50000) {
+vector<tuple<size_t, size_t, string>> splitSequenceIntoBins(string sequence, size_t bin_size = 5000000, size_t overlap = 50000) {
     /*
      * Splits a sequence into bins of specified size with specified overlap.
      * @param sequence: The DNA sequence to split.

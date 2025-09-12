@@ -6,6 +6,9 @@ using namespace std;
 uint32_t **REPEAT_CLASSES = nullptr;
 int NUM_MOTIFS;
 
+int *WINDOW_LENGTHS = nullptr;
+int *WINDOW_THRESHOLDS = nullptr;
+
 int *MOTIF_UNITS = nullptr;
 int *MOTIF_START = nullptr;
 int *MOTIF_END = nullptr;

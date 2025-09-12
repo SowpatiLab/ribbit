@@ -4,6 +4,7 @@ namespace po = boost::program_options;
 #include "global_variables.h"
 #include "fasta_utils.h"
 #include "concatenate_output.h"
+#include "binomial_thresholds.h"
 
 using namespace std;
 
@@ -231,6 +232,10 @@ int main(int argc, char *argv[]) {
     MOTIF_UNITS   = new int[NUM_MOTIFS];
     MOTIF_GAPS    = new int[NUM_MOTIFS];
     MOTIF_GAPSIZE = new int[NUM_MOTIFS];
+
+    WINDOW_LENGTHS = new int[NMLENS];
+    WINDOW_THRESHOLDS = new int[NMLENS];
+    calculateWindowThresholds();
 
     SEEDLEN_CUTOFF = new int[NMLENS];
     for (int i = 0; i < NMLENS; ++i) {

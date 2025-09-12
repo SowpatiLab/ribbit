@@ -26,6 +26,7 @@ ifeq ($(OS),Darwin)
 	BOOST_LIB  = -L/opt/homebrew/Cellar/boost/$(BOOST_VERSION)/lib	# boost library path
 	BOOST_PROGRAM_OPTIONS_LIB = -lboost_program_options		#i boost program options library path
 	INCLUDE    = -I/opt/homebrew/Cellar/boost/$(BOOST_VERSION)/include/  # boost include path
+	PROFILER_LIB = -L$(shell brew --prefix gperftools)/lib  -I$(shell brew --prefix gperftools)/include -lprofiler
 endif
 
 # if there is a change in any of the ribbit source file make builds the executable
@@ -42,6 +43,18 @@ else
 	@echo "Operating System: Unknown"
 endif
 
+profile: $(SRC_RIBBIT)
+
+ifeq ($(OS),Darwin)
+	@echo "Operating System: macOS"
+	@echo "Boost version identified: " ${BOOST_VERSION}
+	$(CXX) -g -std=c++1z -w $(INCLUDE) $(BOOST_LIB) $(SRC_SSW) $(SRC_RIBBIT) $(SRC_MAIN) $(BOOST_PROGRAM_OPTIONS_LIB) -o ribbit $(PROFILER_LIB)
+else ifeq ($(OS),Linux)
+	@echo "Operating System: Linux"
+	$(CXX) $(CXXFLAGS) $(BOOST_LIB) $(SRC_SSW) $(SRC_RIBBIT) $(SRC_MAIN) $(BOOST_PROGRAM_OPTIONS_LIB) $(PTHREAD_LIB) -o ribbit -lprofiler
+else
+	@echo "Operating System: Unknown"
+endif
 
 pymodule: $(SRC_RIBBIT)
 ifeq ($(OS),Darwin)
