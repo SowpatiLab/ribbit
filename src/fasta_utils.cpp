@@ -159,19 +159,21 @@ void processSequence(string sequence_id, string &sequence, ostream &out, int chu
     }
 
     else {
-        seed_positions_perfect = processShiftXORsPerfect(lshift_xor_bsets, N_bset);
+        // seed_positions_perfect = processShiftXORsPerfect(lshift_xor_bsets, N_bset);
 
-        seed_positions_substut = processShiftXORswithSubstitutions(lshift_xor_bsets, N_bset, seed_positions_perfect);
+        // seed_positions_substut = processShiftXORswithSubstitutions(lshift_xor_bsets, N_bset, seed_positions_perfect);
 
         // filtering out the perfect seeds which are inside substituted seeds with short flanks
         filterPerfectSeeds(seed_positions_perfect, seed_positions_substut);
 
         // generating the anchor bitsets for all shift sizes
         vector<boost::dynamic_bitset<>> lsxor_anchor_bsets;     // vector of dynamic bitsets for anchor bitsets
+        vector<boost::dynamic_bitset<>> lsxor_perfect_bsets;     // vector of dynamic bitsets for perfect bitsets
 
         int anchor_jump   = 1;
         int anchor_length = 5;
-        generateAnchoredShiftXORs(lshift_xor_bsets, N_bset, lsxor_anchor_bsets, anchor_length);
+        generateAnchorShiftXORs(lshift_xor_bsets, N_bset, lsxor_anchor_bsets, anchor_length);
+        generatePerfectShiftXORs(lshift_xor_bsets, N_bset, lsxor_perfect_bsets, anchor_length);
         boost::dynamic_bitset<> anchor_bset(sequence_length, 0ull);
         int motif_length = MINIMUM_MLEN;
         for (; motif_length <= MAXIMUM_MLEN; motif_length++) {
@@ -198,7 +200,7 @@ void processSequence(string sequence_id, string &sequence, ostream &out, int chu
         for (int i=MINIMUM_MLEN; i <= MAXIMUM_MLEN; i++) {
             lshift_anchored_bsets[i-MINIMUM_MLEN] |= (lshift_anchored_bsets[i-MINIMUM_MLEN] >> i);
         }
-        seed_positions_anchored = processShiftXORsAnchored(lshift_anchored_bsets, lshift_xor_bsets, N_bset, seed_positions_perfect, seed_positions_substut);
+        seed_positions_anchored = processShiftXORsAnchored(lshift_anchored_bsets, lshift_xor_bsets, lsxor_perfect_bsets, N_bset, seed_positions_perfect, seed_positions_substut);
         filterShortSeeds(seed_positions_perfect);
         filterShortSeeds(seed_positions_substut);
         filterShortSeeds(seed_positions_anchored);
@@ -421,6 +423,8 @@ void parseFasta(string fasta_file, string out_file) {
     // adding header to the output file
     out << "#Chrom\t" << "Start\t" << "Stop\t" << "Motif\t" << "Purity\t"  << "Strand\t" << "Motif length\t"
         << "Repeat length\t" << "Repeat Units";
+    cout << "#chrom\t" << "start\t" << "stop\t" << "motif_length\t" << "seed_length\t" << "anchored_bitcount\t"
+         << "motif_bitcount\t" << "perfect_bitcount\n";
     if (CIGAROUTPUT) {out << "\tCigar"; } out << "\n";
 
     while (getline(fastain, line)) {

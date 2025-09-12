@@ -3,8 +3,167 @@
 using namespace std;
 
 
-void generateAnchoredShiftXORs(vector<boost::dynamic_bitset<>> &lshift_xor_bsets, boost::dynamic_bitset<> &N_bset,
-                               vector<boost::dynamic_bitset<>> &lsxor_anchor_bsets, int anchor_size) {
+vector<tuple<int, int>> getContinuousStretches(boost::dynamic_bitset<> &bset, int start_pos, int end_pos, int &motif_bitcount) {
+    /*
+     *  returns a list of positions and lengths of continuous stretches of 1s in a bitset
+     *  @param bset the bitset to be processed
+     *  @return a vector of tuples, each containing the start position and length of a stretch
+    */
+
+    vector<tuple<int, int>> stretches;
+    int bset_size = bset.size();
+    int start = -1, length = 0;
+    for (int i = bset_size - 1 - start_pos; i >= bset_size - end_pos; i--) {
+        if (bset[i] == 1) {
+            motif_bitcount += 1;
+            if (start == -1) { start = i; length = 1; }
+            else { length += 1; }
+        }
+        else {
+            if (start != -1) {
+                if (length >= 5) { stretches.push_back(tuple<int, int> {start, length}); }
+                start = -1; length = 0;
+            }
+        }
+    }
+
+    return stretches;
+}
+
+
+void getBitcount(boost::dynamic_bitset<> &bset, int start_pos, int end_pos, int &motif_bitcount) {
+    /*
+     *  calculates the number of 1s in a bitset between start and end positions
+     *  @param bset the bitset to be processed
+     *  @param start_pos the start position
+     *  @param end_pos the end position
+     *  @return motif_bitcount the number of 1s in the specified range
+    */
+
+    int bset_size = bset.size();
+    motif_bitcount = 0;
+    for (int i = bset_size - 1 - start_pos; i >= bset_size - end_pos; i--) {
+        motif_bitcount += bset[i];
+    }
+}
+
+
+void buildSupportCoverage(vector<int> last_indices, vector<int> last_types, int motif_length, int seed_start, int seed_end,
+                          vector<tuple<int, int, int, int>> &seed_positions_perfect, vector<tuple<int, int, int, int>> &seed_positions_substut,
+                          vector<tuple<int, int>> &support) {
+    
+    int last_start, last_end, last_rend, last_mlen;
+    int last_length, last_rlen, last_type, last_midx;       // coordinate variables for existing seeds
+    for (int _=0; _<last_indices.size(); _++) {
+
+        // starting from the last seed and decrementing in indices
+        int i = last_indices[_];
+        if (last_types[_] == RANK_P) {
+            last_start = get<0> (seed_positions_perfect[i]);
+            last_mlen  = get<2> (seed_positions_perfect[i]);
+            last_end   = get<1> (seed_positions_perfect[i]);
+            last_rend  = get<1> (seed_positions_perfect[i]) + last_mlen;
+            last_type  = get<3> (seed_positions_perfect[i]);
+        }
+        else if (last_types[_] == RANK_S) {
+            last_start = get<0> (seed_positions_substut[i]);
+            last_mlen  = get<2> (seed_positions_substut[i]);
+            last_end   = get<1> (seed_positions_substut[i]);
+            last_rend  = get<1> (seed_positions_substut[i]) + last_mlen;
+            last_type  = get<3> (seed_positions_substut[i]);
+        }
+
+        // seed positions are sorted based on the end position
+        // once we encounter a seed that is beyond the start of the current seed
+        if (last_end < seed_start) { break; }
+
+        if (last_type == RANK_N) { continue; }
+
+        // if the from_index is much ahead we skip the seeds that do not overlap
+        if (seed_end < last_start) { continue; }
+
+        last_length = last_end - last_start;
+        last_rlen  = last_rend - last_start;
+        last_midx  = last_mlen - MINIMUM_SHIFT;
+
+        // current seed is parent in an existing seed
+        if (last_type >= RANK_S) {
+            
+            if ((seed_start <= last_start && last_start <= seed_end + motif_length) ||
+                (seed_start <= last_rend && last_rend <= seed_end + motif_length)) {
+
+                if (motif_length == last_mlen) {
+                    support.push_back(tuple<int, int> {last_start, last_end});
+                }
+            }
+        }
+    }
+
+    std::sort(support.begin(), support.end(), [](const tuple<int, int>& a, const tuple<int, int>& b) {
+        return get<0>(a) < get<0>(b);
+    });
+}
+
+
+boost::dynamic_bitset<> retainContinuous(boost::dynamic_bitset<> &bset, int x, int y) {
+
+
+    int bset_size = bset.size();
+    int start = -1;
+    
+    boost::dynamic_bitset<> anchor_bset(bset_size, 0ull);
+    for (int idx = bset_size-1; idx >= 0; idx--) {
+
+        if (bset[idx] == 1) {
+            if (start == -1) start = idx;
+        }
+
+        else {
+            if (start - idx >= x && start - idx <= y) {
+                // the anchors to be retained should be at least of the minimum anchor size mentioned
+                // and not more than twice of the motif length it being tagged in because this will retain all the
+                // perfect repeats of that motif length
+                anchor_bset.set(idx+1, start - idx, 1);
+            } start = -1;
+        }
+    }
+
+    return anchor_bset;
+}
+
+
+boost::dynamic_bitset<> retainContinuousBitOp(boost::dynamic_bitset<> &bset, int x, int y = -1) {
+
+
+    int bset_size = bset.size();
+    
+    boost::dynamic_bitset<> anchor_bset(bset_size, 0ull);
+    boost::dynamic_bitset<> atleast_anchor = bset;
+    for (int i = 1; i < x; i++) {
+        atleast_anchor &= (atleast_anchor >> 1);
+    }
+    for (int i = 1; i < x; i++) {
+        atleast_anchor |= (atleast_anchor << 1);
+    }
+
+    if (y == -1) { return atleast_anchor; }
+
+    boost::dynamic_bitset<> atleast_motif = bset;
+    for (int i = 1; i < y + 1; i++) {
+        atleast_motif &= (atleast_motif >> 1);
+    }
+    for (int i = 1; i < y + 1; i++) {
+        atleast_motif |= (atleast_motif << 1);
+    }
+
+    anchor_bset = atleast_anchor & ~atleast_motif;
+
+    return anchor_bset;
+}
+
+
+void generateAnchorShiftXORs(vector<boost::dynamic_bitset<>> &lshift_xor_bsets, boost::dynamic_bitset<> &N_bset,
+                             vector<boost::dynamic_bitset<>> &lsxor_anchor_bsets, int anchor_size) {
 
     /*
      *  generates shift XOR bitsets only retaining the anchors
@@ -20,32 +179,40 @@ void generateAnchoredShiftXORs(vector<boost::dynamic_bitset<>> &lshift_xor_bsets
     int motif_length;
     for (int lsxor_idx=0; lsxor_idx < NSHIFTS; lsxor_idx++) {
         motif_length = MINIMUM_SHIFT + lsxor_idx;
-        boost::dynamic_bitset<> anchor_bset(bset_size, 0ull);
-        for (int xor_idx = bset_size-1; xor_idx >= lsxor_idx + MINIMUM_SHIFT; xor_idx--) {
-
-            if (lshift_xor_bsets[lsxor_idx][xor_idx] == 1) {
-                if (anchor_start == -1) anchor_start = xor_idx;
-            }
-
-            else {
-                if (anchor_start - xor_idx >= anchor_size && anchor_start - xor_idx <= motif_length) {
-                    // the anchors to be retained should be at least of the minimum anchor size mentioned
-                    // and not more than twice of the motif length it being tagged in because this will retain all the
-                    // perfect repeats of that motif length
-                    anchor_bset.set(xor_idx+1, anchor_start - xor_idx, 1);
-                } anchor_start = -1;
-            }
-        }
-
+        if (motif_length < anchor_size) { motif_length = anchor_size; } 
+        // boost::dynamic_bitset<> anchor_bset = retainContinuous(lshift_xor_bsets[lsxor_idx], anchor_size, motif_length);
+        boost::dynamic_bitset<> anchor_bset = retainContinuousBitOp(lshift_xor_bsets[lsxor_idx], anchor_size, motif_length);
         lsxor_anchor_bsets.push_back(anchor_bset);
         anchor_start = -1;
     }
 }
 
 
-tuple<int,int> addSeedToSeedPositionsAnchored(int seed_start, int seed_end, int motif_length, int bit_count, vector<tuple<int, int, int, int>> &seed_positions_perfect,
+void generatePerfectShiftXORs(vector<boost::dynamic_bitset<>> &lshift_xor_bsets, boost::dynamic_bitset<> &N_bset,
+                              vector<boost::dynamic_bitset<>> &lsxor_perfect_bsets, int anchor_size) {
+
+    /*
+     *  generates shift XOR bitsets only retaining the perfect repeats
+     *  @param lshift_xor_bsets vector of left shift XOR bitsets of all shifts
+     *  @param N_bset bitset with information of N positions
+     *  @param lsxor_perfect_bsets vector of the left shift perfect bitsets
+     *  @return void
+    */
+
+    int bset_size = N_bset.size();
+    for (int lsxor_idx=0; lsxor_idx < NSHIFTS; lsxor_idx++) {
+        boost::dynamic_bitset<> perfect_bset = retainContinuousBitOp(lshift_xor_bsets[lsxor_idx], anchor_size);
+        lsxor_perfect_bsets.push_back(perfect_bset);
+    }
+}
+
+
+tuple<int,int> addSeedToSeedPositionsAnchored(int seed_start, int seed_end, int motif_length, vector<tuple<int, int, int, int>> &seed_positions_perfect,
                                               vector<tuple<int, int, int, int>> &seed_positions_substut, vector<tuple<int, int, int, int>> &seed_positions_anchored,
-                                              int* seedlen_cutoffs, vector<boost::dynamic_bitset<>> &motif_bsets, int bset_size, tuple<int,int> from_indices, int seed_type) {
+                                              int* seedlen_cutoffs, vector<boost::dynamic_bitset<>> &motif_bsets,
+                                              vector<boost::dynamic_bitset<>> &perfect_bsets,
+                                              vector<boost::dynamic_bitset<>> &anchored_bsets,
+                                              int bset_size, tuple<int,int> from_indices, int seed_type) {
     /*
      *  add seed to the existing seed positions list
      *  @param seed_start start position of the seed
@@ -89,102 +256,28 @@ tuple<int,int> addSeedToSeedPositionsAnchored(int seed_start, int seed_end, int 
     vector<int> last_types, last_indices;
     mergeAllLists(seed_positions_perfect, seed_positions_substut, from_index_perfect, from_index_substut, last_types, last_indices, seed_start);
 
-    int seed_rend   = seed_end + motif_length;
     int seed_length = seed_end - seed_start;
     int seed_rlen   = seed_length + motif_length;
 
     // indices for different shifts in motif_bsets
-    int seed_midx = motif_length - MINIMUM_SHIFT;
-    int last_midx = 0;
     int merge_start = 0, merge_end = 0, overlap_length = 0;
-
-    vector<tuple<int, int>> support;
-
-    for (int _=0; _<last_indices.size(); _++) {
-
-        // starting from the last seed and decrementing in indices
-        int i = last_indices[_];
-        if (last_types[_] == RANK_P) {
-            last_start = get<0> (seed_positions_perfect[i]);
-            last_mlen  = get<2> (seed_positions_perfect[i]);
-            last_end   = get<1> (seed_positions_perfect[i]);
-            last_rend  = get<1> (seed_positions_perfect[i]) + last_mlen;
-            last_type  = get<3> (seed_positions_perfect[i]);
-        }
-        else if (last_types[_] == RANK_S) {
-            last_start = get<0> (seed_positions_substut[i]);
-            last_mlen  = get<2> (seed_positions_substut[i]);
-            last_end   = get<1> (seed_positions_substut[i]);
-            last_rend  = get<1> (seed_positions_substut[i]) + last_mlen;
-            last_type  = get<3> (seed_positions_substut[i]);
-        }
-
-        // seed positions are sorted based on the end position
-        // once we encounter a seed that is beyond the start of the current seed
-        if (last_end < seed_start) { break; }
-
-        if (last_type == RANK_N) { continue; }
-
-        // if the from_index is much ahead we skip the seeds that do not overlap
-        if (seed_end < last_start) { continue; }
-
-        last_length = last_end - last_start;
-        last_rlen  = last_rend - last_start;
-        last_midx  = last_mlen - MINIMUM_SHIFT;
-
-        // current seed is parent in an existing seed
-        if (last_type >= RANK_S) {
-            
-            if ((seed_start <= last_start && last_start <= seed_rend) ||
-                (seed_start <= last_rend && last_rend <= seed_rend)) {
-
-                if (motif_length == last_mlen) {
-                    support.push_back(tuple<int, int> {last_start, last_end});
-                }
-            }
-        }
-    }
-
-    std::sort(support.begin(), support.end(), [](const tuple<int, int>& a, const tuple<int, int>& b) {
-        return get<0>(a) < get<0>(b);
-    });
-    int covlen = 0, start_coord = seed_start, end_coord = seed_start;
-    for (int _=0; _< support.size(); _++) {
-        if (_ == 0) {
-            if (start_coord < get<0> (support[_])) { start_coord = get<0> (support[_]); }
-            end_coord = get<1> (support[_]);
-        }
-
-        else {
-            if (end_coord >= get<0> (support[_])) {
-                end_coord = (end_coord > get<1> (support[_])) ? end_coord : get<1> (support[_]);
-            }
-            else {
-                covlen += (end_coord-start_coord);
-                start_coord = get<0> (support[_]); end_coord = get<1> (support[_]);
-            }
-        }
-    }
-
-    int motif_bitcount = 0;
-    for (int pos=seed_start; pos<seed_end; pos++) {
-        if (motif_bsets[seed_midx][bset_size - 1 - pos] == 1) { motif_bitcount += 1; }
-    }
-    if (end_coord > seed_end) { end_coord = seed_end; }
-    covlen += (end_coord - start_coord);
-    double support_cov = (double)(covlen) / (double)(seed_length);
-    if (covlen == 0) { return tuple<int,int> {from_index_perfect, from_index_substut}; }
-
-    int cutoff_coverage = minimumNumberOfSuccesses(seed_length, 5, 0.9);
-    // int cutoff_coverage = 0.7 *seed_length;
-    double support_threshold = (((double)seed_length) - (((double)seed_length * 0.1) * motif_length)) / (double)(seed_length);
-    if (support_threshold <= 0.3) { support_threshold = 0.3; }
-    bool check = (bit_count >= cutoff_coverage && support_cov >= support_threshold); // ? "True" : "False"; 
     
-    // if (covlen > 0 && ((bit_count >= cutoff_coverage || covlen >= cutoff_coverage))) {
+    int motif_bitcount = 0, perfect_bitcount = 0, anchored_bitcount = 0;
+
+    getBitcount(anchored_bsets[motif_length - MINIMUM_MLEN], seed_start, seed_end, anchored_bitcount);
+    getBitcount(motif_bsets[motif_length - MINIMUM_SHIFT], seed_start, seed_end, motif_bitcount);
+    getBitcount(perfect_bsets[motif_length - MINIMUM_SHIFT], seed_start, seed_end, perfect_bitcount);
+
+    if (perfect_bitcount <= 0) { return tuple<int,int> { from_index_perfect, from_index_substut }; }
+    if (motif_bitcount < 0.3*seed_length) { return tuple<int,int> { from_index_perfect, from_index_substut }; }
+
+    int minimumSuccesses = minimumNumberOfSuccesses(seed_length, 5, 0.9);
+
+    bool check = (anchored_bitcount >= minimumSuccesses && motif_bitcount >= 0.3*seed_length); // ? "True" : "False";
+
     if (check) {
-        cout << SEQUENCE_ID << "\t" << CHUNK_START + seed_start << "\t" << CHUNK_START + seed_end << "\t" << motif_length << "\t" << seed_length << "\t" << bit_count 
-             << "\t" << covlen << "\t" << motif_bitcount << "\n";
+        cout << SEQUENCE_ID << "\t" << CHUNK_START + seed_start << "\t" << CHUNK_START + seed_end << "\t" << motif_length << "\t" << seed_length 
+             << "\t" << anchored_bitcount  << "\t" << motif_bitcount << "\t" << perfect_bitcount << "\n";
         seed_positions_anchored.push_back(tuple<int, int, int, int> {seed_start, seed_end, motif_length, seed_type});
     }
 
@@ -194,6 +287,7 @@ tuple<int,int> addSeedToSeedPositionsAnchored(int seed_start, int seed_end, int 
 
 vector<tuple<int,int,int,int>> processShiftXORsAnchored(vector<boost::dynamic_bitset<>> &lshift_anchored_bsets,
                                                         vector<boost::dynamic_bitset<>> &lshift_xor_bsets,
+                                                        vector<boost::dynamic_bitset<>> &lshift_perfect_bsets,
                                                         boost::dynamic_bitset<> &N_bset,
                                                         vector<tuple<int, int, int, int>> &seed_positions_perfect,
                                                         vector<tuple<int, int, int, int>> &seed_positions_substut) {
@@ -212,42 +306,43 @@ vector<tuple<int,int,int,int>> processShiftXORsAnchored(vector<boost::dynamic_bi
     int window_bitcount;        // stores window bitcount
     int valid_position = 0;     // position tracking valid bits in the window
 
-    int min_idx = MINIMUM_MLEN-MINIMUM_SHIFT, didx, aidx, motif_length;
-    int last_starts[NMLENS];  // initialising a last record
-    int last_ends[NMLENS];  // initialising a last record
     int current_starts[NMLENS];  // initialising a last record
     int seedlen_cutoffs[NMLENS];
 
+    int motif_length;
     int window_length = 12;
-    int bit_count = 0;   // stores the bit count in the window
     int offset = 0;   // offset to the start of the window
-    // int window_bitcount_threshold = 9;  // threshold selected for identifying repeats with indels
 
-    // int long_motif_size = 10;
-    // int long_window_length = 12;
-    // int long_window_bitcount_threshold = 9;
-
-    // unordered_map<int, pair<int, int>> window_thresholds = getWindowThresholds(MINIMUM_MLEN, MAXIMUM_MLEN);
-
-    // initialising all to -1
-    for (int _=0; _<NMLENS; _++) { last_starts[_] = -1; last_ends[_] = -1; current_starts[_] = -1; seedlen_cutoffs[_] = 10;}
+    
 
     tuple<int,int> from_indices = {0, 0};
     vector<tuple<int,int,int,int>> seed_positions_anchored;
 
-    vector<boost::dynamic_bitset<>> window_bsets;
-    int minimum_window_length = 2*MAXIMUM_MLEN;
+    // vector<boost::dynamic_bitset<>> window_bsets;
+    int window_bcounts[NMLENS];
+    int minimum_window_length = 2*MAXIMUM_MLEN; // used for tracking the minimum valid position to start checking for seeds
+
     for (int midx=0; midx < NMLENS; midx++) {
-        motif_length = MINIMUM_MLEN + midx;
+        motif_length  = MINIMUM_MLEN + midx;
         window_length = WINDOW_LENGTHS[motif_length - MINIMUM_MLEN];
+        
         if (window_length < minimum_window_length) { minimum_window_length = window_length; }
-        boost::dynamic_bitset<> window_bset(window_length, 0ull);
-        window_bsets.push_back(window_bset);   // initialised window bitset
-        seedlen_cutoffs[midx] = ((midx+MINIMUM_MLEN) > SMALL_MLEN_LIMIT) ? (midx+MINIMUM_MLEN) : 10;
-        if (midx+MINIMUM_MLEN > SMALL_MLEN_LIMIT) { seedlen_cutoffs[midx] = 0.9 * (midx+MINIMUM_MLEN); }
+        // boost::dynamic_bitset<> window_bset(window_length, 0ull);
+        
+        // window_bsets.push_back(window_bset);   // initialised window bitset
+        window_bcounts[midx] = 0;
+        seedlen_cutoffs[midx] = (motif_length > SMALL_MLEN_LIMIT) ? motif_length : 10;
+        if (motif_length > SMALL_MLEN_LIMIT) { seedlen_cutoffs[midx] = 0.9 * (motif_length); }
     }
 
     int overlap_distance = 0;   // the allowed overlap distance between adjacent seeds
+
+    int min_idx = MINIMUM_MLEN-MINIMUM_SHIFT; // the minimum index in motif_bsets to be considered
+    int didx; // tracks the index of current starts and last starts; 0 for MINIMUM_MLEN
+    
+    int last_starts[NMLENS], last_ends[NMLENS];  // initialising a last record
+    // initialising all to -1
+    for (int _=0; _<NMLENS; _++) { last_starts[_] = -1; last_ends[_] = -1; current_starts[_] = -1; seedlen_cutoffs[_] = 10;}
 
     int xor_idx = 0;
     int window_position = -1*minimum_window_length;
@@ -257,8 +352,7 @@ vector<tuple<int,int,int,int>> processShiftXORsAnchored(vector<boost::dynamic_bi
         if (N_bset[xor_idx]) {
             // N is present at this position reset the window
             for (int midx=min_idx; midx < NMLENS+min_idx; midx++) {
-                didx = midx-min_idx; motif_length = MINIMUM_SHIFT + midx; aidx = motif_length - MINIMUM_MLEN;
-                overlap_distance = 0;
+                motif_length = MINIMUM_SHIFT + midx; didx = midx-min_idx;
                 if (current_starts[didx] != -1) {
                     // No seed is being tracked currently
 
@@ -268,19 +362,16 @@ vector<tuple<int,int,int,int>> processShiftXORsAnchored(vector<boost::dynamic_bi
                     // if the last stored seed is beyond the overlapping distance
                     if (last_ends[didx] != -1 && last_ends[didx] < current_starts[didx] - overlap_distance) {
                         if (last_ends[didx] - last_starts[didx] >= seedlen_cutoffs[didx]) {
-                            bit_count = 0;
-                            for (int pos = last_starts[didx]; pos <= last_ends[didx]; pos++) {
-                                if (lshift_anchored_bsets[aidx][bset_size - pos]) { bit_count += 1; }
-                            }
-                            from_indices = addSeedToSeedPositionsAnchored(last_starts[didx], last_ends[didx], motif_length, bit_count, seed_positions_perfect,
+                            from_indices = addSeedToSeedPositionsAnchored(last_starts[didx], last_ends[didx], motif_length, seed_positions_perfect,
                                                                           seed_positions_substut, seed_positions_anchored, seedlen_cutoffs,
-                                                                          lshift_xor_bsets, bset_size, from_indices, RANK_A);
+                                                                          lshift_xor_bsets, lshift_perfect_bsets, lshift_anchored_bsets, bset_size, from_indices, RANK_A);
                         }
                         last_starts[didx] = -1; last_ends[didx] = -1;
                     }
                 }
-                window_bsets[didx] <<= WINDOW_LENGTHS[motif_length - MINIMUM_MLEN];
+                // window_bsets[didx] <<= WINDOW_LENGTHS[motif_length - MINIMUM_MLEN];
                 current_starts[didx] = -1;
+                window_bcounts[didx] = 0;
             }
 
             valid_position = 0;
@@ -291,18 +382,22 @@ vector<tuple<int,int,int,int>> processShiftXORsAnchored(vector<boost::dynamic_bi
             valid_position += 1;
 
             for (int midx=min_idx; midx < NMLENS+min_idx; midx++) {
-                didx = midx-min_idx; motif_length = MINIMUM_SHIFT + midx; aidx = motif_length - MINIMUM_MLEN;
-                window_bsets[didx] <<= 1;
-                window_bsets[didx][0] = lshift_anchored_bsets[aidx][xor_idx];
+                didx = midx-min_idx; motif_length = MINIMUM_SHIFT + midx;
+                // window_bsets[didx] <<= 1;
+                // window_bsets[didx][0] = lshift_anchored_bsets[didx][xor_idx];
+                window_length = WINDOW_LENGTHS[motif_length - MINIMUM_MLEN];
+                window_bcounts[didx] += lshift_anchored_bsets[didx][xor_idx];
+                if (valid_position > window_length) { window_bcounts[didx] -= lshift_anchored_bsets[didx][xor_idx + window_length]; }
             }
 
             if (valid_position >= minimum_window_length) {
                 for (int midx=min_idx; midx < NMLENS+min_idx; midx++) {
-                    didx = midx-min_idx; motif_length = MINIMUM_SHIFT + midx; aidx = motif_length - MINIMUM_MLEN;
-                    window_bitcount = window_bsets[didx].count();
+                    didx = midx-min_idx; motif_length = MINIMUM_SHIFT + midx;
+                    window_bitcount = window_bcounts[didx];
+                    // window_bitcount = window_bsets[didx].count();
                     window_length = WINDOW_LENGTHS[motif_length - MINIMUM_MLEN];
 
-                    if (valid_position < (window_length - minimum_window_length)) continue;
+                    if (valid_position < window_length) continue;
 
                     if (window_bitcount >= WINDOW_THRESHOLDS[motif_length - MINIMUM_MLEN]) {
                         // window bitcount is above the threshold
@@ -312,23 +407,26 @@ vector<tuple<int,int,int,int>> processShiftXORsAnchored(vector<boost::dynamic_bi
 
                             // start position is the first nuc of the window; it is zero based
                             offset = 0;
-                            for (offset = window_length-1; offset >= 0; offset--) {
-                                if (window_bsets[didx][offset] == 1) {
-                                    offset = (window_length - 1) - offset; break;
+                            // for (offset = window_length-1; offset >= 0; offset--) {
+                            //     if (window_bsets[didx][offset] == 1) {
+                            //         offset = (window_length - 1) - offset; break;
+                            //     }
+                            // }
+                            int wstart = bset_size - 1 - (window_position - (window_length - minimum_window_length));
+                            for (int x = wstart; x > wstart - window_length; x--) {
+                                if (lshift_anchored_bsets[didx][x] == 1) {
+                                    offset = wstart - x;
+                                    break;
                                 }
                             }
-                            current_starts[didx] = window_position + offset; // start position is the first nuc of the window; it is zero based
+                            current_starts[didx] = window_position - (window_length - minimum_window_length) + offset; // start position is the first nuc of the window; it is zero based
 
                             // if the last stored seed is beyond the overlapping distance
                             if (last_ends[didx] != -1 && last_ends[didx] < current_starts[didx] - overlap_distance) {
                                 if (last_ends[didx] - last_starts[didx] >= seedlen_cutoffs[didx]) {
-                                    bit_count = 0;
-                                    for (int pos = last_starts[didx]; pos <= last_ends[didx]; pos++) {
-                                        if (lshift_anchored_bsets[aidx][bset_size - pos]) { bit_count += 1; }
-                                    }
-                                    from_indices = addSeedToSeedPositionsAnchored(last_starts[didx], last_ends[didx], motif_length, bit_count, seed_positions_perfect,
+                                    from_indices = addSeedToSeedPositionsAnchored(last_starts[didx], last_ends[didx], motif_length, seed_positions_perfect,
                                                                                   seed_positions_substut, seed_positions_anchored, seedlen_cutoffs,
-                                                                                  lshift_xor_bsets, bset_size, from_indices, RANK_A);
+                                                                                  lshift_xor_bsets, lshift_perfect_bsets, lshift_anchored_bsets, bset_size, from_indices, RANK_A);
                                 }
                                 last_starts[didx] = -1; last_ends[didx] = -1;
                             }
@@ -345,20 +443,31 @@ vector<tuple<int,int,int,int>> processShiftXORsAnchored(vector<boost::dynamic_bi
                                 // last seed is not recorded; save the current seed as the last seed
                                 last_starts[didx] = current_starts[didx];
                                 offset = 0;
-                                for (offset = 0; offset >= window_length-1; offset++) {
-                                    if (window_bsets[didx][offset] == 1) break;
+                                // for (offset = 0; offset <= window_length-1; offset++) {
+                                //     if (window_bsets[didx][offset] == 1) break;
+                                // }
+                                // int other_offset = 0;
+                                int wend = bset_size - 1 - (window_position + minimum_window_length - 1);
+                                for (int x = wend; x < wend + window_length; x++) {
+                                    if (lshift_anchored_bsets[didx][x] == 1) { break; }
+                                    offset += 1;
                                 }
-                                last_ends[didx] = window_position + WINDOW_LENGTHS[motif_length - MINIMUM_MLEN] - 1 - offset; // end is exclusive
+                                last_ends[didx] = window_position + minimum_window_length - offset; // end is exclusive
                             }
 
                             else {
                                 // if the last seed is recorded it means that it is within the overlapping range
                                 // hence we just update the end of the last record
                                 offset = 0;
-                                for (offset = 0; offset >= window_length-1; offset++) {
-                                    if (window_bsets[didx][offset] == 1) break;
+                                // for (offset = 0; offset <= window_length-1; offset++) {
+                                //     if (window_bsets[didx][offset] == 1) break;
+                                // }
+                                int wend = bset_size - 1 - (window_position + minimum_window_length - 1);
+                                for (int x = wend; x < wend + window_length; x++) {
+                                    if (lshift_anchored_bsets[didx][x] == 1) { break; }
+                                    offset += 1;
                                 }
-                                last_ends[didx] = window_position + WINDOW_THRESHOLDS[motif_length - MINIMUM_MLEN] - 1 - offset; // reassign end
+                                last_ends[didx] = window_position + minimum_window_length - offset; // reassign end
                             }
 
                             current_starts[didx] = -1;
@@ -369,13 +478,9 @@ vector<tuple<int,int,int,int>> processShiftXORsAnchored(vector<boost::dynamic_bi
                             // if the last stored seed is beyond the overlapping distance of current position
                             if (last_ends[didx] != -1 && last_ends[didx] < window_position - overlap_distance) {
                                 if (last_ends[didx] - last_starts[didx] >= seedlen_cutoffs[didx]) {
-                                    bit_count = 0;
-                                    for (int pos = last_starts[didx]; pos <= last_ends[didx]; pos++) {
-                                        if (lshift_anchored_bsets[aidx][bset_size - pos]) { bit_count += 1; }
-                                    }
-                                    from_indices = addSeedToSeedPositionsAnchored(last_starts[didx], last_ends[didx], motif_length, bit_count, seed_positions_perfect,
+                                    from_indices = addSeedToSeedPositionsAnchored(last_starts[didx], last_ends[didx], motif_length, seed_positions_perfect,
                                                                                   seed_positions_substut, seed_positions_anchored, seedlen_cutoffs,
-                                                                                  lshift_xor_bsets, bset_size, from_indices, RANK_A);
+                                                                                  lshift_xor_bsets, lshift_perfect_bsets, lshift_anchored_bsets, bset_size, from_indices, RANK_A);
                                 }
                                 // the last seed is reset
                                 last_starts[didx] = -1; last_ends[didx] = -1;
@@ -388,20 +493,16 @@ vector<tuple<int,int,int,int>> processShiftXORsAnchored(vector<boost::dynamic_bi
     }
 
     for (int midx=min_idx; midx < NMLENS+min_idx; midx++) {
-        didx = midx-min_idx; motif_length = MINIMUM_SHIFT + midx; aidx = motif_length - MINIMUM_MLEN;
+        didx = midx-min_idx; motif_length = MINIMUM_SHIFT + midx;
 
         // handling the records after the end of the sequence
         if (last_ends[didx] == -1) {
             if (current_starts[didx] != -1) {
                 // presently not scanning through a passed window ~ save last record
                 if ((bset_size - (xor_idx + 1)) - current_starts[didx] >= seedlen_cutoffs[didx]) {
-                    bit_count = 0;
-                    for (int pos = current_starts[didx]; pos <= (bset_size - (xor_idx + 1)); pos++) {
-                        if (lshift_anchored_bsets[aidx][bset_size - pos]) { bit_count += 1; }
-                    }
-                    addSeedToSeedPositionsAnchored(current_starts[didx], (bset_size - (xor_idx + 1)), motif_length, bit_count, seed_positions_perfect,
+                    addSeedToSeedPositionsAnchored(current_starts[didx], (bset_size - (xor_idx + 1)), motif_length, seed_positions_perfect,
                                                    seed_positions_substut, seed_positions_anchored, seedlen_cutoffs,
-                                                   lshift_xor_bsets, bset_size, from_indices, RANK_A);
+                                                   lshift_xor_bsets, lshift_perfect_bsets, lshift_anchored_bsets, bset_size, from_indices, RANK_A);
                 }
             }
         }
@@ -410,13 +511,9 @@ vector<tuple<int,int,int,int>> processShiftXORsAnchored(vector<boost::dynamic_bi
             if (current_starts[didx] == -1) {
                 // presently not scanning through a passed window ~ save last record
                 if (last_ends[didx] - last_starts[didx] >= seedlen_cutoffs[didx]) {
-                    bit_count = 0;
-                    for (int pos = last_starts[didx]; pos <= last_ends[didx]; pos++) {
-                        if (lshift_anchored_bsets[aidx][bset_size - pos]) { bit_count += 1; }
-                    }
-                    addSeedToSeedPositionsAnchored(last_starts[didx], last_ends[didx], motif_length, bit_count, seed_positions_perfect,
+                    addSeedToSeedPositionsAnchored(last_starts[didx], last_ends[didx], motif_length, seed_positions_perfect,
                                                    seed_positions_substut, seed_positions_anchored, seedlen_cutoffs,
-                                                   lshift_xor_bsets, bset_size, from_indices, RANK_A);
+                                                   lshift_xor_bsets, lshift_perfect_bsets, lshift_anchored_bsets, bset_size, from_indices, RANK_A);
                 }
             }
 
@@ -425,36 +522,24 @@ vector<tuple<int,int,int,int>> processShiftXORsAnchored(vector<boost::dynamic_bi
                     // current passed window overlaps with last record ~ merge both and save
                     last_ends[didx] = bset_size - (xor_idx + 1); // reassign end
                     if (last_ends[didx] - last_starts[didx] >= seedlen_cutoffs[didx]) {
-                        bit_count = 0;
-                        for (int pos = last_starts[didx]; pos <= last_ends[didx]; pos++) {
-                            if (lshift_anchored_bsets[aidx][bset_size - pos]) { bit_count += 1; }
-                        }
-                        addSeedToSeedPositionsAnchored(last_starts[didx], last_ends[didx], motif_length, bit_count, seed_positions_perfect,
+                        addSeedToSeedPositionsAnchored(last_starts[didx], last_ends[didx], motif_length, seed_positions_perfect,
                                                        seed_positions_substut, seed_positions_anchored, seedlen_cutoffs,
-                                                       lshift_xor_bsets, bset_size, from_indices, RANK_A);
+                                                       lshift_xor_bsets, lshift_perfect_bsets, lshift_anchored_bsets, bset_size, from_indices, RANK_A);
                     }
                 }
 
                 else {
                     // current passed window doesn't overlap with last record ~ save both separately
                     if (last_ends[didx] - last_starts[didx] >= seedlen_cutoffs[didx]) {
-                        bit_count = 0;
-                        for (int pos = last_starts[didx]; pos <= last_ends[didx]; pos++) {
-                            if (lshift_anchored_bsets[aidx][bset_size - pos]) { bit_count += 1; }
-                        }
-                        from_indices = addSeedToSeedPositionsAnchored(last_starts[didx], last_ends[didx], motif_length, bit_count, seed_positions_perfect,
+                        from_indices = addSeedToSeedPositionsAnchored(last_starts[didx], last_ends[didx], motif_length, seed_positions_perfect,
                                                                       seed_positions_substut, seed_positions_anchored, seedlen_cutoffs,
-                                                                      lshift_xor_bsets, bset_size, from_indices, RANK_A);
+                                                                      lshift_xor_bsets, lshift_perfect_bsets, lshift_anchored_bsets, bset_size, from_indices, RANK_A);
                     }
 
                     if ((bset_size - (xor_idx + 1)) - current_starts[didx] >= seedlen_cutoffs[didx]) {
-                        bit_count = 0;
-                        for (int pos = current_starts[didx]; pos <= (bset_size - (xor_idx + 1)); pos++) {
-                            if (lshift_anchored_bsets[aidx][bset_size - pos]) { bit_count += 1; }
-                        }
-                        addSeedToSeedPositionsAnchored(current_starts[didx], (bset_size - (xor_idx + 1)), motif_length, bit_count, seed_positions_perfect,
+                        addSeedToSeedPositionsAnchored(current_starts[didx], (bset_size - (xor_idx + 1)), motif_length, seed_positions_perfect,
                                                        seed_positions_substut, seed_positions_anchored, seedlen_cutoffs,
-                                                       lshift_xor_bsets, bset_size, from_indices, RANK_A);
+                                                       lshift_xor_bsets, lshift_perfect_bsets, lshift_anchored_bsets, bset_size, from_indices, RANK_A);
                     }
                 }
             }
