@@ -1,5 +1,7 @@
 #include <boost/program_options.hpp>
+#include <boost/filesystem.hpp>
 namespace po = boost::program_options;
+namespace fs = boost::filesystem;
 
 #include "global_variables.h"
 #include "fasta_utils.h"
@@ -181,8 +183,7 @@ bool parseArguments(int &argc, char *argv[], string &input_file, string &output_
 }
 
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
     /*
      *  main entry point to the ribbit programme
      *  @param argc number of commandline arguments
@@ -200,7 +201,8 @@ int main(int argc, char *argv[])
     if (!success) exit(1);
 
     // check if the input fasta file exists
-    if (!std::filesystem::exists(input_file)) {
+    fs::path input_path(input_file);
+    if (!fs::exists(input_path)) {
         cerr << "ERROR: Input fasta file " << input_file << " does not exist!\n";
         exit(1);
     }

@@ -358,12 +358,13 @@ vector<tuple<size_t, size_t>> splitSequenceIntoBins(string &sequence, size_t bin
 }
 
 
-void splitProcessSequence(const string &sequence_id, string &sequence, ofstream &out, string output_file) {
+void splitProcessSequence(const string &sequence_id, string &sequence, ofstream &out, ofstream &seeds_out, string output_file) {
     /*
      * Splits a sequence into bins and writes them to the output stream.
      * @param sequence_id: ID of the sequence.
      * @param sequence: The DNA sequence to split.
      * @param out: Output stream to write the bins.
+     * @param seeds_out: Output stream to write the seed regions.
      */
 
     vector<tuple<string, int, int, string, double, string, int, int, int>> repeat_loci;
@@ -417,19 +418,18 @@ void splitProcessSequence(const string &sequence_id, string &sequence, ofstream 
         concatenateThreadOutputs(temp_files, seq_out);
 
         string line;
-        for (string thread_seed_outfile: temp_seed_files) {
-            ifstream thread_seed_out(thread_seed_outfile);
-            while(getline(thread_seed_out, line)) {
+        for (string thread_seeds_outfile: temp_seed_files) {
+            ifstream thread_seeds_out(thread_seeds_outfile);
+            while(getline(thread_seeds_out, line)) {
                 seq_seeds_out << line << "\n";
             }
-            thread_seed_out.close();
-            remove(thread_seed_outfile.c_str());
+            thread_seeds_out.close();
+            remove(thread_seeds_outfile.c_str());
         }
         seq_out.close();
         seq_seeds_out.close();
     }
     else {
-        ofstream seeds_out(output_file + ".seeds");
         for (const auto &bin : bins) {
             start = get<0>(bin);
             end = get<1>(bin);
@@ -468,9 +468,9 @@ void parseFasta(string fasta_file, string output_file) {
     string line;
     // if the output file is not given by default: input file + ".ribbit"
     if (output_file == "") { output_file = fasta_file + ".ribbit"; }
-    string seed_output_file = output_file + ".seeds";
+    string seeds_output_file = output_file + ".seeds";
     ofstream out(output_file);
-    ofstream seed_out(seed_output_file);
+    ofstream seeds_out(seeds_output_file);
 
     // adding header to the output file
     out << "#Chrom\t" << "Start\t" << "Stop\t" << "Motif\t" << "Purity\t" << "Strand\t" << "Motif length\t"
@@ -495,7 +495,7 @@ void parseFasta(string fasta_file, string output_file) {
                 if (SEQUENCE != "") {
                     std::cerr << "Processing " << SEQUENCE_ID << "\n";
                     std::cerr << "Length of the sequence: " << SEQUENCE.length() << "\n";
-                    splitProcessSequence(SEQUENCE_ID, SEQUENCE, out, output_file);
+                    splitProcessSequence(SEQUENCE_ID, SEQUENCE, out, seeds_out, output_file);
                 }
                 SEQUENCE_ID = gzline.substr(1, gzline.find(' ') - 1);
                 sequence_ids.push_back(SEQUENCE_ID);
@@ -518,7 +518,7 @@ void parseFasta(string fasta_file, string output_file) {
                 if (SEQUENCE != "") {
                     std::cerr << "Processing " << SEQUENCE_ID << "\n";
                     std::cerr << "Length of the sequence: " << SEQUENCE.length() << "\n";
-                    splitProcessSequence(SEQUENCE_ID, SEQUENCE, out, output_file);
+                    splitProcessSequence(SEQUENCE_ID, SEQUENCE, out, seeds_out, output_file);
                 }
                 SEQUENCE_ID = line.substr(1, line.find(' ') - 1);
                 sequence_ids.push_back(SEQUENCE_ID);
@@ -534,7 +534,7 @@ void parseFasta(string fasta_file, string output_file) {
     if (SEQUENCE != "") {
         std::cerr << "Processing " << SEQUENCE_ID << "\n";
         std::cerr << "Length of the sequence: " << SEQUENCE.length() << "\n";
-        splitProcessSequence(SEQUENCE_ID, SEQUENCE, out, output_file);
+        splitProcessSequence(SEQUENCE_ID, SEQUENCE, out, seeds_out, output_file);
     }
 
     if (THREADS > 1) {
@@ -547,16 +547,16 @@ void parseFasta(string fasta_file, string output_file) {
             seq_out.close();
             remove(seq_outfile.c_str());
 
-            string seq_seed_outfile = output_file + '.' + sequence_id + ".seeds";
-            ifstream seq_seed_out(seq_seed_outfile);
-            while(getline(seq_seed_out, line)) {
-                seed_out << line << "\n";
+            string seq_seeds_outfile = output_file + '.' + sequence_id + ".seeds";
+            ifstream seq_seeds_out(seq_seeds_outfile);
+            while(getline(seq_seeds_out, line)) {
+                seeds_out << line << "\n";
             }
-            seq_seed_out.close();
-            remove(seq_seed_outfile.c_str());
+            seq_seeds_out.close();
+            remove(seq_seeds_outfile.c_str());
         }
     }
 
     out.close();
-    seed_out.close();
+    seeds_out.close();
 }
