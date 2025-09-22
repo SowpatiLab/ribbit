@@ -19,4 +19,5 @@ vector<tuple<int,int,int,int>> processShiftXORsAnchored(vector<boost::dynamic_bi
                                                         vector<boost::dynamic_bitset<>> &lshift_perfect_bsets,
                                                         boost::dynamic_bitset<> &N_bset,
                                                         vector<tuple<int, int, int, int>> &seed_positions_perfect,
-                                                        vector<tuple<int, int, int, int>> &seed_positions_substut);
+                                                        vector<tuple<int, int, int, int>> &seed_positions_substut,
+                                                        ofstream &seeds_out, int chunk_start);

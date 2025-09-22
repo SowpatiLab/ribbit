@@ -1,5 +1,5 @@
 CXX      = g++	# GNU c++ compiler
-CXXFLAGS = -O3 -w # optimisation level flag; suppress warnings
+CXXFLAGS = -O3 -Wall -g # optimisation level flag; suppress warnings
 SHARED_LIBS = -Wall -shared -fPIC $(shell python -m pybind11 --includes)	# shared library flags
 
 BOOST_LIB  = -lboost_system		# include the boost library
@@ -12,7 +12,7 @@ SRC_SSW    = src/ssw.c src/ssw_cpp.cpp
 # list of ribbit source files
 SRC_RIBBIT = src/global_variables.cpp src/concatenate_output.cpp src/binomial_thresholds.cpp src/cigar_utils.cpp src/output_utils.cpp \
              src/process_cigar.cpp src/parse_seed.cpp src/parse_smallmotif_seed.cpp src/merge_types.cpp \
-			 src/parse_anchored_shiftxor.cpp src/parse_substitute_shiftxor.cpp src/parse_perfect_shiftxor.cpp \
+			 src/parse_anchored_shiftxor.cpp src/parse_substitute_shiftxor.cpp src/parse_perfect_shiftxor.cpp src/seed_utils.cpp \
 			 src/bitseq_utils.cpp src/fasta_utils.cpp
 
 SRC_MAIN = src/ribbit.cpp
@@ -21,12 +21,12 @@ SRC_COMPLEX = src/complex_utils.cpp
 # Identify the operating system
 OS := $(shell uname -s)
 ifeq ($(OS),Darwin)
-	CXXFLAGS = -O3 -std=c++1z -w	# optimisation level flag; suppress warnings
+	CXXFLAGS      = -O3 -std=c++1z -w -lz
 	BOOST_VERSION = $(shell ls /opt/homebrew/Cellar/boost/ | tail -n 1)
-	BOOST_LIB  = -L/opt/homebrew/Cellar/boost/$(BOOST_VERSION)/lib	# boost library path
+	BOOST_LIB     = -L/opt/homebrew/Cellar/boost/$(BOOST_VERSION)/lib	# boost library path
+	INCLUDE       = -I/opt/homebrew/Cellar/boost/$(BOOST_VERSION)/include/  # boost include path
+	PROFILER_LIB  = -L$(shell brew --prefix gperftools)/lib  -I$(shell brew --prefix gperftools)/include -lprofiler
 	BOOST_PROGRAM_OPTIONS_LIB = -lboost_program_options		#i boost program options library path
-	INCLUDE    = -I/opt/homebrew/Cellar/boost/$(BOOST_VERSION)/include/  # boost include path
-	PROFILER_LIB = -L$(shell brew --prefix gperftools)/lib  -I$(shell brew --prefix gperftools)/include -lprofiler
 endif
 
 # if there is a change in any of the ribbit source file make builds the executable

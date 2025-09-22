@@ -1,5 +1,6 @@
 #include "global_variables.h"
 #include "parse_perfect_shiftxor.h"
+#include "seed_utils.h"
 
 using namespace std;
 

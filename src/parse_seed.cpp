@@ -163,14 +163,15 @@ uint256_t mostFrequentLongMotif(boost::dynamic_bitset<> &left_bset, boost::dynam
 }
 
 
-void processSeed(tuple<int, int> seed_position, int seq_start, int &motif_length, int &seed_type, string &sequence_id, string &sequence,
+void processSeed(tuple<int, int> seed_position, int chunk_start, int &motif_length, int &seed_type, string &sequence_id, string &sequence,
                  int &sequence_length, boost::dynamic_bitset<> &xor_bset, boost::dynamic_bitset<> &left_bset, boost::dynamic_bitset<> &right_bset,
-                 boost::dynamic_bitset<> &N_bset, ostream &out, vector<boost::dynamic_bitset<>> &lshift_xor_bsets,
+                 boost::dynamic_bitset<> &N_bset, ofstream &out, vector<boost::dynamic_bitset<>> &lshift_xor_bsets,
                  vector<boost::dynamic_bitset<>*> &MATRIX, StripedSmithWaterman::Aligner &aligner, StripedSmithWaterman::Filter &filter,
                  StripedSmithWaterman::Alignment &alignment, vector<tuple<string, int, int, string, double, string, int, int, int>> &repeat_loci) {
     /*
      * processes the seed and finds all the repeats in the sequence
      * @param seed_position tuple with start and end position of the seed
+     * @param chunk_start the start of the seed sequence
      * @param motif_length length of the motif
      * @param sequence_id name of the sequence
      * @param sequence_length length of the complete sequence
@@ -233,10 +234,12 @@ void processSeed(tuple<int, int> seed_position, int seq_start, int &motif_length
 
     motif_unit = mostFrequentLongMotif(left_bset, right_bset, seed_start, seed_sequence_length,
                                             motif_length, sequence_length, MATRIX);
+    if (THREADS > 1) MTX.lock();
     atomicity = calculateAtomicityLongMotif(motif_unit, motif_length);
+    if (THREADS > 1) MTX.unlock();
 
     if (atomicity <= SMALL_MLEN_LIMIT) {
-        processSeedMotifWise(tuple<int, int> { seed_start, seed_end }, seq_start, atomicity, seed_type, sequence_id, sequence,
+        processSeedMotifWise(tuple<int, int> { seed_start, seed_end }, chunk_start, atomicity, seed_type, sequence_id, sequence,
                              sequence_length, lshift_xor_bsets[atomicity-MINIMUM_SHIFT], left_bset, right_bset, N_bset,
                              out, aligner, filter, alignment, repeat_loci);
         return;
@@ -245,7 +248,10 @@ void processSeed(tuple<int, int> seed_position, int seq_start, int &motif_length
     if (motif_length % atomicity != 0) { return; }
 
     // the repeat should be treated based on the atomicity
+    if (THREADS > 1) MTX.lock();
     motif = calculateMotif(motif_unit, motif_length);
+    if (THREADS > 1) MTX.unlock();
+
     motif = motif.substr(0, atomicity);
     motif_unit >>= 2*(motif_length - atomicity);
 
@@ -271,8 +277,7 @@ void processSeed(tuple<int, int> seed_position, int seq_start, int &motif_length
         }
         if (!inserted) { seed_repeat_loci.push_back(pair<int, int> { repeat_start, repeat_end - atomicity }); }
     }
-    
-    
+
     if (alignment_length >= MINIMUM_LENGTH[atomicity]) {
         repeat_length = repeat_end - repeat_start;
         repeat_units = repeat_length/atomicity;
@@ -280,16 +285,11 @@ void processSeed(tuple<int, int> seed_position, int seq_start, int &motif_length
         if ((   (atomicity < 10  && (match_units >= PERFECT_UNITS[atomicity] || (purity > 0.9 && purity*repeat_length >= 2*atomicity))) 
              || ((atomicity >= 10) && (((purity * repeat_length) >= 3*atomicity) || (purity > 0.9 && purity*repeat_length >= 2*atomicity))))
             && atomicity >= MINIMUM_MLEN && atomicity <= MAXIMUM_MLEN
-            && repeat_length >= MINIMUM_LENGTH[atomicity] 
-            && purity >= PURITY_THRESHOLD 
+            && repeat_length >= MINIMUM_LENGTH[atomicity]
+            && purity >= PURITY_THRESHOLD
             && motifwise_purity >= MOTIFPURITY_THRESHOLD) {
-            // if (atomicity == 70) {
-            //     cout << sequence_id << "\t" << repeat_start << "\t" << repeat_end << "\t" 
-            //         << motif.substr(0, atomicity) << "\t" << purity << "\t" 
-            //         << cigar_string << "\t" << atomicity << "\t" 
-            //         << repeat_length << "\t" << repeat_units << "\n";
-            // }
-            repeat_start += CHUNK_START; repeat_end += CHUNK_START;
+
+            repeat_start += chunk_start; repeat_end += chunk_start;
             addLocusToOutput(sequence_id, repeat_start, repeat_end, motif.substr(0, atomicity), purity, cigar_string,
                              atomicity, repeat_length, repeat_units, out, repeat_loci);
         }
@@ -301,12 +301,12 @@ void processSeed(tuple<int, int> seed_position, int seq_start, int &motif_length
     for (int i=0; i<seed_repeat_loci.size(); i++) {
 
         if (flank_start >= seed_repeat_loci[i].first) { flank_start = seed_repeat_loci[i].second; continue;  }
-
-        if (seed_repeat_loci[i].first - flank_start >= MINIMUM_LENGTH[motif_length]) {
+        
+        if (seed_repeat_loci[i].first - flank_start >= MINIMUM_LENGTH[atomicity]) {
             if (flank_start < seed_start) { flank_start = seed_start; }
             if (seed_repeat_loci[i].first > seed_end) { seed_repeat_loci[i].first = seed_end; }
             if (!((flank_start == seed_start) && (seed_repeat_loci[i].first == seed_end))) {
-                processSeed(tuple<int, int> { flank_start, seed_repeat_loci[i].first }, seq_start, motif_length, seed_type, sequence_id,
+                processSeed(tuple<int, int> { flank_start, seed_repeat_loci[i].first }, chunk_start, motif_length, seed_type, sequence_id,
                             sequence, sequence_length, xor_bset, left_bset, right_bset, N_bset, out,
                             lshift_xor_bsets, MATRIX, aligner, filter, alignment, repeat_loci);
             }
@@ -315,10 +315,10 @@ void processSeed(tuple<int, int> seed_position, int seq_start, int &motif_length
         flank_start = seed_repeat_loci[i].second;
     }
 
-    if (seed_end - flank_start >= MINIMUM_LENGTH[motif_length]) {
+    if (seed_end - flank_start >= MINIMUM_LENGTH[atomicity]) {
         if (flank_start < seed_start) { flank_start = seed_start; }
         if (flank_start != seed_start) {
-            processSeed(tuple<int, int> { flank_start, seed_end }, seq_start, motif_length, seed_type, sequence_id, sequence,
+            processSeed(tuple<int, int> { flank_start, seed_end }, chunk_start, motif_length, seed_type, sequence_id, sequence,
                         sequence_length, xor_bset, left_bset, right_bset, N_bset, out, lshift_xor_bsets,
                         MATRIX, aligner, filter, alignment, repeat_loci);
         }

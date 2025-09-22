@@ -2,13 +2,17 @@
 #include <unordered_map>
 #include <iostream>
 #include <fstream>
+#include <filesystem>
 #include <boost/multiprecision/cpp_int.hpp>
 #include <time.h>
 #include <mutex>
 #include <cmath>
+#include <zlib.h>
 
-#ifndef GLOABL_VARIABLES_H
-#define GLOABL_VARIABLES_H
+using namespace boost::multiprecision;
+
+#ifndef GLOBAL_VARIABLES_H
+#define GLOBAL_VARIABLES_H
 
 using namespace std;
 
@@ -17,21 +21,20 @@ extern int NUM_MOTIFS;
 
 extern int *WINDOW_LENGTHS;
 extern int *WINDOW_THRESHOLDS;
+extern int *SEEDLEN_CUTOFF;
 
-extern int *MOTIF_UNITS;
 extern int *MOTIF_START;
 extern int *MOTIF_END;
+extern int *MOTIF_UNITS;
 extern int *MOTIF_GAPS;
 extern int *MOTIF_GAPSIZE;
 extern uint32_t *MOTIF_NEXT;
-extern int *SEEDLEN_CUTOFF;
 
 extern string SEQUENCE_ID;
 extern string SEQUENCE;
 
 extern int SPLIT_LENGTH;
 extern int SPLIT_OVERLAP;
-extern int CHUNK_START;
 
 extern bool CIGAROUTPUT;
 
@@ -57,6 +60,9 @@ extern unordered_map<int, int> MINIMUM_LENGTH;
 extern unordered_map<int, int> MINIMUM_UNITS;
 extern unordered_map<int, int> PERFECT_UNITS;
 extern unordered_map<int, int> THRESHOLD_BITS;
+
+extern unordered_map<int, unordered_map<uint256_t, int>> ATOMICITY_MAP; // store atomicity of motifs
+extern unordered_map<int, unordered_map<uint256_t, string>> MOTIFS_MAP; // Store motif to int32
 
 extern bool LENGTH_CUTOFF_MODE;
 

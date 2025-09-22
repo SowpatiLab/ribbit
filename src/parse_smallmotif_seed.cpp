@@ -283,15 +283,15 @@ void orderMotifs(vector<uint32_t> &motifs, vector<int> &starts, vector<int> &end
 }
 
 
-void processSeedMotifWise(tuple<int, int> seed_position, int seq_start, int &motif_length, int &seed_type, string &sequence_id, string &sequence,
-                          int &sequence_length, boost::dynamic_bitset<> &xor_bset, boost::dynamic_bitset<> &left_bset, boost::dynamic_bitset<> &right_bset,
-                          boost::dynamic_bitset<> &N_bset, ostream &out,
+void processSeedMotifWise(tuple<int, int> seed_position, int chunk_start, int &motif_length, int &seed_type, string &sequence_id,
+                          string &sequence, int &sequence_length, boost::dynamic_bitset<> &xor_bset, boost::dynamic_bitset<> &left_bset,
+                          boost::dynamic_bitset<> &right_bset, boost::dynamic_bitset<> &N_bset, ofstream &out,
                           StripedSmithWaterman::Aligner &aligner, StripedSmithWaterman::Filter &filter, StripedSmithWaterman::Alignment &alignment,
                           vector<tuple<string, int, int, string, double, string, int, int, int>> &repeat_loci) {
     /*
      * processes the seed and finds all the repeats in the sequence
      * @param seed_position tuple with start and end position of the seed
-     * @param seq_start the start of the seed sequence
+     * @param chunk_start the start of the seed sequence
      * @param motif_length length of the motif
      * @param seed_type type of the seed
      * @param sequence_id name of the sequence
@@ -330,6 +330,7 @@ void processSeedMotifWise(tuple<int, int> seed_position, int seq_start, int &mot
     int continuous_threshold = 3; // threshold for continuous matches
     int longest_stretch = longestContinuousMatches(seed_bset);
     if (longest_stretch < continuous_threshold) { return; }
+
     if (THREADS > 1) MTX.lock();
     vector<uint32_t> motifs; vector<int> starts, ends;
 
@@ -349,6 +350,7 @@ void processSeedMotifWise(tuple<int, int> seed_position, int seq_start, int &mot
     }
 
     if (THREADS > 1) MTX.unlock();
+
     if (motifs.size() == 0) return;
 
     if (motifs.size() == 1) {
@@ -372,10 +374,15 @@ void processSeedMotifWise(tuple<int, int> seed_position, int seq_start, int &mot
     int motif_idx; uint32_t motif_unit;
     for(motif_idx=0; motif_idx < motifs.size(); motif_idx++) {
         motif_unit = motifs[motif_idx];
+        if (THREADS > 1) MTX.lock();
         atomicity = calculateAtomicity(motif_unit, motif_length);
+        if (THREADS > 1) MTX.unlock();
 
         // the repeat should be treated based on the atomicity
+        if (THREADS > 1) MTX.lock();
         motif = calculateMotif(motif_unit, motif_length);
+        if (THREADS > 1) MTX.unlock();
+
         motif = motif.substr(0, atomicity);
         motif_unit >>= 2*(motif_length - atomicity);
 
@@ -389,9 +396,10 @@ void processSeedMotifWise(tuple<int, int> seed_position, int seq_start, int &mot
 
         aligner.Align(motif_seed_sequence.c_str(), perfect_repeat.c_str(), ppr_length, filter, &alignment, 15);
         processCIGARMotifWise(starts[motif_idx], motif_seed_length, alignment.cigar_string, motif_seed_sequence, atomicity,
-                              repeat_start, repeat_end, alignment_length, cigar_string, purity, substitutions, indels, motifwise_purity,
-                              motifwise_indels, avg_matchlen);
+                              repeat_start, repeat_end, alignment_length, cigar_string, purity, substitutions, indels,
+                              motifwise_purity, motifwise_indels, avg_matchlen);
         repeat_length = repeat_end - repeat_start;
+        
         if (THREADS > 1) MTX.lock();
         match_units = calculateMotifUnits(left_bset, right_bset, repeat_start, repeat_length, atomicity, sequence_length, motif_unit);
         if (THREADS > 1) MTX.unlock();
@@ -412,7 +420,7 @@ void processSeedMotifWise(tuple<int, int> seed_position, int seq_start, int &mot
             // - match units are more than threshold AND 70% of the total units are perfect
             // - average motif purity is 80% OR the average continuous match length twice the atomicity
 
-            repeat_start += CHUNK_START; repeat_end += CHUNK_START;
+            repeat_start += chunk_start; repeat_end += chunk_start;
             addLocusToOutput(sequence_id, repeat_start, repeat_end, motif.substr(0, atomicity), purity, cigar_string,
                              atomicity, repeat_length, repeat_units, out, repeat_loci);
         }

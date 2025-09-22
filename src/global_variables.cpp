@@ -1,6 +1,7 @@
 #include "global_variables.h"
 
 using namespace std;
+using namespace boost::multiprecision;
 
 // Define rclasses matrix
 uint32_t **REPEAT_CLASSES = nullptr;
@@ -8,14 +9,14 @@ int NUM_MOTIFS;
 
 int *WINDOW_LENGTHS = nullptr;
 int *WINDOW_THRESHOLDS = nullptr;
+int *SEEDLEN_CUTOFF = nullptr;
 
-int *MOTIF_UNITS = nullptr;
 int *MOTIF_START = nullptr;
 int *MOTIF_END = nullptr;
+int *MOTIF_UNITS = nullptr;
 int *MOTIF_GAPS = nullptr;
 int *MOTIF_GAPSIZE = nullptr;
 uint32_t *MOTIF_NEXT = nullptr;
-int *SEEDLEN_CUTOFF = nullptr;
 
 // Define rclasses matrix
 int MINIMUM_MLEN = 2;
@@ -50,10 +51,13 @@ unordered_map<int, int> MINIMUM_UNITS;
 unordered_map<int, int> PERFECT_UNITS;
 unordered_map<int, int> THRESHOLD_BITS;
 
+unordered_map<int, unordered_map<uint256_t, int>> ATOMICITY_MAP; // store atomicity of motifs
+unordered_map<int, unordered_map<uint256_t, string>> MOTIFS_MAP; // Store motif to int32
+
 bool LENGTH_CUTOFF_MODE = true;
 
 // cutoffs for different measures of purity
 double PURITY_THRESHOLD = 0.8;
 double MOTIFPURITY_THRESHOLD = 0.8;
-int   INTERRUPTIONS_THRESHOLD = 0;
+int    INTERRUPTIONS_THRESHOLD = 0;
 time_t START_TIME = time(0);

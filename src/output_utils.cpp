@@ -4,7 +4,7 @@ using namespace std;
 using namespace boost;
 
 
-void printRepeatsToOutput(ostream &out, vector<tuple<string, int, int, string, double, string, int, int, int>> &repeat_loci,
+void printRepeatsToOutput(ofstream &out, vector<tuple<string, int, int, string, double, string, int, int, int>> &repeat_loci,
                           int end_index) {
     /*
      * print repeats from the recorded repeat loci and clears the repeat loci
@@ -462,7 +462,7 @@ bool compareRepeatLoci(const tuple<string, int, int, string, double, string, int
 
 
 void addLocusToOutput(string &sequence_id, int repeat_start, int repeat_end, string motif, double purity, string &cigar_string,
-                      int motif_length, int repeat_length, int repeat_units, ostream &out,
+                      int motif_length, int repeat_length, int repeat_units, ofstream &out,
                       vector<tuple<string, int, int, string, double, string, int, int, int>> &repeat_loci) {
     /*
      * adds the repeat locus to set of all the repeats

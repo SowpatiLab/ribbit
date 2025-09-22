@@ -70,3 +70,69 @@ void concatenateOutputs(string out_file, vector<string>seq_names, int THREADS) {
     }
     out.close();
 }
+
+
+void concatenateThreadOutputs(const vector<string> &temp_files, ofstream &out) {
+    /*
+     *  concatenate the output files from different threads into a single output file
+     *  @param temp_files list of temporary files from different threads
+     *  @param out output stream to write the final output
+    */
+
+    string line;
+    string sequence_id;
+    int start, end;
+    string motif, orientation;
+    double purity;
+    string cigar_string;
+    int motif_length, repeat_length, repeat_units;
+
+    vector<tuple<string, int, int, string, double, string, int, int, int>> repeat_loci;
+    for (const auto& temp_file : temp_files) {
+        ifstream ts(temp_file);
+        if (!ts.is_open()) {
+            cerr << "Could not open temporary file: " << temp_file << "\n";
+            continue;
+        }
+        vector<string> fields;
+        while (getline(ts, line)) {
+            size_t start = 0, end;
+            while ((end = line.find('\t', start)) != string::npos) {
+                fields.push_back(line.substr(start, end - start));
+                start = end + 1;
+            }
+            fields.push_back(line.substr(start)); // last field
+
+            sequence_id = fields[0];
+            start = stoi(fields[1]);
+            end = stoi(fields[2]);
+            motif = fields[3];
+            purity = stod(fields[4]);
+            orientation = fields[5];
+            motif_length = stoi(fields[6]);
+            repeat_length = stoi(fields[7]);
+            repeat_units = stoi(fields[8]);
+            cigar_string = fields[9];
+
+            addLocusToOutput(sequence_id, start, end, motif, purity, cigar_string,
+                             motif_length, repeat_length, repeat_units, out, repeat_loci);
+
+            fields.clear();
+        }
+        ts.close();
+    }
+
+    if (repeat_loci.size() > 0) {
+        for (int i=0; i<repeat_loci.size(); i++) {
+            out << get<0> (repeat_loci[i]) << "\t" << get<1> (repeat_loci[i]) << "\t" << get<2> (repeat_loci[i]) << "\t"
+                << get<3> (repeat_loci[i]) << "\t" << get<4> (repeat_loci[i]) << "\t+\t" << get<6> (repeat_loci[i]) << "\t" 
+                << get<7> (repeat_loci[i]) << "\t" << get<8> (repeat_loci[i]);
+            if (CIGAROUTPUT) { out << "\t" << get<5> (repeat_loci[i]); }
+            out << "\n";
+        }
+    }
+
+    for (const auto& temp_file : temp_files) {
+        std::remove(temp_file.c_str());
+    }
+}

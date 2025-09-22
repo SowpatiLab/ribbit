@@ -4,7 +4,6 @@ using namespace std;
 using namespace boost;
 
 
-unordered_map<int, unordered_map<uint256_t, string>> motifs_map; // Store motif to int32
 string calculateMotif(uint256_t motif_unit, int motif_length) {
     /*
      * converts a integer representation of motif to string
@@ -13,8 +12,8 @@ string calculateMotif(uint256_t motif_unit, int motif_length) {
      * @returns string string representation of the motif
     */
 
-    if (motifs_map[motif_length].find(motif_unit) != motifs_map[motif_length].end()) {
-        return motifs_map[motif_length][motif_unit];
+    if (MOTIFS_MAP[motif_length].find(motif_unit) != MOTIFS_MAP[motif_length].end()) {
+        return MOTIFS_MAP[motif_length][motif_unit];
     }
 
     uint256_t mask = 3;
@@ -27,12 +26,11 @@ string calculateMotif(uint256_t motif_unit, int motif_length) {
         else if (val == 3) motif += 'T';
     }
 
-    motifs_map[motif_length][motif_unit] = motif;
+    MOTIFS_MAP[motif_length][motif_unit] = motif;
     return motif;
 }
 
 
-unordered_map<int, unordered_map<uint256_t, int>> atomicitybits_map; // store atomicity of motifs
 int calculateAtomicity(dynamic_bitset<> &window, int &motif_length) {
     /*
      * finding the atomicity of a motif represented in dynamic bits
@@ -41,9 +39,9 @@ int calculateAtomicity(dynamic_bitset<> &window, int &motif_length) {
      * @returns int atomicity of the motif
     */
     uint256_t motif = window.to_ulong();
-    if (atomicitybits_map[motif_length].find(motif) != atomicitybits_map[motif_length].end()) {
+    if (ATOMICITY_MAP[motif_length].find(motif) != ATOMICITY_MAP[motif_length].end()) {
         // if motif already existing in the atomicity map
-        return atomicitybits_map[motif_length][motif];
+        return ATOMICITY_MAP[motif_length][motif];
     }
 
     vector<int> motif_factors;
@@ -61,20 +59,20 @@ int calculateAtomicity(dynamic_bitset<> &window, int &motif_length) {
         original = mask & motif;
         if (shift == original) {
             cycle = motif;
-            atomicitybits_map[motif_length][cycle] = f;
+            ATOMICITY_MAP[motif_length][cycle] = f;
             for (int i = 0; i < motif_length-1; i++) {
                 cycle = ((window >> (2*(motif_length-(i+1)))) | (window << (2*(i+1)))).to_ulong();
-                atomicitybits_map[motif_length][cycle] = f;
+                ATOMICITY_MAP[motif_length][cycle] = f;
             }
             return f;
         }
     }
 
     cycle = motif;
-    atomicitybits_map[motif_length][cycle] = motif_length;
+    ATOMICITY_MAP[motif_length][cycle] = motif_length;
     for (int i = 0; i < motif_length-1; i++) {
         cycle = ((window >> (2*(motif_length-(i+1)))) | (window << (2*(i+1)))).to_ulong();
-        atomicitybits_map[motif_length][cycle] = motif_length;
+        ATOMICITY_MAP[motif_length][cycle] = motif_length;
     }
     return motif_length;
 }
@@ -144,9 +142,9 @@ int calculateAtomicity(uint32_t &motif, int &motif_length) {
      * @returns int atomicity of the motif
     */
 
-    if (atomicitybits_map[motif_length].find(motif) != atomicitybits_map[motif_length].end()) {
+    if (ATOMICITY_MAP[motif_length].find(motif) != ATOMICITY_MAP[motif_length].end()) {
         // if motif already existing in the atomicity map
-        return atomicitybits_map[motif_length][motif];
+        return ATOMICITY_MAP[motif_length][motif];
     }
 
     vector<int> motif_factors;
@@ -164,20 +162,20 @@ int calculateAtomicity(uint32_t &motif, int &motif_length) {
         original = mask & motif;
         if (shift == original) {
             cycle = motif;
-            atomicitybits_map[motif_length][cycle] = f;
+            ATOMICITY_MAP[motif_length][cycle] = f;
             for (int i = 0; i < motif_length-1; i++) {
                 cycle = (motif >> (2*(motif_length-(i+1)))) | (motif << (2*(i+1)));
-                atomicitybits_map[motif_length][cycle] = f;
+                ATOMICITY_MAP[motif_length][cycle] = f;
             }
             return f;
         }
     }
 
     cycle = motif;
-    atomicitybits_map[motif_length][cycle] = motif_length;
+    ATOMICITY_MAP[motif_length][cycle] = motif_length;
     for (int i = 0; i < motif_length-1; i++) {
         cycle = (motif >> (2*(motif_length-(i+1)))) | (motif << (2*(i+1)));
-        atomicitybits_map[motif_length][cycle] = motif_length;
+        ATOMICITY_MAP[motif_length][cycle] = motif_length;
     }
     return motif_length;
 }
