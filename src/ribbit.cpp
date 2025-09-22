@@ -102,8 +102,7 @@ bool parseArguments(int &argc, char *argv[], string &input_file, string &output_
     po::store(po::parse_command_line(argc, argv, argparser), args);
     po::notify(args);
 
-    if (args.count("help"))
-    {
+    if (args.count("help")) {
         cerr << argparser << "\n";
         return 0;
     }

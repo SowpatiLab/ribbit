@@ -402,7 +402,6 @@ void splitProcessSequence(const string &sequence_id, string &sequence, ofstream 
             start = get<0>(bins[i]);
             end = get<1>(bins[i]);
             // Each thread processes its bin and writes to its temp file
-            cout << "Processing bases " << start << " to " << end << " in thread " << i << "\n";
             threads.emplace_back([&, i, start, end]() {
                 vector<tuple<string, int, int, string, double, string, int, int, int>> thread_repeat_loci;
                 processSequence(sequence_id, sequence.substr(start, end - start), temp_streams[i], temp_seed_streams[i], start, end, thread_repeat_loci); });
@@ -433,7 +432,6 @@ void splitProcessSequence(const string &sequence_id, string &sequence, ofstream 
         for (const auto &bin : bins) {
             start = get<0>(bin);
             end = get<1>(bin);
-            cout << "Processing bases " << start << " to " << end << "\n";
             // process the chunk of the sequence and prints the output to the same file retaining the overlapping repeat loci
             processSequence(sequence_id, sequence.substr(start, end - start), out, seeds_out, start, end, repeat_loci);
         }
