@@ -261,7 +261,7 @@ tuple<int,int> addSeedToSeedPositionsAnchored(int seed_start, int seed_end, int 
                                               vector<tuple<int,int,int,int,int,int,int>> &seed_positions_substut, vector<tuple<int,int,int,int,int,int,int>> &seed_positions_anchored,
                                               int* seedlen_cutoffs, vector<boost::dynamic_bitset<>> &motif_bsets, boost::dynamic_bitset<> &N_bset,
                                               vector<boost::dynamic_bitset<>> &perfect_bsets, vector<boost::dynamic_bitset<>> &anchored_bsets,
-                                              int bset_size, tuple<int,int> from_indices, int seed_type, ofstream &seeds_out, int chunk_start,
+                                              int bset_size, tuple<int,int> from_indices, int seed_type, int chunk_start,
                                               unordered_map<int, int> &threshold_bits) {
     /*
      *  add seed to the existing seed positions list
@@ -362,7 +362,7 @@ vector<tuple<int,int,int,int,int,int,int>> processShiftXORsAnchored(vector<boost
                                                         boost::dynamic_bitset<> &N_bset,
                                                         vector<tuple<int,int,int,int,int,int,int>> &seed_positions_perfect,
                                                         vector<tuple<int,int,int,int,int,int,int>> &seed_positions_substut,
-                                                        ofstream &seeds_out, int chunk_start) {
+                                                        int chunk_start) {
     /*
      *  parsing the shift XORs of all shift sizes and picking seeds from each shift
      *  @param motif_bsets shift XOR bsets of all shift sizes
@@ -433,7 +433,7 @@ vector<tuple<int,int,int,int,int,int,int>> processShiftXORsAnchored(vector<boost
                             addSeedToSeedPositionsAnchored(current_starts[didx], (bset_size - (xor_idx + 1)), motif_length, seed_positions_perfect,
                                                         seed_positions_substut, seed_positions_anchored, seedlen_cutoffs,
                                                         lshift_xor_bsets, N_bset, lsxor_perfect_bsets, lsxor_anchored_bsets, bset_size,
-                                                        from_indices, RANK_A, seeds_out, chunk_start, threshold_bits);
+                                                        from_indices, RANK_A, chunk_start, threshold_bits);
                         }
                     }
                 }
@@ -445,7 +445,7 @@ vector<tuple<int,int,int,int,int,int,int>> processShiftXORsAnchored(vector<boost
                             addSeedToSeedPositionsAnchored(last_starts[didx], last_ends[didx], motif_length, seed_positions_perfect,
                                                         seed_positions_substut, seed_positions_anchored, seedlen_cutoffs,
                                                         lshift_xor_bsets, N_bset, lsxor_perfect_bsets, lsxor_anchored_bsets, bset_size,
-                                                        from_indices, RANK_A, seeds_out, chunk_start, threshold_bits);
+                                                        from_indices, RANK_A, chunk_start, threshold_bits);
                         }
                     }
 
@@ -457,7 +457,7 @@ vector<tuple<int,int,int,int,int,int,int>> processShiftXORsAnchored(vector<boost
                                 addSeedToSeedPositionsAnchored(last_starts[didx], last_ends[didx], motif_length, seed_positions_perfect,
                                                             seed_positions_substut, seed_positions_anchored, seedlen_cutoffs,
                                                             lshift_xor_bsets, N_bset, lsxor_perfect_bsets, lsxor_anchored_bsets, bset_size,
-                                                            from_indices, RANK_A, seeds_out, chunk_start, threshold_bits);
+                                                            from_indices, RANK_A, chunk_start, threshold_bits);
                             }
                         }
 
@@ -467,14 +467,14 @@ vector<tuple<int,int,int,int,int,int,int>> processShiftXORsAnchored(vector<boost
                                 from_indices = addSeedToSeedPositionsAnchored(last_starts[didx], last_ends[didx], motif_length, seed_positions_perfect,
                                                                             seed_positions_substut, seed_positions_anchored, seedlen_cutoffs,
                                                                             lshift_xor_bsets, N_bset, lsxor_perfect_bsets, lsxor_anchored_bsets, bset_size,
-                                                                            from_indices, RANK_A, seeds_out, chunk_start, threshold_bits);
+                                                                            from_indices, RANK_A, chunk_start, threshold_bits);
                             }
 
                             if ((bset_size - (xor_idx + 1)) - current_starts[didx] >= seedlen_cutoffs[didx]) {
                                 addSeedToSeedPositionsAnchored(current_starts[didx], (bset_size - (xor_idx + 1)), motif_length, seed_positions_perfect,
                                                             seed_positions_substut, seed_positions_anchored, seedlen_cutoffs,
                                                             lshift_xor_bsets, N_bset, lsxor_perfect_bsets, lsxor_anchored_bsets, bset_size,
-                                                            from_indices, RANK_A, seeds_out, chunk_start, threshold_bits);
+                                                            from_indices, RANK_A, chunk_start, threshold_bits);
                             }
                         }
                     }
@@ -533,7 +533,7 @@ vector<tuple<int,int,int,int,int,int,int>> processShiftXORsAnchored(vector<boost
                                                                                   seed_positions_anchored, seedlen_cutoffs,
                                                                                   lshift_xor_bsets, N_bset, lsxor_perfect_bsets,
                                                                                   lsxor_anchored_bsets, bset_size, from_indices,
-                                                                                  RANK_A, seeds_out, chunk_start, threshold_bits);
+                                                                                  RANK_A, chunk_start, threshold_bits);
                                 }
                                 last_starts[didx] = -1; last_ends[didx] = -1;
                             }
@@ -583,7 +583,7 @@ vector<tuple<int,int,int,int,int,int,int>> processShiftXORsAnchored(vector<boost
                                                                                   seed_positions_anchored, seedlen_cutoffs,
                                                                                   lshift_xor_bsets, N_bset, lsxor_perfect_bsets,
                                                                                   lsxor_anchored_bsets, bset_size, from_indices,
-                                                                                  RANK_A, seeds_out, chunk_start, threshold_bits);
+                                                                                  RANK_A, chunk_start, threshold_bits);
                                 }
                                 // the last seed is reset
                                 last_starts[didx] = -1; last_ends[didx] = -1;
@@ -606,7 +606,7 @@ vector<tuple<int,int,int,int,int,int,int>> processShiftXORsAnchored(vector<boost
                     addSeedToSeedPositionsAnchored(current_starts[didx], (bset_size - (xor_idx + 1)), motif_length, seed_positions_perfect,
                                                    seed_positions_substut, seed_positions_anchored, seedlen_cutoffs,
                                                    lshift_xor_bsets, N_bset, lsxor_perfect_bsets, lsxor_anchored_bsets, bset_size,
-                                                   from_indices, RANK_A, seeds_out, chunk_start, threshold_bits);
+                                                   from_indices, RANK_A, chunk_start, threshold_bits);
                 }
             }
         }
@@ -618,7 +618,7 @@ vector<tuple<int,int,int,int,int,int,int>> processShiftXORsAnchored(vector<boost
                     addSeedToSeedPositionsAnchored(last_starts[didx], last_ends[didx], motif_length, seed_positions_perfect,
                                                    seed_positions_substut, seed_positions_anchored, seedlen_cutoffs,
                                                    lshift_xor_bsets, N_bset, lsxor_perfect_bsets, lsxor_anchored_bsets, bset_size,
-                                                   from_indices, RANK_A, seeds_out, chunk_start, threshold_bits);
+                                                   from_indices, RANK_A, chunk_start, threshold_bits);
                 }
             }
 
@@ -630,7 +630,7 @@ vector<tuple<int,int,int,int,int,int,int>> processShiftXORsAnchored(vector<boost
                         addSeedToSeedPositionsAnchored(last_starts[didx], last_ends[didx], motif_length, seed_positions_perfect,
                                                        seed_positions_substut, seed_positions_anchored, seedlen_cutoffs,
                                                        lshift_xor_bsets, N_bset, lsxor_perfect_bsets, lsxor_anchored_bsets, bset_size,
-                                                       from_indices, RANK_A, seeds_out, chunk_start, threshold_bits);
+                                                       from_indices, RANK_A, chunk_start, threshold_bits);
                     }
                 }
 
@@ -640,14 +640,14 @@ vector<tuple<int,int,int,int,int,int,int>> processShiftXORsAnchored(vector<boost
                         from_indices = addSeedToSeedPositionsAnchored(last_starts[didx], last_ends[didx], motif_length, seed_positions_perfect,
                                                                       seed_positions_substut, seed_positions_anchored, seedlen_cutoffs,
                                                                       lshift_xor_bsets, N_bset, lsxor_perfect_bsets, lsxor_anchored_bsets, bset_size,
-                                                                      from_indices, RANK_A, seeds_out, chunk_start, threshold_bits);
+                                                                      from_indices, RANK_A, chunk_start, threshold_bits);
                     }
 
                     if ((bset_size - (xor_idx + 1)) - current_starts[didx] >= seedlen_cutoffs[didx]) {
                         addSeedToSeedPositionsAnchored(current_starts[didx], (bset_size - (xor_idx + 1)), motif_length, seed_positions_perfect,
                                                        seed_positions_substut, seed_positions_anchored, seedlen_cutoffs,
                                                        lshift_xor_bsets, N_bset, lsxor_perfect_bsets, lsxor_anchored_bsets, bset_size,
-                                                       from_indices, RANK_A, seeds_out, chunk_start, threshold_bits);
+                                                       from_indices, RANK_A, chunk_start, threshold_bits);
                     }
                 }
             }

@@ -311,11 +311,11 @@ void orderMotifs(vector<uint32_t> &motifs, vector<int> &starts, vector<int> &end
 }
 
 
-void processSeedMotifWise(tuple<int, int> seed_position, int chunk_start, int &motif_length, int &seed_type, string &sequence_id,
-                          string &sequence, int &sequence_length, boost::dynamic_bitset<> &xor_bset, boost::dynamic_bitset<> &left_bset,
-                          boost::dynamic_bitset<> &right_bset, boost::dynamic_bitset<> &N_bset, ofstream &out,
-                          StripedSmithWaterman::Aligner &aligner, StripedSmithWaterman::Filter &filter, StripedSmithWaterman::Alignment &alignment,
-                          vector<tuple<string, int, int, string, double, string, int, int, int>> &repeat_loci) {
+void processSmallMotifSeed(tuple<int, int> seed_position, int chunk_start, int &motif_length, int &seed_type, string &sequence_id,
+                           string &sequence, int &sequence_length, boost::dynamic_bitset<> &xor_bset, boost::dynamic_bitset<> &left_bset,
+                           boost::dynamic_bitset<> &right_bset, boost::dynamic_bitset<> &N_bset, ofstream &out,
+                           StripedSmithWaterman::Aligner &aligner, StripedSmithWaterman::Filter &filter, StripedSmithWaterman::Alignment &alignment,
+                           vector<tuple<string, int, int, string, double, string, int, int, int>> &repeat_loci) {
     /*
      * processes the seed and finds all the repeats in the sequence
      * @param seed_position tuple with start and end position of the seed
@@ -346,7 +346,7 @@ void processSeedMotifWise(tuple<int, int> seed_position, int chunk_start, int &m
     for (int s=seed_start; s < seed_end+motif_length; s++) {
         if (N_bset[sequence_length-1-s] == 1) {
             if (s - seed_start >= motif_length) {
-                processSeedMotifWise(tuple<int,int>{seed_start, s - motif_length}, chunk_start, motif_length, seed_type, sequence_id,
+                processSmallMotifSeed(tuple<int,int>{seed_start, s - motif_length}, chunk_start, motif_length, seed_type, sequence_id,
                                      sequence, sequence_length, xor_bset, left_bset, right_bset, N_bset, out,
                                      aligner, filter, alignment, repeat_loci);
             }

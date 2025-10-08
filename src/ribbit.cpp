@@ -145,15 +145,12 @@ bool parseArguments(int &argc, char *argv[], string &input_file, string &output_
     }
     else {
         // uses minimum length of 12 as default if no input for minimum length or units are provided
-        for (int key = MINIMUM_MLEN; key <= MAXIMUM_MLEN; key++)
-        {
-            if (default_minimum_length < 2 * key)
-            {
+        for (int key = MINIMUM_MLEN; key <= MAXIMUM_MLEN; key++) {
+            if (default_minimum_length < 2 * key) {
                 // if the minimum length is not atleast twice as the motif
                 MINIMUM_LENGTH[key] = 2 * key;
             }
-            else
-                MINIMUM_LENGTH[key] = default_minimum_length;
+            else  MINIMUM_LENGTH[key] = default_minimum_length;
         }
     }
 
@@ -164,14 +161,10 @@ bool parseArguments(int &argc, char *argv[], string &input_file, string &output_
     else {
         for (int m = 1; m <= MAXIMUM_MLEN; m++) {
             switch (m) {
-            case 1:
-                PERFECT_UNITS[m] = 8; break;
-            case 2:
-                PERFECT_UNITS[m] = 4; break;
-            case 3:
-                PERFECT_UNITS[m] = 3; break;
-            default:
-                PERFECT_UNITS[m] = 2; break;
+                case 1: PERFECT_UNITS[m] = 8; break;
+                case 2: PERFECT_UNITS[m] = 4; break;
+                case 3: PERFECT_UNITS[m] = 3; break;
+                default: PERFECT_UNITS[m] = 2; break;
             }
         }
     }
@@ -264,10 +257,10 @@ int main(int argc, char *argv[]) {
         REPEAT_CLASSES[i] = new uint32_t[NUM_MOTIFS];
     }
     MOTIF_START = new int[NUM_MOTIFS];
-    MOTIF_END = new int[NUM_MOTIFS];
-    MOTIF_NEXT = new uint32_t[NUM_MOTIFS];
+    MOTIF_END   = new int[NUM_MOTIFS];
+    MOTIF_NEXT  = new uint32_t[NUM_MOTIFS];
     MOTIF_UNITS = new int[NUM_MOTIFS];
-    MOTIF_GAPS = new int[NUM_MOTIFS];
+    MOTIF_GAPS  = new int[NUM_MOTIFS];
     MOTIF_GAPSIZE = new int[NUM_MOTIFS];
 
     WINDOW_LENGTHS    = new int[NMLENS];

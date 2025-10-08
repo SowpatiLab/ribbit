@@ -176,7 +176,7 @@ uint256_t mostFrequentLongMotif(boost::dynamic_bitset<> &left_bset, boost::dynam
 }
 
 
-void processSeed(tuple<int, int> seed_position, int chunk_start, int &motif_length, int &seed_type, string &sequence_id, string &sequence,
+void processLargeMotifSeed(tuple<int, int> seed_position, int chunk_start, int &motif_length, int &seed_type, string &sequence_id, string &sequence,
                  int &sequence_length, boost::dynamic_bitset<> &xor_bset, boost::dynamic_bitset<> &left_bset, boost::dynamic_bitset<> &right_bset,
                  boost::dynamic_bitset<> &N_bset, ofstream &out, vector<boost::dynamic_bitset<>> &lshift_xor_bsets,
                  vector<boost::dynamic_bitset<>*> &MATRIX, StripedSmithWaterman::Aligner &aligner, StripedSmithWaterman::Filter &filter,
@@ -287,7 +287,7 @@ void processSeed(tuple<int, int> seed_position, int chunk_start, int &motif_leng
     if (THREADS > 1) MTX.unlock();
 
     if (atomicity <= SMALL_MLEN_LIMIT) {
-        processSeedMotifWise(tuple<int, int> { seed_start, seed_end }, chunk_start, atomicity, seed_type, sequence_id, sequence,
+        processSmallMotifSeed(tuple<int, int> { seed_start, seed_end }, chunk_start, atomicity, seed_type, sequence_id, sequence,
                              sequence_length, lshift_xor_bsets[atomicity-MINIMUM_SHIFT], left_bset, right_bset, N_bset,
                              out, aligner, filter, alignment, repeat_loci);
         return;
@@ -362,7 +362,7 @@ void processSeed(tuple<int, int> seed_position, int chunk_start, int &motif_leng
             if (seed_repeat_loci[i].first > seed_end) { seed_repeat_loci[i].first = seed_end; }
             if (!((flank_start == seed_start) && (seed_repeat_loci[i].first == seed_end))) {
                 skip_atomicity.clear();
-                processSeed(tuple<int, int> { flank_start, seed_repeat_loci[i].first }, chunk_start, motif_length, seed_type, sequence_id,
+                processLargeMotifSeed(tuple<int, int> { flank_start, seed_repeat_loci[i].first }, chunk_start, motif_length, seed_type, sequence_id,
                             sequence, sequence_length, xor_bset, left_bset, right_bset, N_bset, out,
                             lshift_xor_bsets, MATRIX, aligner, filter, alignment, repeat_loci, skip_atomicity);
             }
@@ -375,7 +375,7 @@ void processSeed(tuple<int, int> seed_position, int chunk_start, int &motif_leng
         if (flank_start < seed_start) { flank_start = seed_start; }
         if (flank_start != seed_start) {
             skip_atomicity.clear();
-            processSeed(tuple<int, int> { flank_start, seed_end }, chunk_start, motif_length, seed_type, sequence_id, sequence,
+            processLargeMotifSeed(tuple<int, int> { flank_start, seed_end }, chunk_start, motif_length, seed_type, sequence_id, sequence,
                         sequence_length, xor_bset, left_bset, right_bset, N_bset, out, lshift_xor_bsets,
                         MATRIX, aligner, filter, alignment, repeat_loci, skip_atomicity);
         }
