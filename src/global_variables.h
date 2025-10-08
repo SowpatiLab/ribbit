@@ -9,6 +9,8 @@
 #include <mutex>
 #include <cmath>
 #include <zlib.h>
+#include <numeric>
+#include <iomanip>
 
 using namespace boost::multiprecision;
 

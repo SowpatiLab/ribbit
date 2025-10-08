@@ -1,10 +1,3 @@
-/*
- * Different methods for parsing motif_length XOR and identification of tandem repeats
-*/
-
-#include <numeric>
-#include <iomanip>
-
 #include "parse_smallmotif_seed.h"
 
 using namespace std;
@@ -12,6 +5,12 @@ using namespace boost;
 
 
 tuple<string,int> getMostCommonKmer(const string &sequence, int k) {
+    /*
+     *  finds the most common kmer in a sequence
+     *  @param sequence the input DNA sequence
+     *  @param k length of the kmer
+     *  @return a tuple containing the most common kmer and its count
+     */
     if (k <= 0 || sequence.size() < (size_t)k) return make_tuple(string(""), 0);
 
     unordered_map<string, int> count;
@@ -63,16 +62,16 @@ bool qualifyShortMotifRepeat(string &sequence, int kmer) {
 int calculateMotifUnits(boost::dynamic_bitset<> &left_bset, boost::dynamic_bitset<> &right_bset, int &seed_start,
                         int &length, int &motif_length, int &sequence_length, uint32_t motif_unit) {
     /*
-     * calculates the number of perfect motif units in a repeat sequence
-     * @param left_bset the dynamic bitset of the left bit of the sequence
-     * @param right_bset the dynamic bitset of the right bit of the sequence
-     * @param start start coordinate of the sequence
-     * @param length length of the sequence to be looked at
-     * @param motif_length length of the motif
-     * @param sequence_length total length of the sequence
-     * @param motif_unit the motif unit that is being repeated
-     * @returns int number of perfect motif units repeated
-    */
+     *  calculates the number of perfect motif units in a repeat sequence
+     *  @param left_bset the dynamic bitset of the left bit of the sequence
+     *  @param right_bset the dynamic bitset of the right bit of the sequence
+     *  @param start start coordinate of the sequence
+     *  @param length length of the sequence to be looked at
+     *  @param motif_length length of the motif
+     *  @param sequence_length total length of the sequence
+     *  @param motif_unit the motif unit that is being repeated
+     *  @returns int number of perfect motif units repeated
+     */
 
     unordered_map<uint32_t, int> motif_position, motif_units;
     unordered_map<uint32_t, int> maxfrequency_motifs;
@@ -113,19 +112,19 @@ void possibleMotifs(boost::dynamic_bitset<> &left_bset, boost::dynamic_bitset<> 
                     int &seed_sequence_length, int &motif_length, int &sequence_length,
                     vector<uint32_t> &motifs, vector<int> &starts, vector<int> &ends, string &sequence) {
     /*
-     * finding the most repeating motif without converting the seed to string; applying the KMP algorithm
-     * @param left_bset the dynamic bitset of the left bit of the sequence
-     * @param right_bset the dynamic bitset of the right bit of the sequence
-     * @param seed_start start of the seed sequence
-     * @param seed_sequence_length length of the seed sequence
-     * @param motif_length length of the motif
-     * @param sequence_length total length of the sequence
-     * @param motifs the vector of identified possible motifs; passed as reference; updated
-     * @param starts the vector of starts of the identified motifs
-     * @param ends the vector of the ends of the identified motifs
-     * @param sequence the nucleotide sequence of the seed
-     * @returns none updates motifs, starts and ends of the identified motifs
-    */
+     *  finding the most repeating motif without converting the seed to string; applying the KMP algorithm
+     *  @param left_bset the dynamic bitset of the left bit of the sequence
+     *  @param right_bset the dynamic bitset of the right bit of the sequence
+     *  @param seed_start start of the seed sequence
+     *  @param seed_sequence_length length of the seed sequence
+     *  @param motif_length length of the motif
+     *  @param sequence_length total length of the sequence
+     *  @param motifs the vector of identified possible motifs; passed as reference; updated
+     *  @param starts the vector of starts of the identified motifs
+     *  @param ends the vector of the ends of the identified motifs
+     *  @param sequence the nucleotide sequence of the seed
+     *  @returns none updates motifs, starts and ends of the identified motifs
+     */
 
     unordered_map<uint32_t, int> new_motif_start;
 
@@ -233,15 +232,15 @@ void possibleMotifs(boost::dynamic_bitset<> &left_bset, boost::dynamic_bitset<> 
 
 void orderMotifs(vector<uint32_t> &motifs, vector<int> &starts, vector<int> &ends, int seed_start, int seed_end, int motif_length) {
     /*
-     * orders the motifs and adjusts the starts and ends such that the whole seed is covered
-     * @param motifs the vector of identified possible motifs; passed as reference; updated
-     * @param starts the vector of starts of the identified motifs
-     * @param ends the vector of the ends of the identified motifs
-     * @param seed_start start coordinate of the seed sequence
-     * @param seed_end end coordinate of the seed sequence
-     * @param motif_length length of the motif
-     * @returns none updates motifs, starts and ends of the identified motifs
-    */
+     *  orders the motifs and adjusts the starts and ends such that the whole seed is covered
+     *  @param motifs the vector of identified possible motifs; passed as reference; updated
+     *  @param starts the vector of starts of the identified motifs
+     *  @param ends the vector of the ends of the identified motifs
+     *  @param seed_start start coordinate of the seed sequence
+     *  @param seed_end end coordinate of the seed sequence
+     *  @param motif_length length of the motif
+     *  @returns none updates motifs, starts and ends of the identified motifs
+     */
 
     seed_end = seed_end + motif_length; // extend the seed end by motif length to cover the last motif
     int motif_start = 0, motif_end = 0;
@@ -317,29 +316,28 @@ void processSmallMotifSeed(tuple<int, int> seed_position, int chunk_start, int &
                            StripedSmithWaterman::Aligner &aligner, StripedSmithWaterman::Filter &filter, StripedSmithWaterman::Alignment &alignment,
                            vector<tuple<string, int, int, string, double, string, int, int, int>> &repeat_loci) {
     /*
-     * processes the seed and finds all the repeats in the sequence
-     * @param seed_position tuple with start and end position of the seed
-     * @param chunk_start the start of the seed sequence
-     * @param motif_length length of the motif
-     * @param seed_type type of the seed
-     * @param sequence_id name of the sequence
-     * @param sequence nucleotide sequence of the seed
-     * @param sequence_length length of the complete sequence
-     * @param xor_bset shift XOR bitset of the motif size
-     * @param left_bset the dynamic bitset of the left bit of the sequence
-     * @param right_bset the dynamic bitset of the right bit of the sequence
-     * @param N_bset the bitset indicating the presence of Ns at a position
-     * @param out output file name
-     * @param aligner the aligner object pf ssw alignment
-     * @param filter the filter object of ssw alignment
-     * @param alignment the resultant alignment object
-     * @param repeat_loci the list of identified repeat loci
-     * @returns none prints out the repeat locations to the output file
-    */
+     *  processes the seed and finds all the repeats in the sequence
+     *  @param seed_position tuple with start and end position of the seed
+     *  @param chunk_start the start of the seed sequence
+     *  @param motif_length length of the motif
+     *  @param seed_type type of the seed
+     *  @param sequence_id name of the sequence
+     *  @param sequence nucleotide sequence of the seed
+     *  @param sequence_length length of the complete sequence
+     *  @param xor_bset shift XOR bitset of the motif size
+     *  @param left_bset the dynamic bitset of the left bit of the sequence
+     *  @param right_bset the dynamic bitset of the right bit of the sequence
+     *  @param N_bset the bitset indicating the presence of Ns at a position
+     *  @param out output file name
+     *  @param aligner the aligner object pf ssw alignment
+     *  @param filter the filter object of ssw alignment
+     *  @param alignment the resultant alignment object
+     *  @param repeat_loci the list of identified repeat loci
+     *  @returns none prints out the repeat locations to the output file
+     */
 
     int seed_start     = get<0> (seed_position);
     int seed_end       = get<1> (seed_position);
-    
 
     // check if there are Ns in the seed sequence
     // if yes, break the seed around the N position and consider the parts
@@ -347,8 +345,8 @@ void processSmallMotifSeed(tuple<int, int> seed_position, int chunk_start, int &
         if (N_bset[sequence_length-1-s] == 1) {
             if (s - seed_start >= motif_length) {
                 processSmallMotifSeed(tuple<int,int>{seed_start, s - motif_length}, chunk_start, motif_length, seed_type, sequence_id,
-                                     sequence, sequence_length, xor_bset, left_bset, right_bset, N_bset, out,
-                                     aligner, filter, alignment, repeat_loci);
+                                      sequence, sequence_length, xor_bset, left_bset, right_bset, N_bset, out,
+                                      aligner, filter, alignment, repeat_loci);
             }
             seed_start = s - motif_length + 1;
         }
