@@ -4,6 +4,110 @@ using namespace std;
 using namespace boost;
 
 
+void printIsolatedRepeats(vector<tuple<string, int, int, string, double, string, int, int, int>> &repeat_loci, ofstream &out) {
+    /*
+     *  prints the repeats to output file merging the overlapping ones and reporting the nested ones in a separate column
+     *  @param repeat_loci vector of tuples containing the repeat loci information
+     *  @param out the output file stream
+     */
+
+    cleanCigar(get<5> (repeat_loci[0]));
+    out << get<0>(repeat_loci[0]) << "\t" << get<1>(repeat_loci[0]) << "\t" << get<2>(repeat_loci[0]) << "\t" 
+        << get<3>(repeat_loci[0]) << "\t" << get<4>(repeat_loci[0]) << "\t" << get<6>(repeat_loci[0]) << "\t"
+        << get<7>(repeat_loci[0]) << "\t" << get<8>(repeat_loci[0]) << "\tI";
+    if (CIGAROUTPUT) { out << ":" << get<5>(repeat_loci[0]); }
+    out << "\n";
+}
+
+
+void printMergedRepeats(vector<tuple<string, int, int, string, double, string, int, int, int>> &repeat_loci, ofstream & out) {
+    /*
+     *  prints the repeats to output file merging the overlapping ones and reporting the nested ones in a separate column
+     *  @param repeat_loci vector of tuples containing the repeat loci information
+     *  @param out the output file stream
+     */
+
+    cleanCigar(get<5> (repeat_loci[0]));
+    out << get<0>(repeat_loci[0]) << "\t" << get<1>(repeat_loci[0]) << "\t" << get<2>(repeat_loci[0]) << "\t" 
+        << get<3>(repeat_loci[0]) << "\t" << get<4>(repeat_loci[0]) << "\t" << get<6>(repeat_loci[0]) << "\t" 
+        << get<7>(repeat_loci[0]) << "\t" << get<8>(repeat_loci[0]) << "\t";
+
+    out << "M:";
+    if (CIGAROUTPUT) { out << get<5>(repeat_loci[0]) << ":"; }
+    for (int j=1; j<repeat_loci.size(); j++) {
+        cleanCigar(get<5> (repeat_loci[j]));
+        out << get<1> (repeat_loci[j]) << "-" << get<2> (repeat_loci[j]) << "-" << get<6> (repeat_loci[j]) << "-" << get<4> (repeat_loci[j]);
+        if (j != repeat_loci.size() - 1) { out << ","; }
+    }
+    out << ":";
+    for (int j=1; j<repeat_loci.size(); j++) {
+        out << get<3> (repeat_loci[j]);
+        if (j != repeat_loci.size() - 1) { out << ","; }
+    }
+    if (CIGAROUTPUT) {
+        out << ":";
+        for (int j=1; j<repeat_loci.size(); j++) {
+            out << get<5> (repeat_loci[j]);
+            if (j != repeat_loci.size() - 1) { out << ","; }
+        }
+    }
+    out << "\n";
+}
+
+
+void mergeRepeats(vector<tuple<string, int, int, string, double, string, int, int, int>> &repeat_loci, 
+                  ofstream &out, int &end_index) {
+    /*
+     *  merges the repeats in the repeat loci and reports the nested ones in a separate column
+     *  @param repeat_loci vector of tuples containing the repeat loci information
+     *  @param end_index the index in the repeat loci vector till which the repeats should be merged 
+     */
+
+    vector<tuple<string, int, int, string, double, string, int, int, int>> overlapping_repeats;
+
+    out << std::setprecision(2) << fixed;
+    int didx, repeat_start, repeat_end, motif_length;
+    string motif;
+    double purity;
+    int merge_start = -1, merge_end = -1;
+    for (int i=0; i < repeat_loci.size(); i++) {
+        repeat_start = get<1>(repeat_loci[i]);
+        repeat_end = get<2>(repeat_loci[i]);
+        motif = get<3>(repeat_loci[i]);
+        motif_length = get<6>(repeat_loci[i]);
+
+        if (i == 0) {
+            overlapping_repeats.push_back(repeat_loci[i]);
+            merge_start = repeat_start; merge_end = repeat_end;
+            continue;
+        }
+
+
+        if (repeat_end <= get<2>(overlapping_repeats[0]) ) {
+            // add repeats to the set of overlapping repeats
+            overlapping_repeats.push_back(repeat_loci[i]);
+        }
+
+        else {
+
+            if (overlapping_repeats.size() == 1) printIsolatedRepeats(overlapping_repeats, out);
+            else if (overlapping_repeats.size() > 1) printMergedRepeats(overlapping_repeats, out);
+
+            overlapping_repeats.clear();
+            if (i <= end_index) {
+                overlapping_repeats.push_back(repeat_loci[i]);
+                merge_start = repeat_start; merge_end = repeat_end;
+            }
+            else { end_index = i-1; break; }
+        }
+
+    }
+
+    if (overlapping_repeats.size() == 1) printIsolatedRepeats(overlapping_repeats, out);
+    else if (overlapping_repeats.size() > 1) printMergedRepeats(overlapping_repeats, out);
+}
+
+
 void printRepeatsToOutput(ofstream &out, vector<tuple<string, int, int, string, double, string, int, int, int>> &repeat_loci,
                           int end_index) {
     /*
@@ -13,15 +117,7 @@ void printRepeatsToOutput(ofstream &out, vector<tuple<string, int, int, string, 
      * @param end_index index to which point repeats should be printed to the output
     */
 
-    cleanCigar(get<5> (repeat_loci[0]));
-    for (int i=0; i<=end_index; i++) {
-        out << get<0> (repeat_loci[i]) << "\t" << get<1> (repeat_loci[i]) << "\t" << get<2> (repeat_loci[i]) << "\t"
-            << get<3> (repeat_loci[i]) << "\t" << get<4> (repeat_loci[i]) << "\t+\t" << get<6> (repeat_loci[i]) << "\t" 
-            << get<7> (repeat_loci[i]) << "\t" << get<8> (repeat_loci[i]);
-        if (CIGAROUTPUT) { out << "\t" << get<5> (repeat_loci[i]); }
-        out << "\n";
-    }
-
+    mergeRepeats(repeat_loci, out, end_index);
     repeat_loci.erase(repeat_loci.begin(), repeat_loci.begin() + end_index + 1);
 }
 
@@ -40,7 +136,7 @@ int absolute(int x) {
 bool checkCyclicalVariation(string query, string ref) {
     /*
      * checks if a query motif is cyclical variation of reference motif
-     * @param query sequence of the query motif
+     * @param query sequence of the query motif 
      * @param ref sequence of reference motif
      * @return bool if the query motif is a cyclical variation of the reference motif
     */
@@ -58,11 +154,11 @@ bool checkCyclicalVariation(string query, string ref) {
 
 int leastDistance(string reference, string query) {
     /*
-     * calculates the least distance between two strings
-     * @param reference string to be compared with
-     * @param query string to be compared
-     * @return int the least distance between the two strings
-    */
+     *  calculates the least distance between two strings
+     *  @param reference string to be compared with
+     *  @param query string to be compared
+     *  @return int the least distance between the two strings
+     */
     StripedSmithWaterman::Aligner   aligner;
     StripedSmithWaterman::Filter    filter;
     StripedSmithWaterman::Alignment alignment;
@@ -73,14 +169,14 @@ int leastDistance(string reference, string query) {
 
 
 tuple<vector<int>, vector<char>> extractNonOverlapCigar(int a_end, int b_start, vector<int> dn_clens, vector<char> dn_ctypes) {
-     /*
-     * extracts the non-overlapping cigar from the downstream locus of two overlapping loci
-     * @param a_end     end position of the upstream locus
-     * @param b_start   start position of the downstream locus
-     * @param dn_clens   the lengths of the cigar operations for the downstream locus
-     * @param dn_ctypes  the consecutive cigar operations of the downstream locus
-     * @return tuple<vector<int>, vector<char>> the lengths of continuous cigar operations and continuous cigar operations
-    */
+    /*
+     *  extracts the non-overlapping cigar from the downstream locus of two overlapping loci
+     *  @param a_end     end position of the upstream locus
+     *  @param b_start   start position of the downstream locus
+     *  @param dn_clens   the lengths of the cigar operations for the downstream locus
+     *  @param dn_ctypes  the consecutive cigar operations of the downstream locus
+     *  @return tuple<vector<int>, vector<char>> the lengths of continuous cigar operations and continuous cigar operations
+     */
     vector<int> nol_clens; vector<char> nol_ctypes;
     int rpos = b_start, i = 0;
     int clen; char ctype;
@@ -123,84 +219,6 @@ tuple<vector<int>, vector<char>> extractNonOverlapCigar(int a_end, int b_start, 
     }
 
     return {nol_clens, nol_ctypes};
-}
-
-
-int getBoundaryOverlappingLoci(int upstart, int upend, string &upmotif, tuple<vector<int>, vector<char>> &up_cigarvalues, string &upcigar,
-                               int dnstart, int dnend, string &dnmotif, tuple<vector<int>, vector<char>> &dn_cigarvalues, string &dncigar) {
-    /*
-     * gets the boundary of the overlapping loci
-     *  @param upstart start position of the upstream locus
-     *  @param upend end position of the upstream locus
-     *  @param upmotif motif of the upstream locus
-     *  @param up_cigarvalues the lengths and types of cigar operations of the upstream locus
-     *  @param dnstart start position of the downstream locus
-     *  @param dnend end position of the downstream locus
-     *  @param dnmotif motif of the downstream locus
-     *  @param dn_cigarvalues the lengths and types of cigar operations of the downstream locus
-    */
-
-    int overlap_length = upend - dnstart;
-    int up_matches = 0, dn_matches = 0, longest_match = 0, shortmotif_length = 0;
-    int max_matches = 0, max_longest_match = 0;
-    int max_shortmotif_length = 0;
-    tuple<vector<int>, vector<char>> up_olseg_cigarvalues;
-    tuple<vector<int>, vector<char>> dn_olseg_cigarvalues;
-    tuple<vector<int>, vector<char>> up_new_cigarvalues;
-    tuple<vector<int>, vector<char>> dn_new_cigarvalues;
-
-    int boundary = 0, uppos = 0, dnpos = 0;
-    string new_upcigar = "", new_dncigar = "";
-    for (int i=0; i <= overlap_length; i++) {
-        up_matches = 0, dn_matches = 0;
-
-        up_olseg_cigarvalues = extractRegionCigar(up_cigarvalues, dnstart-upstart, (dnstart+i)-upstart);
-        dn_olseg_cigarvalues = extractRegionCigar(dn_cigarvalues, i, upend-dnstart);
-
-        getMatches(up_olseg_cigarvalues, up_matches, longest_match);
-        getMatches(dn_olseg_cigarvalues, dn_matches, longest_match);
-
-        if (up_matches + dn_matches > max_matches) {
-            max_matches = up_matches + dn_matches;
-            max_longest_match = longest_match;
-            max_shortmotif_length = (upmotif.length() <= dnmotif.length()) ? getRepeatLength(up_olseg_cigarvalues) : getRepeatLength(dn_olseg_cigarvalues);
-            boundary = i;
-            up_new_cigarvalues = extractDownCigar(up_cigarvalues, upstart, dnstart + i);
-            dn_new_cigarvalues = extractUpCigar(dn_cigarvalues, dnend, dnstart + i);
-            new_upcigar = buildCigar(up_new_cigarvalues);
-            new_dncigar = buildCigar(dn_new_cigarvalues);
-        }
-
-        else if (up_matches + dn_matches == max_matches) {
-            if (longest_match > max_longest_match) {
-                max_longest_match = longest_match;
-                max_shortmotif_length = (upmotif.length() <= dnmotif.length()) ? getRepeatLength(up_olseg_cigarvalues) : getRepeatLength(dn_olseg_cigarvalues);
-                boundary = i;
-                up_new_cigarvalues = extractDownCigar(up_cigarvalues, upstart, dnstart + i);
-                dn_new_cigarvalues = extractUpCigar(dn_cigarvalues, dnend, dnstart + i);
-                new_upcigar = buildCigar(up_new_cigarvalues);
-                new_dncigar = buildCigar(dn_new_cigarvalues);
-            }
-            else if (longest_match == max_longest_match) {
-                if (upmotif.length() <= dnmotif.length())  shortmotif_length = getRepeatLength(up_olseg_cigarvalues);
-                else  shortmotif_length = getRepeatLength(dn_olseg_cigarvalues);
-
-                if (shortmotif_length > max_shortmotif_length) {
-                    max_shortmotif_length = shortmotif_length;
-                    max_longest_match = longest_match;
-                    boundary = i;
-                    up_new_cigarvalues = extractDownCigar(up_cigarvalues, upstart, dnstart + i);
-                    dn_new_cigarvalues = extractUpCigar(dn_cigarvalues, dnend, dnstart + i);
-                    new_upcigar = buildCigar(up_new_cigarvalues);
-                    new_dncigar = buildCigar(dn_new_cigarvalues);
-                }
-            }
-        }
-    }
-
-    upcigar = new_upcigar;
-    dncigar = new_dncigar;
-    return boundary + dnstart;
 }
 
 
@@ -291,6 +309,84 @@ bool onlyMatches(vector<char> &ctypes) {
 }
 
 
+int getBoundaryOverlappingLoci(int upstart, int upend, string &upmotif, tuple<vector<int>, vector<char>> &up_cigarvalues, string &upcigar,
+                               int dnstart, int dnend, string &dnmotif, tuple<vector<int>, vector<char>> &dn_cigarvalues, string &dncigar) {
+    /*
+     * gets the boundary of the overlapping loci
+     *  @param upstart start position of the upstream locus
+     *  @param upend end position of the upstream locus
+     *  @param upmotif motif of the upstream locus
+     *  @param up_cigarvalues the lengths and types of cigar operations of the upstream locus
+     *  @param dnstart start position of the downstream locus
+     *  @param dnend end position of the downstream locus
+     *  @param dnmotif motif of the downstream locus
+     *  @param dn_cigarvalues the lengths and types of cigar operations of the downstream locus
+    */
+
+    int overlap_length = upend - dnstart;
+    int up_matches = 0, dn_matches = 0, longest_match = 0, shortmotif_length = 0;
+    int max_matches = 0, max_longest_match = 0;
+    int max_shortmotif_length = 0;
+    tuple<vector<int>, vector<char>> up_olseg_cigarvalues;
+    tuple<vector<int>, vector<char>> dn_olseg_cigarvalues;
+    tuple<vector<int>, vector<char>> up_new_cigarvalues;
+    tuple<vector<int>, vector<char>> dn_new_cigarvalues;
+
+    int boundary = 0, uppos = 0, dnpos = 0;
+    string new_upcigar = "", new_dncigar = "";
+    for (int i=0; i <= overlap_length; i++) {
+        up_matches = 0, dn_matches = 0;
+
+        up_olseg_cigarvalues = extractRegionCigar(up_cigarvalues, dnstart-upstart, (dnstart+i)-upstart);
+        dn_olseg_cigarvalues = extractRegionCigar(dn_cigarvalues, i, upend-dnstart);
+
+        getMatches(up_olseg_cigarvalues, up_matches, longest_match);
+        getMatches(dn_olseg_cigarvalues, dn_matches, longest_match);
+
+        if (up_matches + dn_matches > max_matches) {
+            max_matches = up_matches + dn_matches;
+            max_longest_match = longest_match;
+            max_shortmotif_length = (upmotif.length() <= dnmotif.length()) ? getRepeatLength(up_olseg_cigarvalues) : getRepeatLength(dn_olseg_cigarvalues);
+            boundary = i;
+            up_new_cigarvalues = extractDownCigar(up_cigarvalues, upstart, dnstart + i);
+            dn_new_cigarvalues = extractUpCigar(dn_cigarvalues, dnend, dnstart + i);
+            new_upcigar = buildCigar(up_new_cigarvalues);
+            new_dncigar = buildCigar(dn_new_cigarvalues);
+        }
+
+        else if (up_matches + dn_matches == max_matches) {
+            if (longest_match > max_longest_match) {
+                max_longest_match = longest_match;
+                max_shortmotif_length = (upmotif.length() <= dnmotif.length()) ? getRepeatLength(up_olseg_cigarvalues) : getRepeatLength(dn_olseg_cigarvalues);
+                boundary = i;
+                up_new_cigarvalues = extractDownCigar(up_cigarvalues, upstart, dnstart + i);
+                dn_new_cigarvalues = extractUpCigar(dn_cigarvalues, dnend, dnstart + i);
+                new_upcigar = buildCigar(up_new_cigarvalues);
+                new_dncigar = buildCigar(dn_new_cigarvalues);
+            }
+            else if (longest_match == max_longest_match) {
+                if (upmotif.length() <= dnmotif.length())  shortmotif_length = getRepeatLength(up_olseg_cigarvalues);
+                else  shortmotif_length = getRepeatLength(dn_olseg_cigarvalues);
+
+                if (shortmotif_length > max_shortmotif_length) {
+                    max_shortmotif_length = shortmotif_length;
+                    max_longest_match = longest_match;
+                    boundary = i;
+                    up_new_cigarvalues = extractDownCigar(up_cigarvalues, upstart, dnstart + i);
+                    dn_new_cigarvalues = extractUpCigar(dn_cigarvalues, dnend, dnstart + i);
+                    new_upcigar = buildCigar(up_new_cigarvalues);
+                    new_dncigar = buildCigar(dn_new_cigarvalues);
+                }
+            }
+        }
+    }
+
+    upcigar = new_upcigar;
+    dncigar = new_dncigar;
+    return boundary + dnstart;
+}
+
+
 void compareOverlappingLoci(int &upstart, int &upend, string &upcigar, string &upmotif, double &uppurity, bool &up_drop, bool &up_update,
                             int &dnstart, int &dnend, string &dncigar, string &dnmotif, double &dnpurity, bool &dn_drop, bool &dn_update) {
     /*
@@ -374,25 +470,42 @@ void compareOverlappingLoci(int &upstart, int &upend, string &upcigar, string &u
         }
     }
 
-    // else {
-    //     // if both the loci have mismatches or indels calculate an optimal boundary
-    //     int boundary = getBoundaryOverlappingLoci(upstart, upend, upmotif, up_cigarvalues, upcigar,
-    //                                               dnstart, dnend, dnmotif, dn_cigarvalues, dncigar);
+    else {
+        // if both the loci have mismatches or indels calculate an optimal boundary
+        int boundary = getBoundaryOverlappingLoci(upstart, upend, upmotif, up_cigarvalues, upcigar,
+                                                  dnstart, dnend, dnmotif, dn_cigarvalues, dncigar);
 
-    //     uppurity = ((double) (getMatches(upcigar))) / ((double) (getAlignmentLength(upcigar)));
-    //     dnpurity = ((double) (getMatches(dncigar))) / ((double) (getAlignmentLength(dncigar)));
+        uppurity = ((double) (getMatches(upcigar))) / ((double) (getAlignmentLength(upcigar)));
+        dnpurity = ((double) (getMatches(dncigar))) / ((double) (getAlignmentLength(dncigar)));
 
-    //     upend = boundary; dnstart = boundary;
-    //     up_update = true; dn_update = true;
-    //     if (((upend - upstart) < MINIMUM_LENGTH[upmotif.size()]) || ((upend - upstart) < 2*upmotif.size())) {
-    //         up_drop = true;
-    //     }
-    //     if (((dnend - dnstart) < MINIMUM_LENGTH[dnmotif.size()]) || ((dnend - dnstart) < 2*dnmotif.size())) {
-    //         dn_drop = true;
-    //     }
-    //     return;
-    // }
+        upend = boundary; dnstart = boundary;
+        up_update = true; dn_update = true;
+        if (((upend - upstart) < MINIMUM_LENGTH[upmotif.size()]) || ((upend - upstart) < 2*upmotif.size())) {
+            up_drop = true;
+        }
+        if (((dnend - dnstart) < MINIMUM_LENGTH[dnmotif.size()]) || ((dnend - dnstart) < 2*dnmotif.size())) {
+            dn_drop = true;
+        }
+        return;
+    }
 
+}
+
+
+// Define a comparison function for tuples (e.g., comparing the first element)
+bool compareRepeatLoci(const tuple<string, int, int, string, double, string, int, int, int> &a,
+                       const tuple<string, int, int, string, double, string, int, int, int> &b) {
+    /*
+     * compares repeat loci based on the start positions; if starts are same, returns the one with larger end position first
+     *  @param a tuple of the first repeat location
+     *  @param b tuple of the second repeat location
+     *  @returns bool bool value indicating if the first repeat is before second repeat
+    */
+    if (get<1> (a) == get<1> (b)) {
+        // if the start positions are same, compare based on the end positions
+        return get<2> (a) > get<2> (b);
+    }
+    return get<1> (a) < get<1> (b); // Compare based on the first element (int)
 }
 
 
@@ -448,20 +561,318 @@ tuple<string, double> mergeRepeatsIdenticalMotif(int upend, int dnstart, string 
 }
 
 
-// Define a comparison function for tuples (e.g., comparing the first element)
-bool compareRepeatLoci(const tuple<string, int, int, string, double, string, int, int, int> &a,
-                       const tuple<string, int, int, string, double, string, int, int, int> &b) {
+bool handleOverlapRelation(string &sequence_id, int repeat_start, int repeat_end, string motif, double purity, string &cigar_string,
+                           int motif_length, int repeat_length, int repeat_units, ofstream &out,
+                           vector<tuple<string, int, int, string, double, string, int, int, int>> &repeat_loci, vector<int> &remove_loci) {
     /*
-     * compares repeat loci based on the start positions
-     *  @param a tuple of the first repeat location
-     *  @param b tuple of the second repeat location
-     *  @returns bool bool value indicating if the first repeat is before second repeat
+     *  handles nested-parent relationship of the current repeat with the recorded repeats
+     *  @param repeat_start start position of the current repeat
+     *  @param repeat_end end position of the current repeat
+     *  @param motif motif of the current repeat
+     *  @param motif_length length of the motif of the current repeat
+     *  @param purity purity of the current repeat
+     *  @param cigar_string CIGAR of the current repeat
+     *  @param repeat_loci vector of recorded repeat loci sorted based on the start positions
     */
-    return get<1> (a) < get<1> (b); // Compare based on the first element (int)
+
+    int last_start, last_end, last_length, last_mlen, last_units;
+    int segment_length; double segment_purity;
+    bool up_trim, down_trim;
+    string last_seqid,last_motif, last_cigar; double last_purity;
+    int i = 0;
+
+    for (i=repeat_loci.size()-1; i >= 0; i--) {
+        if (i >= repeat_loci.size()) { i = repeat_loci.size()-1; }
+        // start comparing repeats from the end
+        last_start  = get<1> (repeat_loci[i]);
+        last_end    = get<2> (repeat_loci[i]);
+
+        if ((repeat_end < last_start) || (repeat_start > last_end)) {
+            // continue if repeat doesn't overlap with the repeat
+            continue;
+        }
+
+        last_seqid  = get<0> (repeat_loci[i]);
+        last_motif  = get<3> (repeat_loci[i]);
+        last_mlen   = get<6> (repeat_loci[i]);
+        last_purity = get<4> (repeat_loci[i]);
+        last_cigar  = get<5> (repeat_loci[i]);
+        last_length = get<7> (repeat_loci[i]);
+
+        // identical coordinates
+        if (repeat_start == last_start && repeat_end == last_end) {
+            continue;
+        }
+
+        // nested
+        else if (last_start < repeat_start && repeat_end < last_end) {
+            continue;
+        }
+
+        // parent
+        else if (repeat_start < last_start && last_end < repeat_end) {
+            continue;
+        }
+
+        else {
+            // Only considering the repeats with overlap relationships
+
+            if (motif_length > SMALL_MLEN_LIMIT && last_mlen > SMALL_MLEN_LIMIT) {
+                if (motif_length != last_mlen) {
+
+                    // the repeats are not of the same motif
+                    // we calculate an optimal boundary point and either merge or separate the repeats
+                    bool fail = false, last_fail = false;       // if current repeat or last repeat should be dropped
+                    bool last_update = false, update = false;   // if current repeat or last repeat should be updated
+                    // if the repeats are overlapping
+                    if (last_start < repeat_start && repeat_start < last_end) {     // last-repeat is upstream of current repeat
+                        compareOverlappingLoci(last_start, last_end, last_cigar, last_motif, last_purity, last_fail, last_update,
+                                               repeat_start, repeat_end, cigar_string, motif, purity, fail, update);
+                    }
+    
+                    else if (repeat_start < last_start && last_start < repeat_end) {  // last-repeat is downstream of current repeat
+                        compareOverlappingLoci(repeat_start, repeat_end, cigar_string, motif, purity, fail, update,
+                                               last_start, last_end, last_cigar, last_motif, last_purity, last_fail, last_update);
+                    }
+    
+                    if (last_update && update) {
+                        // if both needs to be updated
+                        remove_loci.push_back(i);
+                        for (int j: remove_loci) { repeat_loci.erase(repeat_loci.begin() + j, repeat_loci.begin() + j + 1);}
+                        if (!last_fail) {
+                            last_length = last_end - last_start;
+                            last_units = last_length / last_mlen;
+                            addLocusToOutput(sequence_id, last_start, last_end, last_motif, last_purity, last_cigar, last_mlen,
+                                             last_length, last_units, out, repeat_loci);
+                        }
+                        if (!fail) {
+                            repeat_length = repeat_end - repeat_start;
+                            repeat_units = repeat_length / motif_length;
+                            addLocusToOutput(sequence_id, repeat_start, repeat_end, motif, purity, cigar_string, motif_length, repeat_length,
+                                             repeat_units, out, repeat_loci);
+                        }
+                        return false;
+                    }
+    
+                    else if (update & !(last_update)) {
+                        // if only current repeat is updated
+                        if (last_fail) { remove_loci.push_back(i); }
+                        for (int j: remove_loci) { repeat_loci.erase(repeat_loci.begin() + j, repeat_loci.begin() + j + 1);}
+                        repeat_length = repeat_end - repeat_start;
+                        repeat_units = repeat_length / motif_length;
+                        addLocusToOutput(sequence_id, repeat_start, repeat_end, motif, purity, cigar_string, motif_length, repeat_length,
+                                         repeat_units, out, repeat_loci);
+                        return false;
+                    }
+    
+                    else if (last_update & !(update)) {
+                        remove_loci.push_back(i);
+                        for (int j: remove_loci) { repeat_loci.erase(repeat_loci.begin() + j, repeat_loci.begin() + j + 1);}
+                        remove_loci.clear();
+                        last_length = last_end - last_start;
+                        last_units = last_length / last_mlen;
+                        addLocusToOutput(sequence_id, last_start, last_end, last_motif, last_purity, last_cigar, last_mlen,
+                                         last_length, last_units, out, repeat_loci);
+                        if (fail) return false;
+                    }
+                }
+
+                else {
+                    if (repeat_start == last_start || repeat_end == last_end) { continue; }
+                    int upstart, upend, dnstart, dnend, uplength, dnlength;
+                    string upcigar, dncigar, upmotif, dnmotif;
+                    double uppurity, dnpurity;
+                    tuple<vector<int>, vector<char>> up_cigarvalues, dn_cigarvalues;
+
+                    int merge_start = 0, merge_end = 0, merge_length, merge_units;
+                    string merge_cigar = ""; double merge_purity = 0.0;
+                    string merge_motif = "";
+
+                    if (last_start < repeat_start && repeat_start < last_end) {
+                        upstart = last_start; upend = last_end; upcigar = last_cigar; upmotif = last_motif; uppurity = last_purity;
+                        dnstart = repeat_start; dnend = repeat_end; dncigar = cigar_string; dnmotif = motif; dnpurity = purity;
+                    }
+                    else if (repeat_start < last_start && last_start < repeat_end) {
+                        dnstart = last_start; dnend = last_end; dncigar = last_cigar; dnmotif = last_motif; dnpurity = last_purity;
+                        upstart = repeat_start; upend = repeat_end; upcigar = cigar_string; upmotif = motif; uppurity = purity;
+                    }
+                    else if (last_end == repeat_start || last_start == repeat_end) {
+                        if (last_start < repeat_start) {
+                            merge_start = last_start; merge_end = repeat_end;
+                            merge_cigar = last_cigar + cigar_string;
+                        }
+                        else if (repeat_start < last_start) {
+                            merge_start = repeat_start; merge_end = last_end;
+                            merge_cigar = cigar_string + last_cigar;
+                        }
+                        cleanCigar(merge_cigar);
+                        merge_length = merge_end - merge_start;
+                        merge_units  = merge_length / motif_length;
+                        merge_motif = ((repeat_end-repeat_start)*purity >= (last_end-last_start)*last_purity) ? motif : last_motif;
+                        merge_purity = ((double) (getMatches(merge_cigar))) / ((double) (getAlignmentLength(merge_cigar)));
+                        addLocusToOutput(sequence_id, merge_start, merge_end, merge_motif, merge_purity, merge_cigar,
+                                         motif_length, merge_length, merge_units, out, repeat_loci);
+                        continue;
+                    }
+
+                    up_cigarvalues = cigarSplit(upcigar);
+                    dn_cigarvalues = cigarSplit(dncigar);
+
+                    int boundary = getBoundaryOverlappingLoci(upstart, upend, upmotif, up_cigarvalues, upcigar,
+                                                              dnstart, dnend, dnmotif, dn_cigarvalues, dncigar);
+
+                    uplength = boundary - upstart; dnlength = dnend - boundary;
+                    uppurity = ((double) (getMatches(upcigar))) / ((double) (getAlignmentLength(upcigar)));
+                    dnpurity = ((double) (getMatches(dncigar))) / ((double) (getAlignmentLength(dncigar)));
+
+                    if (uplength * uppurity > dnlength * dnpurity) { merge_motif = upmotif; }
+                    else { merge_motif = dnmotif; }
+                    
+                    
+                    merge_cigar = upcigar + dncigar; // simply concatenate the cigars
+                    cleanCigar(merge_cigar);
+                    merge_purity = ((double) (getMatches(merge_cigar))) / ((double) (getAlignmentLength(merge_cigar)));
+                    
+                    merge_start = upstart; merge_end = dnend;
+                    merge_length = merge_end - merge_start;
+                    merge_units  = merge_length / motif_length;
+                    assert(merge_length == getRepeatLength(merge_cigar));
+                    addLocusToOutput(sequence_id, merge_start, merge_end, merge_motif, merge_purity, merge_cigar,
+                                     motif_length, merge_length, merge_units, out, repeat_loci);
+                }
+            }
+
+            else if (motif_length <= SMALL_MLEN_LIMIT && (motif == last_motif || checkCyclicalVariation(motif, last_motif))) {
+
+                // if the repeats are of the same motif
+                if (repeat_start == last_start || repeat_end == last_end) { continue; }
+                // else {
+                tuple <string, double> merge_values;
+                int merge_start = repeat_start, merge_end = repeat_end, merge_length, merge_units;
+                string merge_cigar = "";
+                double merge_purity = 0.0;
+
+                // if the repeats are having the same motif then we merge them
+                if (repeat_start == last_end || (last_start < repeat_start && repeat_start < last_end)) {
+                    merge_values = mergeRepeatsIdenticalMotif(last_end, repeat_start, last_cigar, cigar_string);
+                    merge_start = last_start;
+                }
+
+                else if (last_start == repeat_end || (repeat_start < last_start && last_start < repeat_end)) {
+                    merge_values = mergeRepeatsIdenticalMotif(repeat_end, last_start, cigar_string, last_cigar);
+                    merge_end = last_end;
+                }
+
+                merge_length = merge_end - merge_start;
+                merge_units  = merge_length / motif_length;
+                merge_cigar = get<0> (merge_values); merge_purity = get<1> (merge_values);
+                addLocusToOutput(sequence_id, merge_start, merge_end, motif, merge_purity, merge_cigar,
+                                    motif_length, merge_length, merge_units, out, repeat_loci);
+                // }
+            }
+        }
+    }
+
+    return true;
 }
 
 
-void addLocusToOutput(string &sequence_id, int repeat_start, int repeat_end, string motif, double purity, string &cigar_string,
+bool handleNestedParentRelation(string &sequence_id, int repeat_start, int repeat_end, string motif, double purity, string &cigar_string,
+                                int motif_length, int repeat_length, int repeat_units, ofstream &out,
+                                vector<tuple<string, int, int, string, double, string, int, int, int>> &repeat_loci, vector<int> &remove_loci) {
+    /*
+     *  handles nested-parent relationship of the current repeat with the recorded repeats
+     *  @param repeat_start start position of the current repeat
+     *  @param repeat_end end position of the current repeat
+     *  @param motif motif of the current repeat
+     *  @param motif_length length of the motif of the current repeat
+     *  @param purity purity of the current repeat
+     *  @param cigar_string CIGAR of the current repeat
+     *  @param repeat_loci vector of recorded repeat loci sorted based on the start positions
+    */
+
+    int last_start, last_end, last_length, last_mlen, last_units;
+    int segment_length; double segment_purity;
+    bool up_trim, down_trim;
+    bool up_equal, down_equal;
+    string last_seqid,last_motif, last_cigar; double last_purity;
+    int i = 0;
+
+    for (i=repeat_loci.size()-1; i >= 0; i--) {
+        if (i >= repeat_loci.size()) { i = repeat_loci.size()-1; }
+        // start comparing repeats from the end
+        last_start  = get<1> (repeat_loci[i]);
+        last_end    = get<2> (repeat_loci[i]);
+
+        if ((repeat_end < last_start) || (repeat_start > last_end)) {
+            // continue if repeat doesn't overlap with the repeat
+            continue;
+        }
+
+        last_seqid  = get<0> (repeat_loci[i]);
+        last_motif  = get<3> (repeat_loci[i]);
+        last_mlen   = get<6> (repeat_loci[i]);
+        last_purity = get<4> (repeat_loci[i]);
+        last_cigar  = get<5> (repeat_loci[i]);
+        last_length = get<7> (repeat_loci[i]);
+
+        // identical coordinates
+        if (repeat_start == last_start && repeat_end == last_end) {
+            if (motif == last_motif || checkCyclicalVariation(motif, last_motif)) { return false; }
+            else if (purity <= last_purity) return false;
+            else if (purity > last_purity)  remove_loci.push_back(i);
+        }
+
+        // nested
+        else if (last_start <= repeat_start && repeat_end <= last_end) {
+            if (motif == last_motif || checkCyclicalVariation(motif, last_motif)) {
+                if (purity <= last_purity) return false;
+            }
+
+            else if (motif_length < last_mlen && motif_length > SMALL_MLEN_LIMIT && purity*repeat_length > last_purity*last_length) {
+                // if the current motif is smaller than the last motif and the current repeat has more number of matching bases
+                // than the last repeat, then we keep the current repeat
+                remove_loci.push_back(i);
+
+            }
+            
+            else {
+                tuple<vector<int>, vector<char>> segment_cigarvalues = extractRegionCigar(last_cigar, repeat_start-last_start, repeat_end-last_start);
+                double segment_purity = ((double) getMatches(segment_cigarvalues)) / ((double) getAlignmentLength(segment_cigarvalues));
+                if (purity < segment_purity) return false;
+            }
+        }
+
+        // parent
+        else if (repeat_start <= last_start && last_end <= repeat_end) {
+            if (motif == last_motif || checkCyclicalVariation(motif, last_motif)) {
+                if (last_purity <= purity) remove_loci.push_back(i);
+            }
+
+            else if (last_mlen < motif_length && last_mlen > SMALL_MLEN_LIMIT && last_purity*last_length > purity*repeat_length) {
+                // if the last motif is smaller than the current motif and the last repeat has more number of matching bases
+                // than the current repeat, then we keep the last repeat
+                return false;
+            }
+
+            else {
+                tuple<vector<int>, vector<char>> segment_cigarvalues = extractRegionCigar(cigar_string, last_start-repeat_start, last_end-repeat_start);
+                segment_purity = ((double) getMatches(segment_cigarvalues)) / ((double) getAlignmentLength(segment_cigarvalues));
+                if (last_purity < segment_purity) remove_loci.push_back(i);
+            }
+        }
+
+        else {
+            // handled in overlap function
+        }
+
+    }
+
+    return true;
+}
+
+
+void addLocusToOutput(string sequence_id, int repeat_start, int repeat_end, string motif, double purity, string cigar_string,
                       int motif_length, int repeat_length, int repeat_units, ofstream &out,
                       vector<tuple<string, int, int, string, double, string, int, int, int>> &repeat_loci) {
     /*
@@ -482,6 +893,13 @@ void addLocusToOutput(string &sequence_id, int repeat_start, int repeat_end, str
 
     string last_seqid = "";
     if (repeat_loci.size() > 0) { last_seqid = get<0> (repeat_loci[repeat_loci.size()-1]); }
+    else if (repeat_loci.size() == 0) {
+        tuple<string, int, int, string, double, string, int, int, int> repeat_locus;
+        repeat_locus = { sequence_id, repeat_start, repeat_end, motif, purity, cigar_string,
+                         motif_length, repeat_length, repeat_units };
+        repeat_loci.push_back(repeat_locus);
+        return;
+    }
 
     // if the last sequence id is different
     if (last_seqid != "" && sequence_id != last_seqid) {
@@ -497,229 +915,27 @@ void addLocusToOutput(string &sequence_id, int repeat_start, int repeat_end, str
         return;
     }
 
-    int last_start, last_end, last_length, last_mlen, last_units;
-    int overlap_length; string overlap_seq;
-    string last_motif, last_cigar; double last_purity;
     vector<int> remove_loci;
-    int i = 0;
+    bool addRepeat = handleNestedParentRelation(sequence_id, repeat_start, repeat_end, motif, purity, cigar_string,
+                                                motif_length, repeat_length, repeat_units, out, repeat_loci, remove_loci);
+    if (!addRepeat) return;
+    for (int j: remove_loci) { repeat_loci.erase(repeat_loci.begin() + j, repeat_loci.begin() + j + 1); }
+    remove_loci.clear();
 
-    for (i=repeat_loci.size()-1; i >= 0; i--) {
-        if (i >= repeat_loci.size()) { i = repeat_loci.size()-1; }
-        // start comparing repeats from the end
-        last_start  = get<1> (repeat_loci[i]);
-        last_end    = get<2> (repeat_loci[i]);
+    addRepeat = handleOverlapRelation(sequence_id, repeat_start, repeat_end, motif, purity, cigar_string,
+                                      motif_length, repeat_length, repeat_units, out, repeat_loci, remove_loci);
+    if (!addRepeat) return;
+    for (int j: remove_loci) { repeat_loci.erase(repeat_loci.begin() + j, repeat_loci.begin() + j + 1); }
 
-        if ((repeat_end < last_start) || (repeat_start > last_end)) {
-            // continue if repeat doesn't overlap with the repeat
-            continue;
-        }
+    addRepeat = handleNestedParentRelation(sequence_id, repeat_start, repeat_end, motif, purity, cigar_string,
+                                           motif_length, repeat_length, repeat_units, out, repeat_loci, remove_loci);
+    if (!addRepeat) return;
+    for (int j: remove_loci) { repeat_loci.erase(repeat_loci.begin() + j, repeat_loci.begin() + j + 1); }
 
-        last_motif  = get<3> (repeat_loci[i]);
-        last_mlen   = get<6> (repeat_loci[i]);
-        last_purity = get<4> (repeat_loci[i]);
-        last_cigar  = get<5> (repeat_loci[i]);
-        last_length = get<7> (repeat_loci[i]);
-
-        // identical coordinates
-        if (repeat_start == last_start && repeat_end == last_end) {
-            if (motif == last_motif || checkCyclicalVariation(motif, last_motif)) { return; }
-            else if (purity <= last_purity) return;
-            else if (purity > last_purity)  remove_loci.push_back(i);
-        }
-
-        // nested
-        else if (last_start <= repeat_start && repeat_end <= last_end) {
-            if (motif == last_motif || checkCyclicalVariation(motif, last_motif)) {
-                return;
-            }
-
-            else {
-                tuple<vector<int>, vector<char>> segment_cigarvalues = extractRegionCigar(last_cigar, repeat_start-last_start, repeat_end-last_start);
-                double segment_purity = ((double) getMatches(segment_cigarvalues)) / ((double) getAlignmentLength(segment_cigarvalues));
-                if (purity < segment_purity) return;
-
-                if (last_mlen >= 2*motif_length) {
-                    // if the motif length of the parent repeat is more than twice the motif length of the current repeat
-                    double mcomp_purity = 0.0; int mcomp_start = 0, mcomp_end = 2*last_mlen; string mcomp_cigar = "";
-                    string full_sequence = last_motif + last_motif;
-                    alignSequenceWithPerfectRepeat(full_sequence, motif, mcomp_start, mcomp_end, mcomp_purity, mcomp_cigar);
-                    if (mcomp_purity > 0.9 && mcomp_end-mcomp_start > last_mlen) {
-                        // if the parent motif is a repetitive sequence of the current motif with 90% purity 
-                        remove_loci.push_back(i);
-                        for (int j: remove_loci) { repeat_loci.erase(repeat_loci.begin() + j, repeat_loci.begin() + j + 1);}
-                        repeat_start = last_start; repeat_end = last_end;
-                        string full_sequence = SEQUENCE.substr(repeat_start, repeat_end-repeat_start);
-                        alignSequenceWithPerfectRepeat(full_sequence, motif, repeat_start, repeat_end, purity, cigar_string);
-                        repeat_length = repeat_end - repeat_start; repeat_units = repeat_length / motif_length;
-                        addLocusToOutput(sequence_id, repeat_start, repeat_end, motif, purity, cigar_string,
-                                         motif_length, repeat_length, repeat_units, out, repeat_loci);
-                        return;
-                    }
-                }
-
-                if (segment_purity > PURITY_THRESHOLD) {
-                    // keep both repeats as it is
-                }
-            }
-        }
-
-        // parent
-        else if (repeat_start <= last_start && last_end <= repeat_end) {
-            if (motif == last_motif || checkCyclicalVariation(motif, last_motif)) {
-                remove_loci.push_back(i);
-            }
-            else {
-                tuple<vector<int>, vector<char>> segment_cigarvalues = extractRegionCigar(cigar_string, last_start-repeat_start, last_end-repeat_start);
-                double segment_purity = ((double) getMatches(segment_cigarvalues)) / ((double) getAlignmentLength(segment_cigarvalues));
-
-                if (last_purity < segment_purity) remove_loci.push_back(i);
-            }
-        }
-
-        // if not the above options the repeats should be overlapping
-        else if (motif == last_motif || checkCyclicalVariation(motif, last_motif)) {
-            // if the repeats are of the same motif
-            tuple <string, double> merge_values;
-
-            // if the repeats are having the same motif then we merge them
-            if (repeat_start == last_end || (last_start < repeat_start && repeat_start < last_end)) {
-                merge_values = mergeRepeatsIdenticalMotif(last_end, repeat_start, last_cigar, cigar_string);
-                repeat_start = last_start;
-            }
-
-            else if (last_start == repeat_end || (repeat_start < last_start && last_start < repeat_end)) {
-                merge_values = mergeRepeatsIdenticalMotif(repeat_end, last_start, cigar_string, last_cigar);
-                repeat_end = last_end;
-            }
-
-            repeat_length = repeat_end - repeat_start;
-            cigar_string = get<0> (merge_values); purity = get<1> (merge_values);
-            remove_loci.push_back(i);
-            for (int j: remove_loci) { repeat_loci.erase(repeat_loci.begin() + j, repeat_loci.begin() + j + 1);}
-            assert(repeat_length == getRepeatLength(cigar_string));
-            addLocusToOutput(sequence_id, repeat_start, repeat_end, motif, purity, cigar_string,
-                             motif_length, repeat_length, repeat_units, out, repeat_loci); return;
-        }
-
-        else {
-
-            int levenshtein_distance = 0, distance_threshold = 0;
-            if ((motif.length() > 2*SMALL_MLEN_LIMIT && last_mlen > 2*SMALL_MLEN_LIMIT && absolute(motif.length() - last_mlen) <= 2)) {
-                if (motif.length() > last_mlen) {
-                    string reference = motif + motif;
-                    levenshtein_distance = leastDistance(reference, last_motif);
-                    distance_threshold = 0.2 * motif.length();
-                }
-                else {
-                    string reference = last_motif + last_motif;
-                    levenshtein_distance = leastDistance(reference, motif);
-                    distance_threshold = 0.2 * last_mlen;
-                }
-            }
-
-            if (((motif.length() > 2*SMALL_MLEN_LIMIT && last_mlen > 2*SMALL_MLEN_LIMIT && absolute(motif.length() - last_mlen) <= 2))
-                && levenshtein_distance <= (distance_threshold)) {
-
-                string full_sequence;
-                if (last_start < repeat_start) {     // last-repeat is upstream of current repeat
-                    full_sequence = SEQUENCE.substr(last_start, repeat_end-last_start);
-                    repeat_start = last_start;
-                }
-
-                else if (repeat_start < last_start) {  // last-repeat is downstream of current repeat
-                    full_sequence = SEQUENCE.substr(repeat_start, last_end-repeat_start);
-                    repeat_end = last_end;
-                }
-
-                double cmotif_purity = 0.0; int cmotif_start = repeat_start, cmotif_end = repeat_end; string cmotif_cigar = "";
-                double pmotif_purity = 0.0; int pmotif_start = repeat_start, pmotif_end = repeat_end; string pmotif_cigar = "";
-                alignSequenceWithPerfectRepeat(full_sequence, motif, cmotif_start, cmotif_end, cmotif_purity, cmotif_cigar);
-                alignSequenceWithPerfectRepeat(full_sequence, last_motif, pmotif_start, pmotif_end, pmotif_purity, pmotif_cigar);
-                if (cmotif_purity > pmotif_purity) {
-                    repeat_start = cmotif_start; repeat_end = cmotif_end;
-                    cigar_string = cmotif_cigar; purity = cmotif_purity;
-                }
-                else {
-                    repeat_start = pmotif_start; repeat_end = pmotif_end;
-                    motif = last_motif; motif_length = last_mlen;
-                    cigar_string = pmotif_cigar; purity = pmotif_purity;
-                }
-                remove_loci.push_back(i);
-                for (int j: remove_loci) { repeat_loci.erase(repeat_loci.begin() + j, repeat_loci.begin() + j + 1);}
-                repeat_length = repeat_end - repeat_start;
-                repeat_units = repeat_length / motif_length;
-                assert(repeat_length == getRepeatLength(cigar_string));
-                addLocusToOutput(sequence_id, repeat_start, repeat_end, motif, purity, cigar_string,
-                                 motif_length, repeat_length, repeat_units, out, repeat_loci);
-                return;
-            } 
-
-            else {
-
-                // the repeats are not of the same motif
-                // we calculate an optimal boundary point and either merge or separate the repeats
-                bool fail = false, last_fail = false;       // if current repeat or last repeat should be dropped
-                bool last_update = false, update = false;   // if current repeat or last repeat should be updated
-                // if the repeats are overlapping
-                if (last_start < repeat_start && repeat_start < last_end) {     // last-repeat is upstream of current repeat
-                    compareOverlappingLoci(last_start, last_end, last_cigar, last_motif, last_purity, last_fail, last_update,
-                                           repeat_start, repeat_end, cigar_string, motif, purity, fail, update);
-                }
-
-                else if (repeat_start < last_start && last_start < repeat_end) {  // last-repeat is downstream of current repeat
-                    compareOverlappingLoci(repeat_start, repeat_end, cigar_string, motif, purity, fail, update,
-                                           last_start, last_end, last_cigar, last_motif, last_purity, last_fail, last_update);
-                }
-
-                if (last_update && update) {
-                    // if both needs to be updated
-                    remove_loci.push_back(i);
-                    for (int j: remove_loci) { repeat_loci.erase(repeat_loci.begin() + j, repeat_loci.begin() + j + 1);}
-                    if (!last_fail) {
-                        last_length = last_end - last_start;
-                        last_units = last_length / last_mlen;
-                        addLocusToOutput(sequence_id, last_start, last_end, last_motif, last_purity, last_cigar, last_mlen,
-                                         last_length, last_units, out, repeat_loci);
-                    }
-                    if (!fail) {
-                        repeat_length = repeat_end - repeat_start;
-                        repeat_units = repeat_length / motif_length;
-                        addLocusToOutput(sequence_id, repeat_start, repeat_end, motif, purity, cigar_string, motif_length, repeat_length,
-                                         repeat_units, out, repeat_loci);
-                    }
-                    return;
-                }
-
-                else if (update & !(last_update)) {
-                    // if only current repeat is updated
-                    if (last_fail) { remove_loci.push_back(i); }
-                    for (int j: remove_loci) { repeat_loci.erase(repeat_loci.begin() + j, repeat_loci.begin() + j + 1);}
-                    repeat_length = repeat_end - repeat_start;
-                    repeat_units = repeat_length / motif_length;
-                    addLocusToOutput(sequence_id, repeat_start, repeat_end, motif, purity, cigar_string, motif_length, repeat_length,
-                                     repeat_units, out, repeat_loci);
-                    return;
-                }
-
-                else if (last_update & !(update)) {
-                    remove_loci.push_back(i);
-                    for (int j: remove_loci) { repeat_loci.erase(repeat_loci.begin() + j, repeat_loci.begin() + j + 1);}
-                    remove_loci.clear();
-                    last_length = last_end - last_start;
-                    last_units = last_length / last_mlen;
-                    addLocusToOutput(sequence_id, last_start, last_end, last_motif, last_purity, last_cigar, last_mlen,
-                                     last_length, last_units, out, repeat_loci);
-                    if (fail) return;
-                }
-            }
-        }
-    }
-
-    for (int j: remove_loci) { repeat_loci.erase(repeat_loci.begin() + j, repeat_loci.begin() + j + 1);}
+    int end_breakpoint = 10000; // 10kb
     for (int j=repeat_loci.size()-1; j>=0; j--) {
-        // if the repeat is 50kb away from the last repeat
+        // if the repeat is 10kb away from the last repeat
         // print the repeats to the output
-        int end_breakpoint = 100000; // 100kb
         if (repeat_start - get<2> (repeat_loci[j]) > end_breakpoint) {
             // if the output stream is not null, print the repeats to the output
             // output stream is null in the case of the python module
@@ -728,7 +944,8 @@ void addLocusToOutput(string &sequence_id, int repeat_start, int repeat_end, str
         }
     }
 
-    tuple<string, int, int, string, double, string, int, int, int> repeat_locus = {sequence_id, repeat_start, repeat_end, motif, purity, cigar_string, motif_length, repeat_length, repeat_units};
+    tuple<string, int, int, string, double, string, int, int, int> repeat_locus = {sequence_id, repeat_start, repeat_end, motif, purity, cigar_string,
+                                                                                    motif_length, repeat_length, repeat_units};
     auto it = lower_bound(repeat_loci.begin(), repeat_loci.end(), repeat_locus, compareRepeatLoci);
     // Insert the new element at the found position
     repeat_loci.insert(it, repeat_locus);

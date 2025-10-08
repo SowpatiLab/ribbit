@@ -11,24 +11,52 @@ using namespace std;
 using namespace boost;
 
 
-int longestContinuousMatches(boost::dynamic_bitset<> &bset) {
-    /*
-     * calculates the longest continuous stretch of 1s in a bitset
-     * @param bset input bitset
-     * @return int length of the longest continuous stretch of 1s
-    */
+tuple<string,int> getMostCommonKmer(const string &sequence, int k) {
+    if (k <= 0 || sequence.size() < (size_t)k) return make_tuple(string(""), 0);
 
-    int nseq = bset.size(), l = 0, maxl = 0;
-    for (int j=nseq-1; j >= 0; j--) {
-        if (bset[j] == 1) l += 1;
-        else {
-            if (l > maxl) { maxl = l; }
-            l = 0;
+    unordered_map<string, int> count;
+    unordered_map<string, size_t> last_pos;  // last accepted start position
+
+    for (size_t i = 0; i + k <= sequence.size(); ++i) {
+        string kmer = sequence.substr(i, k);
+
+        // Check if previous accepted occurrence overlaps
+        if (last_pos.find(kmer) == last_pos.end() || i >= last_pos[kmer] + k) {
+            count[kmer]++;
+            last_pos[kmer] = i;  // mark this position
         }
     }
-    if (l > maxl) { maxl = l; }
 
-    return maxl;
+    int max_count = 0;
+    string max_kmer;
+    for (auto &p : count) {
+        if (p.second > max_count) {
+            max_count = p.second;
+            max_kmer = p.first;
+        }
+    }
+    return make_tuple(max_kmer, max_count);
+}
+
+
+bool qualifyShortMotifRepeat(string &sequence, int kmer) {
+
+    /*
+     *  checks if the short motif repeat qualifies the minimum criteria to be reported
+     *  @param sequence the sequence of the repeat
+     *  @param kmer length of the motif
+     *  @return bool if the repeat qualifies the minimum criteria to be reported
+     */
+
+    int seq_length = sequence.length();
+
+    tuple<string,int> most_common_kmer = getMostCommonKmer(sequence, kmer);
+    string motif = get<0>(most_common_kmer);
+    int count = get<1>(most_common_kmer);
+
+    if (count < PERFECT_UNITS[kmer]) return false;
+
+    return true;
 }
 
 
@@ -311,16 +339,25 @@ void processSeedMotifWise(tuple<int, int> seed_position, int chunk_start, int &m
 
     int seed_start     = get<0> (seed_position);
     int seed_end       = get<1> (seed_position);
-    int seed_bset_size = seed_end - seed_start;
-    int seed_sequence_length = seed_bset_size + motif_length;
+    
 
+    // check if there are Ns in the seed sequence
+    // if yes, break the seed around the N position and consider the parts
     for (int s=seed_start; s < seed_end+motif_length; s++) {
         if (N_bset[sequence_length-1-s] == 1) {
-            seed_sequence_length = s - seed_start;
-            break;
+            if (s - seed_start >= motif_length) {
+                processSeedMotifWise(tuple<int,int>{seed_start, s - motif_length}, chunk_start, motif_length, seed_type, sequence_id,
+                                     sequence, sequence_length, xor_bset, left_bset, right_bset, N_bset, out,
+                                     aligner, filter, alignment, repeat_loci);
+            }
+            seed_start = s - motif_length + 1;
         }
     }
-    string seed_sequence = sequence.substr(seed_start, seed_sequence_length);
+
+    int seed_bset_size = seed_end - seed_start;
+    int seed_sequence_length = seed_bset_size + motif_length;
+    string repeat_sequence = "";
+    
     // the shift xor bitset of the complete repeat sequence
     boost::dynamic_bitset<> seed_bset(seed_bset_size, 0ull);
     for (int j = seed_start; j < seed_end; j++) {
@@ -351,12 +388,16 @@ void processSeedMotifWise(tuple<int, int> seed_position, int chunk_start, int &m
 
     if (THREADS > 1) MTX.unlock();
 
+    // if no motifs are found in the seed. No processing the seed further
     if (motifs.size() == 0) return;
 
+    // if only one motif is found, extend the start and end for the motif to cover the whole seed
     if (motifs.size() == 1) {
-        starts[0] = seed_start; ends[0] = seed_end + motif_length;
+        starts[0] = seed_start;ends[0] = seed_end + motif_length;
     }
     else if (motifs.size() > 1) {
+        // if multiple motifs are found in the seed, adjust that starts and ends of the motifs
+        // to cover the whole seed
         orderMotifs(motifs, starts, ends, seed_start, seed_end, motif_length);
     }
 
@@ -374,12 +415,9 @@ void processSeedMotifWise(tuple<int, int> seed_position, int chunk_start, int &m
     int motif_idx; uint32_t motif_unit;
     for(motif_idx=0; motif_idx < motifs.size(); motif_idx++) {
         motif_unit = motifs[motif_idx];
+        
         if (THREADS > 1) MTX.lock();
         atomicity = calculateAtomicity(motif_unit, motif_length);
-        if (THREADS > 1) MTX.unlock();
-
-        // the repeat should be treated based on the atomicity
-        if (THREADS > 1) MTX.lock();
         motif = calculateMotif(motif_unit, motif_length);
         if (THREADS > 1) MTX.unlock();
 
@@ -388,7 +426,7 @@ void processSeedMotifWise(tuple<int, int> seed_position, int chunk_start, int &m
 
         // seed sequence limiting to the coordinates where full motif alignment matches are found 
         motif_seed_sequence = sequence.substr(starts[motif_idx], ends[motif_idx] - starts[motif_idx]);
-        motif_seed_length = ends[motif_idx] - starts[motif_idx];
+        motif_seed_length   = ends[motif_idx] - starts[motif_idx];
 
         ppr_length = motif_seed_length + motif_length + ((1-PURITY_THRESHOLD)* motif_seed_length);
         perfect_repeat = "";
@@ -406,10 +444,10 @@ void processSeedMotifWise(tuple<int, int> seed_position, int chunk_start, int &m
 
         repeat_units = repeat_length/atomicity;
 
+        // conditions used to cover some edge cases
         // if match units are more than 10 and the number of interruptions is less than 80% of the match units
         if (match_units > 10 && (indels > 0.8*match_units)) { continue; }
         if (repeat_length < 3*atomicity && purity < 1) { continue; }
-
 
         if (atomicity >= MINIMUM_MLEN && atomicity <= MAXIMUM_MLEN
             && (match_units >= PERFECT_UNITS[atomicity])
@@ -419,6 +457,9 @@ void processSeedMotifWise(tuple<int, int> seed_position, int chunk_start, int &m
             // a small motif seed is considered valid based on a set of criteria
             // - match units are more than threshold AND 70% of the total units are perfect
             // - average motif purity is 80% OR the average continuous match length twice the atomicity
+
+            repeat_sequence = sequence.substr(repeat_start, repeat_length);
+            if (!qualifyShortMotifRepeat(repeat_sequence, atomicity)) { continue; }
 
             repeat_start += chunk_start; repeat_end += chunk_start;
             addLocusToOutput(sequence_id, repeat_start, repeat_end, motif.substr(0, atomicity), purity, cigar_string,

@@ -10,6 +10,7 @@
 #include "parse_anchored_shiftxor.h"
 #include "parse_smallmotif_seed.h"
 #include "parse_seed.h"
+#include "output_utils.h"
 #include "concatenate_output.h"
 
 

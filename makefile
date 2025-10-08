@@ -7,16 +7,15 @@ BOOST_AUXLIBS = -lboost_program_options -lboost_filesystem # including the progr
 PTHREAD_LIB = -lpthread
 
 # library includes for striped-smithwaterman alignment
-SRC_SSW    = test/ssw.c test/ssw_cpp.cpp
+SRC_SSW    = src/ssw.c src/ssw_cpp.cpp
 
 # list of ribbit source files
-SRC_RIBBIT = test/global_variables.cpp test/concatenate_output.cpp test/binomial_thresholds.cpp test/cigar_utils.cpp test/output_utils.cpp \
-             test/process_cigar.cpp test/parse_seed.cpp test/parse_smallmotif_seed.cpp test/merge_types.cpp \
-			 test/parse_anchored_shiftxor.cpp test/parse_substitute_shiftxor.cpp test/parse_perfect_shiftxor.cpp test/seed_utils.cpp \
-			 test/bitseq_utils.cpp test/fasta_utils.cpp
+SRC_RIBBIT = src/global_variables.cpp src/concatenate_output.cpp src/binomial_thresholds.cpp src/cigar_utils.cpp src/output_utils.cpp \
+             src/process_cigar.cpp src/parse_seed.cpp src/parse_smallmotif_seed.cpp src/merge_types.cpp \
+			 src/parse_anchored_shiftxor.cpp src/parse_substitute_shiftxor.cpp src/parse_perfect_shiftxor.cpp src/seed_utils.cpp \
+			 src/bitseq_utils.cpp src/fasta_utils.cpp
 
-SRC_MAIN = test/ribbit.cpp
-SRC_COMPLEX = test/complex_utils.cpp
+SRC_MAIN = src/ribbit.cpp
 
 # Identify the operating system
 OS := $(shell uname -s)
@@ -43,6 +42,18 @@ else
 	@echo "Operating System: Unknown"
 endif
 
+pymodule: $(SRC_RIBBIT)
+ifeq ($(OS),Darwin)
+	@echo "Operating System: macOS"
+	@echo "Boost version identified: " ${BOOST_VERSION}
+	$(CXX) $(CXXFLAGS) $(SHARED_LIBS) $(INCLUDE) $(BOOST_LIB) $(SRC_SSW) $(SRC_RIBBIT) ./src/pyribbit.cpp $(BOOST_AUXLIBS) -o ribbit$(shell python3-config --extension-suffix) -undefined dynamic_lookup
+else ifeq ($(OS),Linux)
+	@echo "Operating System: Linux"
+	$(CXX) $(CXXFLAGS) $(SHARED_LIBS) $(BOOST_LIB) $(SRC_SSW) $(SRC_RIBBIT) ./src/pyribbit.cpp $(BOOST_AUXLIBS) $(PTHREAD_LIB) -o ribbit$(shell python3-config --extension-suffix) -undefined dynamic_lookup
+else
+	@echo "Operating System: Unknown"
+endif
+
 profile: $(SRC_RIBBIT)
 
 ifeq ($(OS),Darwin)
@@ -52,31 +63,6 @@ ifeq ($(OS),Darwin)
 else ifeq ($(OS),Linux)
 	@echo "Operating System: Linux"
 	$(CXX) $(CXXFLAGS) $(BOOST_LIB) $(SRC_SSW) $(SRC_RIBBIT) $(SRC_MAIN) $(BOOST_AUXLIBS) $(PTHREAD_LIB) -o ribbit -lprofiler
-else
-	@echo "Operating System: Unknown"
-endif
-
-pymodule: $(SRC_RIBBIT)
-ifeq ($(OS),Darwin)
-	@echo "Operating System: macOS"
-	@echo "Boost version identified: " ${BOOST_VERSION}
-	$(CXX) $(CXXFLAGS) $(SHARED_LIBS) $(INCLUDE) $(BOOST_LIB) $(SRC_SSW) $(SRC_RIBBIT) ./test/pyribbit.cpp $(BOOST_AUXLIBS) -o ribbit$(shell python3-config --extension-suffix) -undefined dynamic_lookup
-else ifeq ($(OS),Linux)
-	@echo "Operating System: Linux"
-	$(CXX) $(CXXFLAGS) $(SHARED_LIBS) $(BOOST_LIB) $(SRC_SSW) $(SRC_RIBBIT) ./test/pyribbit.cpp $(BOOST_AUXLIBS) $(PTHREAD_LIB) -o ribbit$(shell python3-config --extension-suffix) -undefined dynamic_lookup
-else
-	@echo "Operating System: Unknown"
-endif
-
-
-complex: $(SRC_COMPLEX)
-ifeq ($(OS),Darwin)
-	@echo "Operating System: macOS"
-	@echo "Boost version identified: " ${BOOST_VERSION}
-	$(CXX) $(CXXFLAGS) $(INCLUDE) $(BOOST_LIB) $(SRC_SSW) $(SRC_COMPLEX) $(BOOST_AUXLIBS) -o ribbit_complex
-else ifeq ($(OS),Linux)
-	@echo "Operating System: Linux"
-	$(CXX) $(CXXFLAGS) $(BOOST_LIB) $(SRC_SSW) $(SRC_COMPLEX) $(BOOST_AUXLIBS) $(PTHREAD_LIB) -o ribbit_complex
 else
 	@echo "Operating System: Unknown"
 endif

@@ -21,32 +21,6 @@ double calculateMedian(std::vector<double>& numbers) {
 }
 
 
-tuple<vector<int>, vector<char>> cigarSplit(string cigar) {
-    /*
-     *  splits a CIGAR string into consecutive operations and lengths
-     *  @param cigar character pointer of the CIGAR string
-     *  @return tuple<vector<int>, vector<char>> tuple of two vectors cigar lengths and cigar types
-    */
-
-    string length = "";
-    vector<int> clens; vector<char> ctypes;
-
-    for (int i = 0; i<cigar.length(); i++) {
-        if (isdigit(cigar[i])) {
-            length += cigar[i];
-        }
-        else {
-            clens.push_back(stoi(length));
-            if (cigar[i] == '=') { ctypes.push_back('M'); }
-            else { ctypes.push_back(cigar[i]); }
-            length = "";
-        }
-    }
-
-    return tuple<vector<int>, vector<char>> {clens, ctypes};
-}
-
-
 pair<int, int> calculateTrimEdges(double &purity_threshold, double &purity, vector<int> &ccigar_lengths,
                                   int &alignment_length, int &motif_length) {
     /*
@@ -808,5 +782,156 @@ void processCIGARMotifWise(int seed_start, int seed_sequence_length, string &cig
                               repeat_start, repeat_end, alignment_length, new_cigar, purity,
                               substitutions, indels, avg_motifpurity, avg_motifindels, avg_matchlen);
         return;
+    }
+}
+
+
+struct Op {
+    int len;
+    char type;
+};
+
+// parse CIGAR into vector<Op>
+vector<Op> parseCigar(const string &cigar) {
+    vector<Op> ops;
+    int num = 0;
+    for (char c : cigar) {
+        if (isdigit(c)) {
+            num = num*10 + (c - '0');
+        } else {
+            ops.push_back({num, c});
+            num = 0;
+        }
+    }
+    return ops;
+}
+
+// convert back to string
+string toCigar(const vector<Op> &ops) {
+    string s;
+    for (auto &op : ops) {
+        if (op.len > 0) s += to_string(op.len) + op.type;
+    }
+    return s;
+}
+
+// trim i from left, j from right
+string trimCigar(const string &cigar, int i, int j) {
+    auto ops = parseCigar(cigar);
+
+    // trim from left
+    int left = i;
+    for (auto &op : ops) {
+        if (left == 0) break;
+        if (left >= op.len) {
+            left -= op.len;
+            op.len = 0;
+        } else {
+            op.len -= left;
+            left = 0;
+        }
+    }
+
+    // trim from right
+    int right = j;
+    for (int k = (int)ops.size()-1; k >= 0 && right > 0; k--) {
+        if (right >= ops[k].len) {
+            right -= ops[k].len;
+            ops[k].len = 0;
+        } else {
+            ops[k].len -= right;
+            right = 0;
+        }
+    }
+
+    return toCigar(ops);
+}
+
+
+void trimCigarMotifPurity(string &cigar, int &motif_length, int & repeat_start, int &repeat_end, int &alignment_length,
+                          double &purity, double &motifwise_purity) {
+
+    vector<int> windowLength;   // to be counted for the size of the motif length; INS are not considered - DEL are considered
+    vector<int> repeatLength;   // to be counted for the sequence to adjust the start and stop; INS are considered - DEL are not considered
+    vector<int> windowMatches;
+
+    for (int i=0; i<cigar.size();) {
+        int j = i;
+        char op = cigar[i];
+        int len = 0;
+        while (j < cigar.size() && isdigit(cigar[j])) {
+            len = len * 10 + (cigar[j] - '0');
+            j++;
+        }
+        if (j < cigar.size()) {
+            char type = cigar[j];
+            if (type == 'M' || type == '=') {
+                for (int k=0; k<len; k++) {
+                    windowLength.push_back(1);
+                    windowMatches.push_back(1);
+                    repeatLength.push_back(1);
+                }
+            } else if (type == 'X') {
+                for (int k=0; k<len; k++) {
+                    windowLength.push_back(1);
+                    windowMatches.push_back(0);
+                    repeatLength.push_back(1);
+                }
+            } else if (type == 'I') {
+                for (int k=0; k<len; k++) {
+                    windowLength.push_back(0);
+                    windowMatches.push_back(0);
+                    repeatLength.push_back(1);
+                }
+            } else if (type == 'D') {
+                for (int k=0; k<len; k++) {
+                    windowLength.push_back(1);
+                    windowMatches.push_back(0);
+                    repeatLength.push_back(0);
+                }
+            }
+            i = j + 1;
+        } else {
+            break; // malformed CIGAR string
+        }
+    }
+
+    int n = windowLength.size();
+    vector<double> purities;
+
+    int min_window = n; int max_window = 0;
+    for (int i=0; i<n; i++) {
+        if (windowMatches[i] == 0) continue;
+        for (int j=i+motif_length; j <= n; j++) {
+            int length = 0;
+            for (int k = i; k < j; k++) length += windowLength[k];
+            if (length == motif_length) {
+                int matches = 0;
+                for (int k = i; k < j; k++) matches += windowMatches[k];
+                if ((double)matches / (double) (j-i) >= 0.8) {
+                    if (i < min_window) min_window = i;
+                    if (j > max_window) max_window = j;
+                }
+                purities.push_back((double)matches / (double) (j-i));
+                break;
+            }
+        }
+    }
+
+
+    for (int _=0; _<min_window; _++) {
+        repeat_start += repeatLength[_];
+    }
+    for (int _=max_window; _<n; _++) {
+        repeat_end -= repeatLength[_];
+    }
+    cigar = trimCigar(cigar, min_window, n - max_window );
+
+    alignment_length = getAlignmentLength(cigar);
+    purity = (double)getMatches(cigar) / (double)alignment_length;
+    motifwise_purity = 0.0;
+    if (purities.size() > 0) {
+        for (int _=0; _<purities.size(); _++) { motifwise_purity += purities[_]; }
+        motifwise_purity = motifwise_purity / ((double) (purities.size()));
     }
 }

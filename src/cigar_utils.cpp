@@ -4,6 +4,31 @@ using namespace std;
 using namespace boost;
 
 
+tuple<vector<int>, vector<char>> cigarSplit(string cigar) {
+    /*
+     *  splits a CIGAR string into consecutive operations and lengths
+     *  @param cigar character pointer of the CIGAR string
+     *  @return tuple<vector<int>, vector<char>> tuple of two vectors cigar lengths and cigar types
+    */
+
+    string length = "";
+    vector<int> clens; vector<char> ctypes;
+    for (int i = 0; i<cigar.length(); i++) {
+        if (isdigit(cigar[i])) {
+            length += cigar[i];
+        }
+        else {
+            clens.push_back(stoi(length));
+            if (cigar[i] == '=') { ctypes.push_back('M'); }
+            else { ctypes.push_back(cigar[i]); }
+            length = "";
+        }
+    }
+
+    return tuple<vector<int>, vector<char>> {clens, ctypes};
+}
+
+
 void cleanCigar(string &cigar) {
     /*
      *  cleans the cigar string by removing any unnecessary operations
@@ -360,6 +385,9 @@ void extendTillMatch(string &flank_cigar, string &cigar, int &position, bool end
      *  @param cigar cigar string for the non-overlapping part of the repeat
      *  @param end extend the end of the cigar; if false extends the start of the cigar
     */
+   cout << "Extending cigar: \n";
+   cout << flank_cigar << "\n";
+   cout << cigar << "\n";
     string length = "";
     if (end) {
         for (int i = 0; i<flank_cigar.length(); i++) {

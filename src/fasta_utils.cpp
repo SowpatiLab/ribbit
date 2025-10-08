@@ -96,9 +96,9 @@ void processSequence(string sequence_id, string sequence, ofstream &out, ofstrea
     }
 
     // generating seed positions; vector of tuple with start and end of the seeds
-    vector<tuple<int, int, int, int>> seed_positions_perfect;
-    vector<tuple<int, int, int, int>> seed_positions_substut;
-    vector<tuple<int, int, int, int>> seed_positions_anchored;
+    vector<tuple<int, int, int, int, int, int, int>> seed_positions_perfect;
+    vector<tuple<int, int, int, int, int, int, int>> seed_positions_substut;
+    vector<tuple<int, int, int, int, int, int, int>> seed_positions_anchored;
 
     if (PURITY_THRESHOLD == 1) {
         // Only identify perfect repeat sequences if the purity threshold is set to 1
@@ -106,15 +106,6 @@ void processSequence(string sequence_id, string sequence, ofstream &out, ofstrea
     }
 
     else {
-        // Identifying perfect repeat seeds
-        seed_positions_perfect = processShiftXORsPerfect(lshift_xor_bsets, N_bset);
-
-        // Identifying repeat seeds with only allowed substitutions or mismatches between motifs
-        seed_positions_substut = processShiftXORswithSubstitutions(lshift_xor_bsets, N_bset, seed_positions_perfect);
-        
-        // filtering out the perfect seeds which are inside substituted seeds with short flanks
-        // filters out the perfect seeds which are contained within substitute seeds of almost same length
-        filterPerfectSeeds(seed_positions_perfect, seed_positions_substut);
         
         int anchor_length = 5;
         generateAnchorShiftXORs(lshift_xor_bsets, N_bset, lsxor_anchor_bsets, anchor_length);
@@ -154,6 +145,17 @@ void processSequence(string sequence_id, string sequence, ofstream &out, ofstrea
         // freeing up memory and keeping only the final anchored bitsets
         lsxor_anchor_bsets.clear();
 
+        // Identifying perfect repeat seeds
+        seed_positions_perfect = processShiftXORsPerfect(lshift_xor_bsets, N_bset);
+
+        // Identifying repeat seeds with only allowed substitutions or mismatches between motifs
+        seed_positions_substut = processShiftXORswithSubstitutions(lshift_xor_bsets, lsxor_perfect_bsets, lsxor_anchored_bsets, N_bset, seed_positions_perfect);
+        
+        // filtering out the perfect seeds which are inside substituted seeds with short flanks
+        // filters out the perfect seeds which are contained within substitute seeds of almost same length
+        filterPerfectSeeds(seed_positions_perfect, seed_positions_substut);
+
+
         seed_positions_anchored = processShiftXORsAnchored(lsxor_anchored_bsets, lshift_xor_bsets, lsxor_perfect_bsets,
                                                             N_bset, seed_positions_perfect, seed_positions_substut, seeds_out, chunk_start);
         filterShortSeeds(seed_positions_perfect);
@@ -167,13 +169,17 @@ void processSequence(string sequence_id, string sequence, ofstream &out, ofstrea
     StripedSmithWaterman::Filter filter;
     StripedSmithWaterman::Alignment alignment;
 
-    tuple<int, int, int, int> seed;
+    tuple<int, int, int, int, int, int, int> seed;
     int seed_start, seed_end, seed_mlen, seed_type, seed_bset_size;
     uint64_t smallest;
     int smallest_type = -1;
     int spidx_p = 0, spidx_s = 0, spidx_a = 0;
     int processed_seeds = 0;
     int seedlen_cutoff = 0;
+
+    vector<tuple<int, int, int, int, int, int, int>> overlapping_seeds;
+    vector<set<int>> skip_atomicity;
+    int overlap_end = -1;
 
     while (spidx_p < seed_positions_perfect.size() || spidx_s < seed_positions_substut.size() || spidx_a < seed_positions_anchored.size()) {
         smallest = -1;
@@ -224,105 +230,187 @@ void processSequence(string sequence_id, string sequence, ofstream &out, ofstrea
         
         seed_start = get<0>(seed);
         seed_end = get<1>(seed);
-        seed_mlen = get<2>(seed);
+        if (seed_start < 0 || seed_end < 0) { continue;}
         if (seed_end + seed_mlen > sequence_length) {
             seed_end = sequence_length - seed_mlen;
         }
+        seed_mlen = get<2>(seed);
+        if (overlap_end == -1) { overlapping_seeds.push_back(seed); overlap_end = seed_end + seed_mlen; }
+        else {
+            if (seed_start <= overlap_end) {
+                overlapping_seeds.push_back(seed);
+                if (seed_end + seed_mlen > overlap_end) overlap_end = seed_end + seed_mlen;
+            }
+            
+            else {
+                // process the overlapping seeds to remove redundant seeds
+                processOverlappingSeeds(overlapping_seeds, lshift_xor_bsets, lsxor_perfect_bsets, lsxor_anchored_bsets, sequence_length, skip_atomicity);
 
-        seed_bset_size = seed_end - seed_start;
-        if (THREADS > 1) MTX.lock();
-        seedlen_cutoff = SEEDLEN_CUTOFF[seed_mlen - MINIMUM_MLEN];
-        if (THREADS > 1) MTX.unlock();
-        if (seed_bset_size < seedlen_cutoff) { continue; }
+                for (int j = 0; j < overlapping_seeds.size(); j++) {
+                    if (get<3>(overlapping_seeds[j]) == RANK_N) { continue; }
+                    
+                    seeds_out << sequence_id << "\t" << get<0>(overlapping_seeds[j]) + chunk_start << "\t"
+                              << get<1>(overlapping_seeds[j]) + chunk_start << "\t"
+                              << get<2>(overlapping_seeds[j]) << "\t" << get<3>(overlapping_seeds[j]) << "\t" << get<4>(overlapping_seeds[j]) << "\t"
+                              << get<5>(overlapping_seeds[j]) << "\t" << get<6>(overlapping_seeds[j]) << "\t";
+                    for (int s=0; s<skip_atomicity[j].size(); s++) {
+                        if (s != 0) seeds_out << ",";
+                        seeds_out << *(next(skip_atomicity[j].begin(), s));
+                    }
+                    seeds_out << "\n";
 
-        boost::dynamic_bitset<> seed_bset(seed_bset_size, 0ull);
-        for (int j = seed_start; j < seed_end; j++) {
-            seed_bset[seed_end - 1 - j] = lshift_xor_bsets[seed_mlen - MINIMUM_SHIFT][sequence_length - 1 - j];
-        }
+                    int o_start = get<0>(overlapping_seeds[j]);
+                    int o_end = get<1>(overlapping_seeds[j]);
+                    int o_mlen = get<2>(overlapping_seeds[j]);
+                    if (o_start < 0 || o_end < 0) { continue; }
+                    if (o_end + o_mlen > sequence_length) {
+                        o_end = sequence_length - o_mlen;
+                    }
+                    int o_type = get<3>(overlapping_seeds[j]);
 
-        // process seed if it is alteast the size of the motif length
-        processed_seeds += 1;
-        int slice_length = 20000 - 2 * seed_mlen;
-        if (seed_bset_size > slice_length) {
-            int slice_start = 0, slice_end = 0;
-            while (slice_end < seed_bset_size) {
-                if (slice_start + slice_length > seed_bset_size)
-                    slice_end = seed_bset_size;
-                else 
-                    slice_end = slice_start + slice_length;
+                    int o_bset_size = o_end - o_start;
+                    if (THREADS > 1) MTX.lock();
+                    seedlen_cutoff = SEEDLEN_CUTOFF[o_mlen - MINIMUM_MLEN];
+                    if (THREADS > 1) MTX.unlock();
+                    if (o_bset_size < seedlen_cutoff) { continue; }
+    
+                    // process seed if it is alteast the size of the motif length
+                    processed_seeds += 1;
+                    int slice_length = 20000 - 2 * o_mlen;
+                    if (o_bset_size > slice_length) {
+                        int slice_start = 0, slice_end = 0;
+                        while (slice_end < o_bset_size) {
+                            if (slice_start + slice_length > o_bset_size)
+                                slice_end = o_bset_size;
+                            else
+                                slice_end = slice_start + slice_length;
 
-                if (seed_mlen <= SMALL_MLEN_LIMIT) {
-                    processSeedMotifWise(tuple<int, int>{seed_start + slice_start, seed_start + slice_end}, chunk_start, seed_mlen,
-                                         seed_type, sequence_id, sequence, sequence_length, lshift_xor_bsets[seed_mlen - MINIMUM_SHIFT],
-                                         left_bset, right_bset, N_bset, out, aligner, filter, alignment, repeat_loci);
+                            if (o_mlen <= SMALL_MLEN_LIMIT) {
+                                processSeedMotifWise(tuple<int, int>{o_start + slice_start, o_start + slice_end}, chunk_start, o_mlen,
+                                                    o_type, sequence_id, sequence, sequence_length, lshift_xor_bsets[o_mlen - MINIMUM_SHIFT],
+                                                    left_bset, right_bset, N_bset, out, aligner, filter, alignment, repeat_loci);
+                            }
+    
+                            else {
+                                processSeed(tuple<int, int>{o_start + slice_start, o_start + slice_end}, chunk_start, o_mlen,
+                                            o_type, sequence_id, sequence, sequence_length, lshift_xor_bsets[o_mlen - MINIMUM_SHIFT],
+                                            left_bset, right_bset, N_bset, out, lshift_xor_bsets, MATRIX,
+                                            aligner, filter, alignment, repeat_loci, skip_atomicity[j]);
+                            }
+    
+                            slice_start += slice_length - 500;
+                        }
+                    }
+    
+                    else {
+
+                        if (o_mlen <= SMALL_MLEN_LIMIT) {
+                            processSeedMotifWise(tuple<int, int>{o_start, o_end}, chunk_start, o_mlen, o_type, sequence_id,
+                                                sequence, sequence_length, lshift_xor_bsets[o_mlen - MINIMUM_SHIFT], left_bset, right_bset,
+                                                N_bset, out, aligner, filter, alignment, repeat_loci);
+                        }
+    
+                        else {
+                            processSeed(tuple<int, int>{o_start, o_end}, chunk_start, o_mlen, o_type, sequence_id, sequence,
+                                        sequence_length, lshift_xor_bsets[o_mlen - MINIMUM_SHIFT], left_bset, right_bset, N_bset,
+                                        out, lshift_xor_bsets, MATRIX, aligner, filter, alignment, repeat_loci, skip_atomicity[j]);
+                        }
+                    }
                 }
 
-                else {
-                    processSeed(tuple<int, int>{seed_start + slice_start, seed_start + slice_end}, chunk_start, seed_mlen,
-                                seed_type, sequence_id, sequence, sequence_length, lshift_xor_bsets[seed_mlen - MINIMUM_SHIFT],
-                                left_bset, right_bset, N_bset, out, lshift_xor_bsets, MATRIX,
-                                aligner, filter, alignment, repeat_loci);
-                }
-
-                slice_start += slice_length - 500;
+                overlapping_seeds.clear();
+                skip_atomicity.clear();
+                overlapping_seeds.push_back(seed); overlap_end = seed_end + seed_mlen;
             }
         }
+    }
 
-        else {
+    if (overlapping_seeds.size() > 0) {
+        processOverlappingSeeds(overlapping_seeds, lshift_xor_bsets, lsxor_perfect_bsets, lsxor_anchored_bsets, sequence_length, skip_atomicity);
 
-            if (seed_mlen <= SMALL_MLEN_LIMIT) {
-                processSeedMotifWise(tuple<int, int>{seed_start, seed_end}, chunk_start, seed_mlen, seed_type, sequence_id,
-                                     sequence, sequence_length, lshift_xor_bsets[seed_mlen - MINIMUM_SHIFT], left_bset, right_bset,
-                                     N_bset, out, aligner, filter, alignment, repeat_loci);
+        for (int j = 0; j < overlapping_seeds.size(); j++) {
+            if (get<3>(overlapping_seeds[j]) == RANK_N) { continue; }
+            
+            seeds_out << sequence_id << "\t" << get<0>(overlapping_seeds[j]) + chunk_start << "\t"
+                        << get<1>(overlapping_seeds[j]) + chunk_start << "\t"
+                        << get<2>(overlapping_seeds[j]) << "\t" << get<3>(overlapping_seeds[j]) << "\t" << get<4>(overlapping_seeds[j]) << "\t"
+                        << get<5>(overlapping_seeds[j]) << "\t" << get<6>(overlapping_seeds[j]) << "\t";
+            for (int s=0; s<skip_atomicity[j].size(); s++) {
+                if (s != 0) seeds_out << ",";
+                seeds_out << *(next(skip_atomicity[j].begin(), s));
+            }
+            seeds_out << "\n";
+
+            int o_start = get<0>(overlapping_seeds[j]);
+            int o_end = get<1>(overlapping_seeds[j]);
+            int o_mlen = get<2>(overlapping_seeds[j]);
+            if (o_start < 0 || o_end < 0) { continue; }
+            if (o_end + o_mlen > sequence_length) {
+                o_end = sequence_length - o_mlen;
+            }
+            int o_type = get<3>(overlapping_seeds[j]);
+
+            int o_bset_size = o_end - o_start;
+            if (THREADS > 1) MTX.lock();
+            seedlen_cutoff = SEEDLEN_CUTOFF[o_mlen - MINIMUM_MLEN];
+            if (THREADS > 1) MTX.unlock();
+            if (o_bset_size < seedlen_cutoff) { continue; }
+
+            // process seed if it is alteast the size of the motif length
+            processed_seeds += 1;
+            int slice_length = 20000 - 2 * o_mlen;
+            if (o_bset_size > slice_length) {
+                int slice_start = 0, slice_end = 0;
+                while (slice_end < o_bset_size) {
+                    if (slice_start + slice_length > o_bset_size)
+                        slice_end = o_bset_size;
+                    else
+                        slice_end = slice_start + slice_length;
+
+                    if (o_mlen <= SMALL_MLEN_LIMIT) {
+                        processSeedMotifWise(tuple<int, int>{o_start + slice_start, o_start + slice_end}, chunk_start, o_mlen,
+                                            o_type, sequence_id, sequence, sequence_length, lshift_xor_bsets[o_mlen - MINIMUM_SHIFT],
+                                            left_bset, right_bset, N_bset, out, aligner, filter, alignment, repeat_loci);
+                    }
+
+                    else {
+                        processSeed(tuple<int, int>{o_start + slice_start, o_start + slice_end}, chunk_start, o_mlen,
+                                    o_type, sequence_id, sequence, sequence_length, lshift_xor_bsets[o_mlen - MINIMUM_SHIFT],
+                                    left_bset, right_bset, N_bset, out, lshift_xor_bsets, MATRIX,
+                                    aligner, filter, alignment, repeat_loci, skip_atomicity[j]);
+                    }
+
+                    slice_start += slice_length - 500;
+                }
             }
 
             else {
-                processSeed(tuple<int, int>{seed_start, seed_end}, chunk_start, seed_mlen, seed_type, sequence_id, sequence,
-                            sequence_length, lshift_xor_bsets[seed_mlen - MINIMUM_SHIFT], left_bset, right_bset, N_bset,
-                            out, lshift_xor_bsets, MATRIX, aligner, filter, alignment, repeat_loci);
+
+                if (o_mlen <= SMALL_MLEN_LIMIT) {
+                    processSeedMotifWise(tuple<int, int>{o_start, o_end}, chunk_start, o_mlen, o_type, sequence_id,
+                                        sequence, sequence_length, lshift_xor_bsets[o_mlen - MINIMUM_SHIFT], left_bset, right_bset,
+                                        N_bset, out, aligner, filter, alignment, repeat_loci);
+                }
+
+                else {
+                    processSeed(tuple<int, int>{o_start, o_end}, chunk_start, o_mlen, o_type, sequence_id, sequence,
+                                sequence_length, lshift_xor_bsets[o_mlen - MINIMUM_SHIFT], left_bset, right_bset, N_bset,
+                                out, lshift_xor_bsets, MATRIX, aligner, filter, alignment, repeat_loci, skip_atomicity[j]);
+                }
             }
         }
+
     }
 
     if (THREADS > 1) {
         // if multi threaded print till the end of the chunk into the temp file
         if (repeat_loci.size() > 0) {
-            for (int i = 0; i < repeat_loci.size(); i++) {
-                out << get<0>(repeat_loci[i]) << "\t" << get<1>(repeat_loci[i]) << "\t" << get<2>(repeat_loci[i]) << "\t"
-                    << get<3>(repeat_loci[i]) << "\t" << get<4>(repeat_loci[i]) << "\t+\t" << get<6>(repeat_loci[i]) << "\t"
-                    << get<7>(repeat_loci[i]) << "\t" << get<8>(repeat_loci[i]);
-                if (CIGAROUTPUT)
-                    out << "\t" << get<5>(repeat_loci[i]);
-                out << "\n";
-            }
-            repeat_loci.clear();
+            printRepeatsToOutput(out, repeat_loci, repeat_loci.size()-1);
         }
     }
 
     else {
-        int remove_loci_index = 0;
-        if (repeat_loci.size() > 0) {
-            for (int i = 0; i < repeat_loci.size(); i++) {
-                if (get<2>(repeat_loci[i]) >= chunk_end - SPLIT_OVERLAP)
-                    continue;
-
-                if (get<1>(repeat_loci[i]) >= chunk_end - SPLIT_OVERLAP)
-                    break;
-
-                out << get<0>(repeat_loci[i]) << "\t" << get<1>(repeat_loci[i]) << "\t" << get<2>(repeat_loci[i]) << "\t"
-                    << get<3>(repeat_loci[i]) << "\t" << get<4>(repeat_loci[i]) << "\t+\t" << get<6>(repeat_loci[i]) << "\t"
-                    << get<7>(repeat_loci[i]) << "\t" << get<8>(repeat_loci[i]);
-                if (CIGAROUTPUT) {
-                    out << "\t" << get<5>(repeat_loci[i]);
-                }
-                out << "\n";
-                remove_loci_index += 1;
-            }
-        }
-
-        if (remove_loci_index > 0) {
-            repeat_loci.erase(repeat_loci.begin(), repeat_loci.begin() + remove_loci_index);
-        }
+        if (repeat_loci.size() > 0) printRepeatsToOutput(out, repeat_loci, repeat_loci.size()-1);
     }
 
     seed_positions_perfect.clear();
@@ -438,7 +526,7 @@ void splitProcessSequence(const string &sequence_id, string &sequence, ofstream 
         if (repeat_loci.size() > 0) {
             for (int i = 0; i < repeat_loci.size(); i++) {
                 out << get<0>(repeat_loci[i]) << "\t" << get<1>(repeat_loci[i]) + start << "\t" << get<2>(repeat_loci[i]) + start << "\t"
-                    << get<3>(repeat_loci[i]) << "\t" << get<4>(repeat_loci[i]) << "\t+\t" << get<6>(repeat_loci[i]) << "\t"
+                    << get<3>(repeat_loci[i]) << "\t" << std::setprecision(2) << (get<4>(repeat_loci[i])) << "\t" << get<6>(repeat_loci[i]) << "\t"
                     << get<7>(repeat_loci[i]) << "\t" << get<8>(repeat_loci[i]);
                 if (CIGAROUTPUT) {
                     out << "\t" << get<5>(repeat_loci[i]);
@@ -471,9 +559,9 @@ void parseFasta(string fasta_file, string output_file) {
     ofstream seeds_out(seeds_output_file);
 
     // adding header to the output file
-    out << "#Chrom\t" << "Start\t" << "Stop\t" << "Motif\t" << "Purity\t" << "Strand\t" << "Motif length\t"
-        << "Repeat length\t" << "Repeat Units";
-    if (CIGAROUTPUT) { out << "\tCigar"; }
+    out << "#chrom\t" << "start\t" << "stop\t" << "motif\t" << "purity\t" << "motif_length\t"
+        << "repeat_length\t" << "repeat_units";
+    if (CIGAROUTPUT) { out << "\tcigar"; }
     out << "\n";
 
     if (is_gzipped) {

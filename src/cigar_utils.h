@@ -1,5 +1,4 @@
 #include "global_variables.h"
-#include "process_cigar.h"
 
 using namespace std;
 using namespace boost;
@@ -38,4 +37,6 @@ void getMatches(vector<int> &clens, vector<char> &ctypes, int &matches, int &lon
 int getMatches(string &cigar);
 int getMatches(tuple<vector<int>, vector<char>> &cigar);
 int getMatches(vector<int> &clens, vector<char> &ctypes);
+
+tuple<vector<int>, vector<char>> cigarSplit(string cigar);
 

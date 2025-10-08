@@ -75,6 +75,7 @@ bool parseArguments(int &argc, char *argv[], string &input_file, string &output_
      *  @param output_file stores the name of the output file
      *  @return bool for successful completion of the function
      */
+
     po::options_description argparser("Below are the running options for the tool.");
     argparser.add_options()("help,h", "Ribbit is designed to identify tandem repeats in DNA sequences with specific focus\
                                        on annotating complex TR loci.")
@@ -86,8 +87,8 @@ bool parseArguments(int &argc, char *argv[], string &input_file, string &output_
         ("min-motif-length,m", po::value<int>(), "The minimum length of the motif of identified TR loci. Default: 2")
         ("max-motif-length,M", po::value<int>(), "The maximum length of the motif of identified TR loci. Default: 100")
 
-        ("purity,p", po::value<double>(), "The purity of complete repeat. Default: 0.8")
-        ("average-motif-purity,q", po::value<double>(), "Average match of each motif with consensus motif. Default: 0.8")
+        ("min-purity,p", po::value<double>(), "The minimum allowed purity of complete repeat. Default: 0.8")
+        ("min-motif-purity,q", po::value<double>(), "Minimum match of each motif with consensus motif. Default: 0.8")
 
         ("min-length,l",  po::value<string>(), "The minimum length of the repeat. Default: 12")
         ("min-units",     po::value<string>(), "The minimum number of units of the repeat. Can be a integer value, for cutoff across all motif sizes.\
