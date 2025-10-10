@@ -5,12 +5,12 @@ using namespace std;
 
 tuple<int, int> adjustSeedPositions(boost::dynamic_bitset<> &anchor_bset, boost::dynamic_bitset<> &N_bset, int seed_start, int seed_end) {
     /*
-     * adjusts the seed positions to the actual positions in the anchored bitset
-     * @param anchor_bset the anchored bitset
-     * @param seed_start the start position of the seed in the original bitset
-     * @param seed_end the end position of the seed in the original bitset
-     * @return a tuple containing the adjusted start and end positions
-    */
+     *  adjusts the seed positions to the actual positions in the anchored bitset
+     *  @param anchor_bset the anchored bitset
+     *  @param seed_start the start position of the seed in the original bitset
+     *  @param seed_end the end position of the seed in the original bitset
+     *  @return a tuple containing the adjusted start and end positions
+     */
 
     int bset_size = anchor_bset.size();
     int adjusted_start = seed_start, adjusted_end = seed_end;
@@ -221,7 +221,7 @@ void generateAnchorShiftXORs(vector<boost::dynamic_bitset<>> &lshift_xor_bsets, 
      *  @param lsxor_anchor_bsets vector of the left shift anchor bitsets
      *  @param anchor_size the length of the anchor size
      *  @return void
-    */
+     */
 
     int bset_size = N_bset.size();
     int anchor_start = -1;
@@ -247,7 +247,7 @@ void generatePerfectShiftXORs(vector<boost::dynamic_bitset<>> &lshift_xor_bsets,
      *  @param N_bset bitset with information of N positions
      *  @param lsxor_perfect_bsets vector of the left shift perfect bitsets
      *  @return void
-    */
+     */
 
     int bset_size = N_bset.size();
     for (int lsxor_idx=0; lsxor_idx < NSHIFTS; lsxor_idx++) {
@@ -273,7 +273,7 @@ tuple<int,int> addSeedToSeedPositionsAnchored(int seed_start, int seed_end, int 
      *  @param motif_bsets shift XOR bitsets of all the motif sizes
      *  @param bset_size the total size of a shift XOR bitset
      *  @return none add the seed to seed_position
-    */
+     */
 
     int last_start, last_end;
 

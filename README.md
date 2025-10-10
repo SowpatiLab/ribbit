@@ -5,7 +5,7 @@
 <h1 align=left style="font-size: 38px; padding-left: 10px; padding-bottom: 0px">ribbit</h1>
 
 <!-- <p style="font-size: 16px"> -->
-Ribbit is a software tool to identify tandem repeat (TR) regions of variable motif sizes in DNA sequences. Tandem repeats in DNA are sequences with a two or more near exact copies of a motif occuring contigously. Ribbit is designed with a focus on improving motif decomposition, and resolving complex structures in TR sequences. Ribbit can resolve a DNA sequence for TRs of motif size upto 100 bp.
+Ribbit identifies tandem repeat (TR) regions of variable motif sizes in DNA sequences. Tandem repeats are DNA segments consisting of two or more nearly identical copies of a motif occurring contiguously. Ribbit is designed to improve motif decomposition and resolve complex repeat structures, accurately detecting TRs with motif sizes up to 100 bp.
 
 The algorithm converts DNA sequences to 2-bit format and uses basic bit operations to deliniate potential repetitive stretches of a certain periodicity. The DNA sequence of a potential repetitive stretch is decomposed to identify a representative motif of identified peridicity. There are two different approaches to identifying the representative motif depending the on the peridicity. The sequence in the potential stretch is aligned with the perfect repeat of the identified representative motif to calculate the purity of the repeat. The potential sequence is either trimmed or dropped based on the user desired purity and minimum repeat length thresholds. A given sequence is idependently processed for potential repeats of all user-desired motif sizes. The results from each idependent search are merged and compared to resolve for nested/overlapping interpretations of a sequence as repetitive sequence of different periodicities. Overlapping tandem repeat interpretations of different motif sizes are retained/dropped based on preference for more pure stretches. 
 
@@ -13,18 +13,19 @@ The conversion of DNA to 2-bit stretches results in fast identification of poten
 
 <!-- </p> -->
 
-<h2 style="font-size: 35px; padding-left: 20px;">Table of Contents</h2>
-<ol style="font-size: 18px; padding-left: 40px;">
-    <li><a href="#installation">Installation</a></li>
+<h2 style="font-size: 30px; padding-left: 20px;">Table of Contents</h2>
+<ol style="font-size: 16px; padding-left: 40px;">
+    <li><a href="#compiling">Compiling</a></li>
     <li><a href="#usage">Usage</a></li>
     <li><a href="#inputs-and-outputs">Inputs and Outputs</a></li>
     <li><a href="#citation">Citation</a></li>
+    <li><a href="#authors">Authors</a></li>
     <li><a href="#contact">Contact</a></li>
 </ol>
 
 
 
-## Installation
+## Compiling
 <p style="font-size: 18px">
 To install Ribbit, clone the repository and install the dependencies using the following commands:
 </p>
@@ -36,16 +37,13 @@ To install Ribbit, clone the repository and install the dependencies using the f
 sudo apt-get install boost
 ```
 
-<br>
-
-### Compiling ribbit
+### Instruction for compiling
 
 ```
 git clone https://github.com/SowpatiLab/ribbit.git
 cd ribbit
 make
 ```
-<br>
 
 ## Usage
 <p style="font-size: 18px">
@@ -53,7 +51,7 @@ make
 </p>
 
 ```
-./ribbit [options] -i sequence.fasta --output results.bed
+./ribbit [options] -i sequence.fasta -o results.bed
 ```
 
 <p style="font-size: 18px">
@@ -63,67 +61,49 @@ make
 ```
 ./ribbit -h
 
-Ribbit: A fast and accurate tandem repeat finder.
+Ribbit: accurate identification of tandem repeats and annotation of complex tandem repeat sequences in genomes
 Version 1.0.0
-Below are the running options for the tool.:
-  -h [ --help ]                 Ribbit is designed to identify tandem repeats 
-                                in DNA sequences with specific focus           
-                                                            on annotating 
-                                complex TR loci.
-  -i [ --input-file ]           File path for the input fasta file.
-  
-  -o [ --output-file ]          File path for the input fasta file. Default: sys.stdout
 
-  -m [ --min-motif-length ]     Minimum length of the motif of identified TR loci. Default: 2
-  
-  -M [ --max-motif-length ]     Maximum length of the motif of identified  TR loci. Default: 100
-  
-  -p [ --min-purity ]       arg The minimum allowed purity of complete repeat.  Default: 0.8
-  
-  -q [ --min-motif-purity ] arg Minimum match of each motif with consensus 
-                                motif. Default: 0.8
-  
-  -l [ --min-length ]       arg The minimum length of the repeat. Default: 12
-  
-  --min-units               arg The minimum number of units of the repeat. Can 
-                                be a integer value, for cutoff across all motif
-                                sizes.                                         
-                                       Tab separated file with two columns, 
-                                first is the motif size and second unit cutoff.
-                                Default: 2
-  
-  --perfect-units arg           The minimum number of complete units of the 
-                                repeat. Can be a integer value, for cutoff 
-                                across all motif sizes.                        
-                                                        Tab separated file with
-                                two columns, first is the motif size and second
+Options for running the tool:
+  -h [ --help ]                 Ribbit detects tandem repeat regions in DNA, accurately resolving 
+                                complex repeat structures and motif sizes up to 100 bp.
+  -i [ --input-file ] arg       File path for the input fasta file.
+  -o [ --output-file ] arg      File path for output file. Default: {input-file}.ribbit
+  -m [ --min-motif-length ] arg The minimum length of the motif of the TR loci. Default: 2
+  -M [ --max-motif-length ] arg The maximum length of the motif of the TR loci. Default: 100
+  -p [ --min-purity ] arg       The minimum allowed purity of repeat sequence. Purity is calculated
+                                as the (matches/(matches+mismatches+indels)) in the alignment of 
+                                region sequence to perfect repeat of consensus motif. Default: 0.8
+  -q [ --min-motif-purity ] arg Minimum purity of each motif with consensus motif. Calculated as 
+                                the average of (matches/(matches+mismatches+indels)) for each motif
+                                length in the alignment of region sequence to perfect repeat of 
+                                consensus motif. Default: 0.8
+  -l [ --min-length ] arg       The minimum length of the repeat. Input can be an integer or a 
+                                tab-separated file with two columns of motif length and the length 
+                                cutoff. Default: 12 for STRs (motif length <= 6), 2*(motif length) 
+                                for others.
+  --min-units arg               The minimum number of units of the repeat. Input can be a integer 
+                                or a tab-separated file with two columns, first is the motif size 
+                                and second unit cutoff. Default: 2 for all motif sizes.
+  --perfect-units arg           The minimum number of complete units with 100% match with the 
+                                consensus motif in the repeat. Input can be an integer or a 
+                                tab-separated file with two columns of the motif length and the 
                                 unit cutoff. Default: 2
-  
-  --cigar                       Include cigar string in the output. Default is 
-                                off.
-  
-  -t [ --threads ] arg          Number of threads to be used for running. 
-                                default: 1
+  --cigar                       Include cigar string of the alignment of the sequence with the 
+                                perfect repeat of the consensus motif in the output. Default: 
+                                false.
+  -t [ --threads ] arg          Number of threads to be used for running. Default: 1
 ```
 
-## Inputs and Outputs
-<p style="font-size: 18px; padding-left: 20px;">
-
-```-i or --input```
-<div style="border: 1px solid #333; padding: 15px; border-radius: 5px; margin-bottom: 10px">
-    <p><strong>Expects:</strong> <code>STRING</code> (to be used as filename)</p>
-    <p>The input file must be a valid FASTA file.</p>
-</div>
+### Option description
 
 
-```-o or --output```
-<div style="border: 1px solid #333; padding: 15px; border-radius: 5px;">
-    <p><strong>Expects:</strong> <code>STRING</code> (to be used as filename)</p>
-    <p>The output for ribbit is <code>.bed</code> file.</p>
-    </div>
-</p>
+`-i or --input` file path of the input fasta file. 
 
-#### bed file output columns
+`-o or --output` file path of the output file. default: standard output
+
+
+## Output
 
 | S.No | Column           | Description                                                                                  |
 |------|------------------|----------------------------------------------------------------------------------------------|
@@ -137,19 +117,6 @@ Below are the running options for the tool.:
 | 7    | Repeat Strand    | Strand of SSR based on their cyclical variation                                              |
 | 8    | CIGAR            | Representing type of imperfections.                                                          | 
 
-</p>
-
-``` -m or --min-motif-length ```
-</p>
-    The minimum length of the motif of the repeats to be identified.
-    
-``` -M or --max-motif-length ```
-</p>
-    The maximum length of the motif of the repeats to be identified.
-
-``` -p or --purity ```
-</p>
-    TEXT
 
 ## Bed file output example
 
@@ -171,9 +138,11 @@ Below are the running options for the tool.:
 If you found ribbit useful, we would appreciate it if you could cite our manuscript: <a href="https://doi.org/10.1101/2025.02.06.636828">Ribbit: Accurate identification and annotation of complex tandem repeat sequences in genomes</a>
 </p>
 
+## Authors
+Anukrati Sharma <br>
+Akshay Kumar Avvaru
+
 ## Contact
-<p style="font-size: 16px">
-    For queries or suggestions, please contact:
-    <br>Akshay Kumar Avvaru - avvaruakshay@gmail.com
-    <br>Divya Tej Sowpati - tej@ccmb.res.in
-</p>
+For queries or suggestions, please contact:
+<br>Akshay Kumar Avvaru - avvaruakshay@gmail.com
+<br>Divya Tej Sowpati - tej@ccmb.res.in

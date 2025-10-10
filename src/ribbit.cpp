@@ -76,28 +76,36 @@ bool parseArguments(int &argc, char *argv[], string &input_file, string &output_
      *  @return bool for successful completion of the function
      */
 
-    po::options_description argparser("Below are the running options for the tool.");
-    argparser.add_options()("help,h", "Ribbit is designed to identify tandem repeats in DNA sequences with specific focus\
-                                       on annotating complex TR loci.")
+    po::options_description argparser("Options for running the tool", 100, 30);
+    argparser.add_options()("help,h", "Ribbit detects tandem repeat regions in DNA, accurately resolving complex repeat "
+                                      "structures and motif sizes up to 100 bp.")
 
         ("input-file,i",  po::value<string>(), "File path for the input fasta file.")
-        ("output-file,o", po::value<string>(), "File path for the input fasta file.\
-                                                Default: adds a ribbit suffix to input file.")
+        ("output-file,o", po::value<string>(), "File path for output file. Default: {input-file}.ribbit")
 
-        ("min-motif-length,m", po::value<int>(), "The minimum length of the motif of identified TR loci. Default: 2")
-        ("max-motif-length,M", po::value<int>(), "The maximum length of the motif of identified TR loci. Default: 100")
+        ("min-motif-length,m", po::value<int>(), "The minimum length of the motif of the TR loci. Default: 2")
+        ("max-motif-length,M", po::value<int>(), "The maximum length of the motif of the TR loci. Default: 100")
 
-        ("min-purity,p", po::value<double>(), "The minimum allowed purity of complete repeat. Default: 0.8")
-        ("min-motif-purity,q", po::value<double>(), "Minimum match of each motif with consensus motif. Default: 0.8")
+        ("min-purity,p", po::value<double>(), "The minimum allowed purity of repeat sequence. Purity is calculated as the"
+                                              " (matches/(matches+mismatches+indels)) in the alignment of region sequence to"
+                                              " perfect repeat of consensus motif. Default: 0.8")
+        ("min-motif-purity,q", po::value<double>(), "Minimum purity of each motif with consensus motif. Calculated as the "
+                                                    "average of (matches/(matches+mismatches+indels)) for each motif length"
+                                                    " in the alignment of region sequence to perfect repeat of consensus motif. Default: 0.8")
 
-        ("min-length,l",  po::value<string>(), "The minimum length of the repeat. Default: 12")
-        ("min-units",     po::value<string>(), "The minimum number of units of the repeat. Can be a integer value, for cutoff across all motif sizes.\
-                                                Tab separated file with two columns, first is the motif size and second unit cutoff. Default: 2")
-        ("perfect-units", po::value<string>(), "The minimum number of complete units of the repeat. Can be a integer value, for cutoff across all motif sizes.\
-                                                Tab separated file with two columns, first is the motif size and second unit cutoff. Default: 2")
+        ("min-length,l",  po::value<string>(), "The minimum length of the repeat. Input can be an integer or a tab-separated"
+                                               " file with two columns of motif length and the length cutoff. Default: 12 for"
+                                               " STRs (motif length <= 6), 2*(motif length) for others.")
+        ("min-units",     po::value<string>(), "The minimum number of units of the repeat. Input can be a integer or a tab-separated"
+                                               " file with two columns, first is the motif size and second unit cutoff. Default: 2 "
+                                               "for all motif sizes.")
+        ("perfect-units", po::value<string>(), "The minimum number of complete units with 100% match with the consensus motif in the"
+                                               " repeat. Input can be an integer or a tab-separated file with two columns of the motif "
+                                               "length and the unit cutoff. Default: 2")
 
-        ("cigar",     po::bool_switch()->default_value(false), "Include cigar string in the output. Default is off.")
-        ("threads,t", po::value<int>(), "Number of threads to be used for running. default: 1");
+        ("cigar",     po::bool_switch()->default_value(false), "Include cigar string of the alignment of the sequence with the perfect "
+                                                               "repeat of the consensus motif in the output. Default: false.")
+        ("threads,t", po::value<int>(), "Number of threads to be used for running. Default: 1");
 
     po::variables_map args;
     po::store(po::parse_command_line(argc, argv, argparser), args);
@@ -183,8 +191,8 @@ int main(int argc, char *argv[]) {
      *  @param argv list of commandline arguments
     */
 
-    cerr << "\nRibbit: A fast and accurate tandem repeat finder.\n";
-    cerr << "Version 1.0.0\n";
+    cerr << "\nRibbit: identification of tandem repeats and annotation of complex TRs in genomes\n";
+    cerr << "Version 1.0.0\n\n";
 
     // exception for handling missing fasta files handling gzip inputs
     string input_file = "", output_file = "";

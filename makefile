@@ -29,7 +29,7 @@ ifeq ($(OS),Darwin)
 endif
 
 # if there is a change in any of the ribbit source file make builds the executable
-ribbit: $(SRC_RIBBIT)
+ribbit: $(SRC_MAIN) $(SRC_RIBBIT)
 
 ifeq ($(OS),Darwin)
 	@echo "Operating System: macOS"
