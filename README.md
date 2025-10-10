@@ -11,13 +11,12 @@ The algorithm converts DNA sequences to 2-bit format and uses basic bit operatio
 
 The conversion of DNA to 2-bit stretches results in fast identification of potential repetitive stretches and allows the time for careful motif decomposition of repeat sequence. Ribbit provides a comprehensive bed file as an output and takes about 5-7 secs to resolve an MB of DNA sequence. The program can also be run on multi-threaded mode making it ideal for processing large genomes.
 
-<!-- </p> -->
-
 <h2 style="font-size: 30px; padding-left: 20px;">Table of Contents</h2>
 <ol style="font-size: 16px; padding-left: 40px;">
     <li><a href="#compiling">Compiling</a></li>
     <li><a href="#usage">Usage</a></li>
-    <li><a href="#inputs-and-outputs">Inputs and Outputs</a></li>
+    <li><a href="#options-description">Options description</a></li>
+    <li><a href="#Output">Output</a></li>
     <li><a href="#citation">Citation</a></li>
     <li><a href="#authors">Authors</a></li>
     <li><a href="#contact">Contact</a></li>
@@ -33,13 +32,13 @@ To install Ribbit, clone the repository and install the dependencies using the f
 ### Installing dependencies
 
 #### 1. Install boost library
-```
+```bash
 sudo apt-get install boost
 ```
 
 ### Instruction for compiling
 
-```
+```bash
 git clone https://github.com/SowpatiLab/ribbit.git
 cd ribbit
 make
@@ -50,15 +49,15 @@ make
     Here’s a basic usage example:
 </p>
 
-```
-./ribbit [options] -i sequence.fasta -o results.bed
+```bash
+$ ./ribbit [options] -i sequence.fasta -o results.bed
 ```
 
 <p style="font-size: 18px">
     To view detailed help information
 </p>
 
-```
+```bash
 ./ribbit -h
 
 Ribbit: accurate identification of tandem repeats and annotation of complex tandem repeat sequences in genomes
@@ -95,42 +94,45 @@ Options for running the tool:
   -t [ --threads ] arg          Number of threads to be used for running. Default: 1
 ```
 
-### Option description
+## Options description
 
 
-`-i or --input` file path of the input fasta file. 
+`-p or --min-purity`
+
+ 
 
 `-o or --output` file path of the output file. default: standard output
 
 
 ## Output
+### Output columns
 
-| S.No | Column           | Description                                                                                  |
-|------|------------------|----------------------------------------------------------------------------------------------|
-| 1    | Chromosome       | Chromosome or Sequence Name as specified by the first word in the FASTA header               |
-| 2    | Repeat Start     | 0-based start position of SSR in the Chromosome                                              |
-| 3    | Repeat Stop      | End position of SSR in the Chromosome                                                        |
-| 4    | Repeat Class     | Class of repeat as grouped by their cyclical variations                                      |
-| 5    | Repeat Length    | Total length of identified repeat in nt                                                      |
-| 6    | Motif count      | Number of complete motifs in the STR                                                         |
-| 7    | Purity           | Purity of STR region (perfect STR = 1)                                                       |
-| 7    | Repeat Strand    | Strand of SSR based on their cyclical variation                                              |
-| 8    | CIGAR            | Representing type of imperfections.                                                          | 
+| S.No | Column           | Description                                                   |
+|------|------------------|---------------------------------------------------------------|
+| 1    | Chromosome       | chromosome or sequence name as specified in fasta header      |
+| 2    | Repeat Start     | 0-based start position of tandem repeat in the chromosome     |
+| 3    | Repeat Stop      | end position of tandem repeat in the chromosome               |
+| 4    | Motif            | sequence of unit motif of tandem repeat                       |
+| 5    | Purity           | purity of the repeat                                          |
+| 6    | Motif length     | length of the unit motif in bases                             |
+| 7    | Repeat Length    | length of the repeat based on the coordinates                 |
+| 8    | Repeat Units     | number of unit motifs of the TR                               |
+| 9    | Info             | additional information of the repeat region including the CIGAR string of alignment and information of the nested TRs in the region. | 
 
 
-## Bed file output example
+### Output file example
 
-| Chromosome   | Start   | End     | Motif                         | Purity    | Strand | CIGAR                                                       | Motif Size | Repeat Length | Motif Units   |
-|--------------|---------|---------|-------------------------------|-----------|--------|-------------------------------------------------------------|------------|---------------| --------------|
-| Test_Seq     | 90196   | 90393   | AC                            | 0.9494    | +      | 3=1X3=1X5=1D82=1X17=1X19=1X31=1I2=1X3=1X21=1I2=             | 2          | 197           | 98            |
-| Test_Seq     | 137451  | 137470  | CCCGCT                        | 1         | +      | 19=                                                         | 6          | 19            | 3             |
-| Test_Seq     | 136254  | 136401  | GT                            | 0.9127    | +      | 6=1X9=1D20=1D15=1X12=1X5=1X25=1X9=1X7=1X5=1X9=1X10=1X2=1X2= | 2          | 147           | 73            |
-| Test_Seq     | 139286  | 139306  | AGTTGCTT                      | 0.95      | +      | 8=1X11=                                                     | 8          | 20            | 2             |
-| Test_Seq     | 3538110 | 3538168 | AATAGCAAGAGCCAGAGCTAGAGCAAAG  | 0.8813    | +      | 4=1X1=2I30=1X9=1X5=1X1=1D2=                                 | 8          | 58            | 7             |
-| Test_Seq     | 4197438 | 4197487 | CACAGCCAGCT                   | 0.9591    | +      | 26=1X12=1X9=                                                | 11         | 49            | 4             |
-| Test_Seq     | 4858037 | 4858050 | CTCTTT                        | 0.9230    | +      | 6=1I6=                                                      | 6          | 13            | 2             |
-| Test_Seq     | 5000704 | 5000745 | TATTCGTATGCGTATTC             | 0.9024    | +      | 4=1I22=1X4=2X7=                                             | 17         | 41            | 2             |
-
+| chromosome | start | end  | motif | purity    | motif_length | repeat_length   | repeat_units | info |
+|------------|-------|------|-------|-----------|--------------|-----------------|--------------|------|
+| test       | 292   | 305  | AC    |    0.93   | 2            | 13              | 6            | I    |
+| test       | 481   | 496  | AGC   |    0.82   | 3            | 15              | 5            | I    |
+| test       | 827   | 843  | GCCCAGGT | 1.00   | 8            | 16              | 2            | I    |
+| test       | 1017  | 1032 | TGCGGAG  | 0.93   | 7            | 15              | 2            | I    |
+| test       | 1508  | 1523 | AGGC     | 0.81   | 4            | 15              | 3            | I    |
+| test       | 1682  | 1833 | TGGAGGGTGGGGCCAAATGGAAGTGGGCGGGGCTGTGG | 0.90 | 38 | 151 | 3      | I    |
+| test       | 1863  | 1890 | AGGGC    | 0.83   | 5            | 27              | 5            | M:1869-1890-6-0.81:AGGGGC |
+| test       | 2182  | 2197 | CCGGT    | 0.93   | 5            | 15              | 3            | I    |
+| test       | 2277  | 2296 | TGGCCTCC | 1.00   | 8            | 19              | 2            | I    |
 </p>
 
 ## Citation
