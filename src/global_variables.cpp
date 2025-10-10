@@ -49,7 +49,6 @@ int RANK_N = -1;
 unordered_map<int, int> MINIMUM_LENGTH;
 unordered_map<int, int> MINIMUM_UNITS;
 unordered_map<int, int> PERFECT_UNITS;
-unordered_map<int, int> THRESHOLD_BITS;
 
 unordered_map<int, unordered_map<uint256_t, int>> ATOMICITY_MAP; // store atomicity of motifs
 unordered_map<int, unordered_map<uint256_t, string>> MOTIFS_MAP; // Store motif to int32

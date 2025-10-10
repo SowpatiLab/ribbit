@@ -22,3 +22,4 @@ void processOverlappingSeeds(vector<tuple<int,int,int,int,int,int,int>> &overlap
 void getBitCount(boost::dynamic_bitset<> &bset, int start_pos, int end_pos, int &motif_bitcount);
 
 int longestContinuousMatches(boost::dynamic_bitset<> &bset);
+int longestContinuousMatches(boost::dynamic_bitset<> &bset, int start_pos, int end_pos);

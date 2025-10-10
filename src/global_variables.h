@@ -62,7 +62,6 @@ extern std::mutex MTX;
 extern unordered_map<int, int> MINIMUM_LENGTH;
 extern unordered_map<int, int> MINIMUM_UNITS;
 extern unordered_map<int, int> PERFECT_UNITS;
-extern unordered_map<int, int> THRESHOLD_BITS;
 
 extern unordered_map<int, unordered_map<uint256_t, int>> ATOMICITY_MAP; // store atomicity of motifs
 extern unordered_map<int, unordered_map<uint256_t, string>> MOTIFS_MAP; // Store motif to int32
