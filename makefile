@@ -1,6 +1,6 @@
 CXX      = g++	# GNU c++ compiler
-CXXFLAGS = -O3 -Wall -g # optimisation level flag; suppress warnings
-SHARED_LIBS = -Wall -shared -fPIC $(shell python -m pybind11 --includes)	# shared library flags
+CXXFLAGS = -O3 -w -lz # optimisation level flag; suppress warnings
+SHARED_LIBS = -shared -fPIC $(shell python -m pybind11 --includes)	# shared library flags
 
 BOOST_LIB  = -lboost_system
 BOOST_AUXLIBS = -lboost_program_options -lboost_filesystem # including the program options library from boost
