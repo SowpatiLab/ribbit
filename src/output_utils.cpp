@@ -477,9 +477,12 @@ void compareOverlappingLoci(int &upstart, int &upend, string &upcigar, string &u
 
         uppurity = ((double) (getMatches(upcigar))) / ((double) (getAlignmentLength(upcigar)));
         dnpurity = ((double) (getMatches(dncigar))) / ((double) (getAlignmentLength(dncigar)));
+        
+        // up_update = true; dn_update = true;
+        if (boundary != upend) up_update = true;
+        if (boundary != dnstart) dn_update = true;
 
         upend = boundary; dnstart = boundary;
-        up_update = true; dn_update = true;
         if (((upend - upstart) < MINIMUM_LENGTH[upmotif.size()]) || ((upend - upstart) < 2*upmotif.size())) {
             up_drop = true;
         }
