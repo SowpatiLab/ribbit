@@ -1,10 +1,11 @@
 CXX      = g++	# GNU c++ compiler
-CXXFLAGS = -O3 -w -lz # optimisation level flag; suppress warnings
+CXXFLAGS = -O3 -w # optimisation level flag; suppress warnings
 SHARED_LIBS = -shared -fPIC $(shell python -m pybind11 --includes)	# shared library flags
 
 BOOST_LIB  = -lboost_system
 BOOST_AUXLIBS = -lboost_program_options -lboost_filesystem # including the program options library from boost
 PTHREAD_LIB = -lpthread
+ZLIB	   = -lz # zlib library for gzip file handling
 
 # library includes for striped-smithwaterman alignment
 SRC_SSW    = src/ssw.c src/ssw_cpp.cpp
@@ -29,15 +30,15 @@ ifeq ($(OS),Darwin)
 endif
 
 # if there is a change in any of the ribbit source file make builds the executable
-ribbit: $(SRC_MAIN) $(SRC_RIBBIT)
+ribbit: $(SRC_RIBBIT) $(SRC_MAIN)
 
 ifeq ($(OS),Darwin)
 	@echo "Operating System: macOS"
 	@echo "Boost version identified: " ${BOOST_VERSION}
-	$(CXX) $(CXXFLAGS) $(INCLUDE) $(BOOST_LIB) $(SRC_SSW) $(SRC_RIBBIT) $(SRC_MAIN) $(BOOST_AUXLIBS) -o ribbit
+	$(CXX) $(CXXFLAGS) $(INCLUDE) $(BOOST_LIB) $(SRC_SSW) $(SRC_RIBBIT) $(SRC_MAIN) $(BOOST_AUXLIBS) $(ZLIB) -o ribbit
 else ifeq ($(OS),Linux)
 	@echo "Operating System: Linux"
-	$(CXX) $(CXXFLAGS) $(BOOST_LIB) $(SRC_SSW) $(SRC_RIBBIT) $(SRC_MAIN) $(BOOST_AUXLIBS) $(PTHREAD_LIB) -o ribbit
+	$(CXX) $(CXXFLAGS) $(BOOST_LIB) $(SRC_SSW) $(SRC_RIBBIT) $(SRC_MAIN) $(BOOST_AUXLIBS) $(PTHREAD_LIB) $(ZLIB) -o ribbit
 else
 	@echo "Operating System: Unknown"
 endif
