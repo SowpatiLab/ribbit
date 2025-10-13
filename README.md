@@ -158,14 +158,14 @@ The `INFO` field provides detailed information about tandem repeat (TR) structur
 Each attribute in the field is separated by a **colon (`:`)**.
 
 #### Format:
-```python
+```bash
 <M_or_I> : <subrepeat_info> : <motifs>
 ```
 
 
 if the `--cigar` option is enabled:
-```python
-<M_or_I><CIGAR> : <subrepeat_info> : <motifs> : <subrepeat_CIGARs>
+```bash
+<M_or_I> : <CIGAR> : <subrepeat_info> : <motifs> : <subrepeat_CIGARs>
 ```
 
 #### Attribute Description:
