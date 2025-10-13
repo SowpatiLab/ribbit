@@ -125,15 +125,17 @@ void calculateWindowThresholds() {
     float fraction_motif = 0.7;
     int motif_cutoff = 8 / fraction_motif;
     double cumm_prob_threshold = 0.9, cumm_prob = 0.0;
+    double window_prob = PURITY_THRESHOLD;
     for (int mlen = MINIMUM_MLEN; mlen <= MAXIMUM_MLEN; mlen++) {
         window_length = (mlen <= motif_cutoff) ? 8 : mlen*fraction_motif;
         if (window_length < 8) window_length = 8;
         if (window_length > motif_cutoff) { cumm_prob_threshold = 0.9; }
         else { cumm_prob_threshold = 0.9; }
-        
+
+        if (window_prob < 0.85) window_prob = 0.85;
         WINDOW_LENGTHS[mlen - MINIMUM_MLEN] = window_length;
         for (int i = window_length; i >= 0; i--) {
-            cumm_prob = cumulativeBinomialProbability(window_length, i, PURITY_THRESHOLD);
+            cumm_prob = cumulativeBinomialProbability(window_length, i, window_prob);
             // cumm_prob = cumulativeBinomialProbability(window_length, i, 0.85);
             if (cumm_prob >= cumm_prob_threshold) {
                 // If m is divisible by i, set the threshold
