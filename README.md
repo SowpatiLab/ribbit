@@ -115,10 +115,10 @@ between 0 and 1.
 
 <i>motif purity at the i<sup>th</sup> motif is calculated as </i><br>
 
-> <br> $motif\_purity_i = matches / ((matches + mismatches + indels))$ <br><br>
+> <br> $motif\\_purity_i = matches / ((matches + mismatches + indels))$ <br><br>
 
 <i>motif purity is calculated as the average across all motif units </i><br>
-> <br> $motif\_purity = average(motif\_purity_0 + motif\_purity_1 +... + motif\_purity_n)$ <br><br>
+> <br> $motif\\_purity = average(motif\_purity_0 + motif\_purity_1 +... + motif\_purity_n)$ <br><br>
 
 
 ## Output
