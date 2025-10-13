@@ -83,29 +83,30 @@ bool parseArguments(int &argc, char *argv[], string &input_file, string &output_
         ("input-file,i",  po::value<string>(), "File path for the input fasta file.")
         ("output-file,o", po::value<string>(), "File path for output file. Default: {input-file}.ribbit")
 
-        ("min-motif-length,m", po::value<int>(), "The minimum length of the motif of the TR loci. Default: 2")
-        ("max-motif-length,M", po::value<int>(), "The maximum length of the motif of the TR loci. Default: 100")
+        ("min-motif-length,m", po::value<int>(), "The minimum length of the motif of the TR loci. [int] Default: 2")
+        ("max-motif-length,M", po::value<int>(), "The maximum length of the motif of the TR loci. [int] Default: 100")
 
         ("min-purity,p", po::value<double>(), "The minimum allowed purity of repeat sequence. Purity is calculated as the"
                                               " (matches/(matches+mismatches+indels)) in the alignment of region sequence to"
-                                              " perfect repeat of consensus motif. Default: 0.8")
+                                              " perfect repeat of consensus motif. [float] Default: 0.8")
         ("min-motif-purity,q", po::value<double>(), "Minimum purity of each motif with consensus motif. Calculated as the "
                                                     "average of (matches/(matches+mismatches+indels)) for each motif length"
-                                                    " in the alignment of region sequence to perfect repeat of consensus motif. Default: 0.8")
+                                                    " in the alignment of region sequence to perfect repeat of consensus motif."
+                                                    " [float] Default: 0.8")
 
         ("min-length,l",  po::value<string>(), "The minimum length of the repeat. Input can be an integer or a tab-separated"
-                                               " file with two columns of motif length and the length cutoff. Default: 12 for"
-                                               " STRs (motif length <= 6), 2*(motif length) for others.")
+                                               " file with two columns of motif length and the length cutoff. [int or file] "
+                                               "Default: 12 for STRs (motif length <= 6), 2*(motif length) for others.")
         ("min-units",     po::value<string>(), "The minimum number of units of the repeat. Input can be a integer or a tab-separated"
-                                               " file with two columns, first is the motif size and second unit cutoff. Default: 2 "
-                                               "for all motif sizes.")
+                                               " file with two columns, first is the motif size and second unit cutoff. [int or file] "
+                                               "Default: 2 for all motif sizes.")
         ("perfect-units", po::value<string>(), "The minimum number of complete units with 100% match with the consensus motif in the"
                                                " repeat. Input can be an integer or a tab-separated file with two columns of the motif "
-                                               "length and the unit cutoff. Default: 2")
+                                               "length and the unit cutoff. [int or file] Default: 2")
 
         ("cigar",     po::bool_switch()->default_value(false), "Include cigar string of the alignment of the sequence with the perfect "
                                                                "repeat of the consensus motif in the output. Default: false.")
-        ("threads,t", po::value<int>(), "Number of threads to be used for running. Default: 1");
+        ("threads,t", po::value<int>(), "Number of threads to be used for running. [int] Default: 1");
 
     po::variables_map args;
     po::store(po::parse_command_line(argc, argv, argparser), args);

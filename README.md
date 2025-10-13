@@ -26,36 +26,32 @@ The conversion of DNA to 2-bit stretches results in fast identification of poten
 
 ## Compiling
 <p style="font-size: 18px">
-To install Ribbit, clone the repository and install the dependencies using the following commands:
+To compile Ribbit, please follow these instructions:
 </p>
 
-### Installing dependencies
-
-#### 1. Install boost library
+#### 1. Installing dependencies
 ```bash
 sudo apt-get install boost
+sudo apt-get install zlib1g-dev
 ```
 
-### Instruction for compiling
+#### 2. Instruction for compiling
 
 ```bash
 git clone https://github.com/SowpatiLab/ribbit.git
+git checkout top-down
 cd ribbit
 make
 ```
 
 ## Usage
-<p style="font-size: 18px">
-    Here’s a basic usage example:
-</p>
+#### Here’s a basic usage example:
 
 ```bash
 $ ./ribbit [options] -i sequence.fasta -o results.bed
 ```
 
-<p style="font-size: 18px">
-    To view detailed help information
-</p>
+#### To view detailed help information
 
 ```bash
 ./ribbit -h
@@ -68,40 +64,61 @@ Options for running the tool:
                                 complex repeat structures and motif sizes up to 100 bp.
   -i [ --input-file ] arg       File path for the input fasta file.
   -o [ --output-file ] arg      File path for output file. Default: {input-file}.ribbit
-  -m [ --min-motif-length ] arg The minimum length of the motif of the TR loci. Default: 2
-  -M [ --max-motif-length ] arg The maximum length of the motif of the TR loci. Default: 100
+  -m [ --min-motif-length ] arg The minimum length of the motif of the TR loci. [int] Default: 2
+  -M [ --max-motif-length ] arg The maximum length of the motif of the TR loci. [int] Default: 100
   -p [ --min-purity ] arg       The minimum allowed purity of repeat sequence. Purity is calculated
                                 as the (matches/(matches+mismatches+indels)) in the alignment of 
-                                region sequence to perfect repeat of consensus motif. Default: 0.8
+                                region sequence to perfect repeat of consensus motif. [float] 
+                                Default: 0.8
   -q [ --min-motif-purity ] arg Minimum purity of each motif with consensus motif. Calculated as 
                                 the average of (matches/(matches+mismatches+indels)) for each motif
                                 length in the alignment of region sequence to perfect repeat of 
-                                consensus motif. Default: 0.8
+                                consensus motif. [float] Default: 0.8
   -l [ --min-length ] arg       The minimum length of the repeat. Input can be an integer or a 
                                 tab-separated file with two columns of motif length and the length 
-                                cutoff. Default: 12 for STRs (motif length <= 6), 2*(motif length) 
-                                for others.
+                                cutoff. [int or file] Default: 12 for STRs (motif length <= 6), 
+                                2*(motif length) for others.
   --min-units arg               The minimum number of units of the repeat. Input can be a integer 
                                 or a tab-separated file with two columns, first is the motif size 
-                                and second unit cutoff. Default: 2 for all motif sizes.
+                                and second unit cutoff. [int or file] Default: 2 for all motif 
+                                sizes.
   --perfect-units arg           The minimum number of complete units with 100% match with the 
                                 consensus motif in the repeat. Input can be an integer or a 
                                 tab-separated file with two columns of the motif length and the 
-                                unit cutoff. Default: 2
+                                unit cutoff. [int or file] Default: 2
   --cigar                       Include cigar string of the alignment of the sequence with the 
                                 perfect repeat of the consensus motif in the output. Default: 
                                 false.
-  -t [ --threads ] arg          Number of threads to be used for running. Default: 1
+  -t [ --threads ] arg          Number of threads to be used for running. [int] Default: 1
 ```
 
 ## Options description
 
 
-`-p or --min-purity`
+#### 1. Repeat purity `-p or --min-purity`
 
- 
+After identifying a potential repetitive region with a given periodicity, Ribbit determines the consensus motif
+of the tandem repeat. The sequence is then aligned to a perfect tandem repeat generated from this consensus motif. Repeat purity
+is calculated as the number of matching bases divided by the alignment length between the sequence and the perfect repeat. The 
+`--min-purity` option allows users to set the minimum purity threshold for tandem repeat detection. It accepts a floating-point
+value between 0 and 1.
 
-`-o or --output` file path of the output file. default: standard output
+> <br> $purity = matches / (matches + mismatches + indels)$ <br><br>
+
+
+#### 2. Motif purity `-q or --min-motif-purity`
+
+Motif purity is purity calculated for each motif stretch and is then averaged across all the motifs. `--min-motif-purity` option 
+allows users to set the minimum threshold for a TR. This is used to trim the motifs of lesser purity from the edges of the repeat and
+report the stretch with average motif purity greater than or equal to the user defined threshold. It accepts a floating-point value
+between 0 and 1.
+
+<i>motif purity at the i<sup>th</sup> motif is calculated as </i><br>
+
+> <br> $motif\_purity_i = matches / ((matches + mismatches + indels))$ <br><br>
+
+<i>motif purity is calculated as the average across all motif units </i><br>
+> <br> $motif\_purity = average(motif\_purity_0 + motif\_purity_1 +... + motif\_purity_n)$ <br><br>
 
 
 ## Output
@@ -133,16 +150,55 @@ Options for running the tool:
 | test       | 1863  | 1890 | AGGGC    | 0.83   | 5            | 27              | 5            | M:1869-1890-6-0.81:AGGGGC |
 | test       | 2182  | 2197 | CCGGT    | 0.93   | 5            | 15              | 3            | I    |
 | test       | 2277  | 2296 | TGGCCTCC | 1.00   | 8            | 19              | 2            | I    |
-</p>
+
+
+#### INFO Field Description
+
+The `INFO` field provides detailed information about tandem repeat (TR) structure, purity, and nested sub-repeats.  
+Each attribute in the field is separated by a **colon (`:`)**.
+
+#### Format:
+```python
+<M_or_I> : <subrepeat_info> : <motifs>
+```
+
+
+if the `--cigar` option is enabled:
+```python
+<M_or_I><CIGAR> : <subrepeat_info> : <motifs> : <subrepeat_CIGARs>
+```
+
+#### Attribute Description:
+| Attribute | Description |
+|------------|--------------|
+| **Type**                 | Indicates whether the repeat is **isolated** (`I`) or **contains nested, more pure repeats** (`M`). |
+| **CIGAR (optional)**     | If the `--cigar` option is enables this reports the CIGAR string of the alignment of sequence with a perfect repeat of the consensus motif. |
+| **2nd – Subrepeat info** | Lists subrepeats in the format `{start}-{stop}-{period}-{purity}`, separated by commas. <br>Example: `1068-1115-6-1.00` means a subrepeat from position **1068–1115**, with motif length **6 bp** and **100% purity**. |
+| **3rd – Motifs**         | Provides the motifs of the corresponding subrepeats, separated by commas. |
+| **Subrepeat CIGAR strings (optional)** | If the `--cigar` option is used, lists the CIGAR strings of each subrepeat, separated by commas. |
+
+---
+
+
+#### Example:
+```bash
+M:1068-1115-6-1.00,1103-1126-11-1.00,1114-1126-6-1.00:AACCCT,accctaaccct
+
+#with --cigar enabled
+M100M:1068-1115-6-1.00,1103-1126-11-1.00:AACCCT,accctaaccct:47M,23M
+```
 
 ## Citation
 <p style="font-size: 16px">
-If you found ribbit useful, we would appreciate it if you could cite our manuscript: <a href="https://doi.org/10.1101/2025.02.06.636828">Ribbit: Accurate identification and annotation of complex tandem repeat sequences in genomes</a>
+If you found ribbit useful, we would appreciate it if you could cite our manuscript:
+<a href="https://doi.org/10.1101/2025.02.06.636828">Ribbit: Accurate identification and annotation of complex tandem repeat sequences in genomes</a>
 </p>
+
 
 ## Authors
 Anukrati Sharma <br>
 Akshay Kumar Avvaru
+
 
 ## Contact
 For queries or suggestions, please contact:
