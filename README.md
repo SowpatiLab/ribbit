@@ -16,7 +16,7 @@ The conversion of DNA to 2-bit stretches results in fast identification of poten
     <li><a href="#compiling">Compiling</a></li>
     <li><a href="#usage">Usage</a></li>
     <li><a href="#options-description">Options description</a></li>
-    <li><a href="#Output">Output</a></li>
+    <li><a href="#output">Output</a></li>
     <li><a href="#citation">Citation</a></li>
     <li><a href="#authors">Authors</a></li>
     <li><a href="#contact">Contact</a></li>
@@ -118,7 +118,7 @@ between 0 and 1.
 > <br> $motif\\_purity_i = matches / ((matches + mismatches + indels))$ <br><br>
 
 <i>motif purity is calculated as the average across all motif units </i><br>
-> <br> $motif\\_purity = average(motif\_purity_0 + motif\_purity_1 +... + motif\_purity_n)$ <br><br>
+> <br> $motif\\_purity = average(motif\\_purity_0 + motif\\_purity_1 +... + motif\\_purity_n)$ <br><br>
 
 
 ## Output
