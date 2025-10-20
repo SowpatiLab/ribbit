@@ -136,7 +136,7 @@ void getBitCount(boost::dynamic_bitset<> &bset, int start_pos, int end_pos, int 
      *  @param start_pos the start position
      *  @param end_pos the end position
      *  @return motif_bitcount the number of 1s in the specified range
-    */
+     */
 
     int bset_size = bset.size();
     motif_bitcount = 0;
@@ -148,10 +148,10 @@ void getBitCount(boost::dynamic_bitset<> &bset, int start_pos, int end_pos, int 
 
 int longestContinuousMatches(boost::dynamic_bitset<> &bset) {
     /*
-     * calculates the longest continuous stretch of 1s in a bitset
-     * @param bset input bitset
-     * @return int length of the longest continuous stretch of 1s
-    */
+     *  calculates the longest continuous stretch of 1s in a bitset
+     *  @param bset input bitset
+     *  @return int length of the longest continuous stretch of 1s
+     */
 
     int nseq = bset.size(), l = 0, maxl = 0;
     for (int j=nseq-1; j >= 0; j--) {
@@ -169,12 +169,12 @@ int longestContinuousMatches(boost::dynamic_bitset<> &bset) {
 
 int longestContinuousMatches(boost::dynamic_bitset<> &bset, int start_pos, int end_pos) {
     /*
-     * calculates the longest continuous stretch of 1s in a bitset between start and end positions
-     * @param bset input bitset
-     * @param start_pos the start position
-     * @param end_pos the end position
-     * @return int length of the longest continuous stretch of 1s
-    */
+     *  calculates the longest continuous stretch of 1s in a bitset between start and end positions
+     *  @param bset input bitset
+     *  @param start_pos the start position
+     *  @param end_pos the end position
+     *  @return int length of the longest continuous stretch of 1s
+     */
 
     int nseq = bset.size(), l = 0, maxl = 0;
     for (int j=nseq-1-start_pos; j >= nseq-end_pos; j--) {

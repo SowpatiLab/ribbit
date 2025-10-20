@@ -9,7 +9,7 @@ double calculateMedian(std::vector<double>& numbers) {
      *  calculates the median of list of double numbers
      *  @param numbers vector of double numbers
      *  @return double the median value of the numbers
-    */
+     */
     int size = numbers.size();
     std::sort(numbers.begin(), numbers.end());
 
@@ -31,7 +31,7 @@ pair<int, int> calculateTrimEdges(double &purity_threshold, double &purity, vect
      *  @param alignment_length the total length of alignment with repeat and the perfect repeat; passed as reference
      *  @param motif_length the length of the repeating motif
      *  return the pair of trim lengths from left and right
-    */
+     */
     int trim_length = 0;        // length of the trim
     pair<int, int> trim_edges;  // the final pair of trim lengths
 
@@ -96,7 +96,7 @@ void motifwiseParametersInTrim(vector<int> &clens, vector<char> &ctypes, int cid
      *  @param avg_motifpurity the average motif wise purity across the repeat; passed as reference
      *  @param alignment_length length of the total alignment; passed as reference and updated
      *  return void
-    */
+     */
 
     char ctype; int clength;
     int  cidx = cidx_start;
@@ -412,22 +412,22 @@ void processCIGARWithPruning(int seed_start, int seed_sequence_length, string &c
                              int &repeat_start, int &repeat_end, int &alignment_length, int &match_units, string &new_cigar,
                              double &purity, double &avg_motifpurity, int &avg_motifindels) {
     /*
-     * processes the CIGAR string and returns the repeat based on the purity threshold
-     * @param seed_start position of the start of the seed sequence
-     * @param seed_sequence_length length of the seed sequence
-     * @param cigar CIGAR string of the alignment of the repeat with a perfect repeat
-     * @param seed_sequence sequence of the seed
-     * @param motif_length length of the repeating unit motif
-     * @param repeat_start start of the repeat sequence; passed as reference; updated
-     * @param repeat_end end of the repeat sequence; passed as reference; updated
-     * @param alignment_length total alignment length between repeat sequence and a perfect repeat; passed as reference updated
-     * @param match_units number of complete units of motif found in the repeat; passed as reference; updated
-     * @param new_cigar new CIGAR string after trimming
-     * @param purity purity of the complete repeat stretch; passed as reference; updated
-     * @param avg_motifpurity average motif wise purity with a complete motif
-     * @param avg_motifindels average number of indels identified per motif
-     * @returns vector having corrected attributes of the repeat sequence
-    */
+     *  processes the CIGAR string and returns the repeat based on the purity threshold
+     *  @param seed_start position of the start of the seed sequence
+     *  @param seed_sequence_length length of the seed sequence
+     *  @param cigar CIGAR string of the alignment of the repeat with a perfect repeat
+     *  @param seed_sequence sequence of the seed
+     *  @param motif_length length of the repeating unit motif
+     *  @param repeat_start start of the repeat sequence; passed as reference; updated
+     *  @param repeat_end end of the repeat sequence; passed as reference; updated
+     *  @param alignment_length total alignment length between repeat sequence and a perfect repeat; passed as reference updated
+     *  @param match_units number of complete units of motif found in the repeat; passed as reference; updated
+     *  @param new_cigar new CIGAR string after trimming
+     *  @param purity purity of the complete repeat stretch; passed as reference; updated
+     *  @param avg_motifpurity average motif wise purity with a complete motif
+     *  @param avg_motifindels average number of indels identified per motif
+     *  @returns vector having corrected attributes of the repeat sequence
+     */
     tuple<vector<int>, vector<char>> csplit = cigarSplit(cigar);
     vector<int>  clens = get<0> (csplit);
     vector<char> ctypes = get<1> (csplit);
@@ -549,21 +549,21 @@ void processCIGARMotifWise(int seed_start, int seed_sequence_length, string &cig
                            int &repeat_start, int &repeat_end, int &alignment_length, string &new_cigar, double &purity,
                            int &substitutions, int &indels, double &avg_motifpurity, int &avg_motifindels, int &avg_matchlen) {
     /*
-     * processes the CIGAR string and returns the repeat based on the purity threshold
-     * @param seed_start position of the start of the seed sequence
-     * @param seed_sequence_length length of the seed sequence
-     * @param cigar CIGAR string of the alignment
-     * @param seed_sequence nucleotide sequence of the seed
-     * @param motif_length periodicity of the repeat seed
-     * @param repeat_start start of the repeat passed as reference
-     * @param repeat_end end of the repeat passed as reference
-     * @param alignment_length alignment length of the seed sequence and perfect repeat passed as reference
-     * @param new_cigar cigar after processing the locus passed as reference
-     * @param purity purity of the repeat passed as reference
-     * @param avg_motifpurity motif wise purity of the repeat passed as reference
-     * @param avg_motifindels average number of indels observed for repeat passed as reference
-     * @returns vector having corrected attributes of the repeat sequence
-    */
+     *  processes the CIGAR string and returns the repeat based on the purity threshold
+     *  @param seed_start position of the start of the seed sequence
+     *  @param seed_sequence_length length of the seed sequence
+     *  @param cigar CIGAR string of the alignment
+     *  @param seed_sequence nucleotide sequence of the seed
+     *  @param motif_length periodicity of the repeat seed
+     *  @param repeat_start start of the repeat passed as reference
+     *  @param repeat_end end of the repeat passed as reference
+     *  @param alignment_length alignment length of the seed sequence and perfect repeat passed as reference
+     *  @param new_cigar cigar after processing the locus passed as reference
+     *  @param purity purity of the repeat passed as reference
+     *  @param avg_motifpurity motif wise purity of the repeat passed as reference
+     *  @param avg_motifindels average number of indels observed for repeat passed as reference
+     *  @returns vector having corrected attributes of the repeat sequence
+     */
 
     // should add condition to trim based on motif purity
 

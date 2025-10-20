@@ -206,15 +206,15 @@ void processSeed(tuple<int, int, int, int, int, int, int> &seed, int sequence_le
 void processSequence(string sequence_id, string sequence, ofstream &out, int chunk_start, int chunk_end,
                      vector<tuple<string, int, int, string, double, string, int, int, int>> &repeat_loci) {
     /*
-     * processes each sequence from 2-bit conversion to identifying repeats
-     * @param sequence_id name of the sequence from fasta
-     * @param sequence string of the fasta sequence
-     * @param out the output file to which the output has to be printed
-     * @param chunk_start the start position of the chunk being processed
-     * @param chunk_end the end position of the chunk being processed
-     * @param repeat_loci vector to store the repeat loci information
-     * @return void generates the dynamic bitsets of shift XOR matches and
-     * proceeds to identifying repeats
+     *  processes each sequence from 2-bit conversion to identifying repeats
+     *  @param sequence_id name of the sequence from fasta
+     *  @param sequence string of the fasta sequence
+     *  @param out the output file to which the output has to be printed
+     *  @param chunk_start the start position of the chunk being processed
+     *  @param chunk_end the end position of the chunk being processed
+     *  @param repeat_loci vector to store the repeat loci information
+     *  @return void generates the dynamic bitsets of shift XOR matches and
+     *  proceeds to identifying repeats
      */
 
     // converting the sequencing to bitsets
@@ -405,11 +405,11 @@ void processSequence(string sequence_id, string sequence, ofstream &out, int chu
 
 vector<tuple<size_t, size_t>> splitSequenceIntoBins(string &sequence, size_t bin_size = 5000000, size_t overlap = 50000) {
     /*
-     * Splits a sequence into bins of specified size with specified overlap.
-     * @param sequence: The DNA sequence to split.
-     * @param bin_size: Size of each bin (default 5,000,000).
-     * @param overlap: Number of bases each bin overlaps with the next (default 50,000).
-     * @return vector of tuples: (start, end, bin_sequence) where start is inclusive, end is exclusive.
+     *  splits a sequence into bins of specified size with specified overlap.
+     *  @param sequence: The DNA sequence to split.
+     *  @param bin_size: Size of each bin (default 5,000,000).
+     *  @param overlap: Number of bases each bin overlaps with the next (default 50,000).
+     *  @return vector of tuples: (start, end, bin_sequence) where start is inclusive, end is exclusive.
      */
     vector<tuple<size_t, size_t>> bins;
     size_t sequence_length = sequence.length();
@@ -432,10 +432,10 @@ vector<tuple<size_t, size_t>> splitSequenceIntoBins(string &sequence, size_t bin
 
 void splitProcessSequence(const string &sequence_id, string &sequence, ofstream &out, string output_file) {
     /*
-     * Splits a sequence into bins and writes them to the output stream.
-     * @param sequence_id: ID of the sequence.
-     * @param sequence: The DNA sequence to split.
-     * @param out: Output stream to write the bins.
+     *  splits a sequence into bins and writes them to the output stream.
+     *  @param sequence_id: ID of the sequence.
+     *  @param sequence: The DNA sequence to split.
+     *  @param out: Output stream to write the bins.
      */
 
     vector<tuple<string, int, int, string, double, string, int, int, int>> repeat_loci;
@@ -497,9 +497,9 @@ void splitProcessSequence(const string &sequence_id, string &sequence, ofstream 
 
 void parseFasta(string fasta_file, string output_file) {
     /*
-     * parses a fasta file input
-     * @param fasta_file input fasta file name
-     * @param output_file output file name
+     *  parses a fasta file input
+     *  @param fasta_file input fasta file name
+     *  @param output_file output file name
      */
 
     vector<string> sequence_ids;

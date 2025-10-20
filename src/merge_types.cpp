@@ -8,17 +8,17 @@ void mergeAllLists(vector<tuple<int,int,int,int,int,int,int>> &seed_positions_pe
                    int from_index_perfect, int from_index_substut, vector<int> &last_types,
                    vector<int> &last_indices, int seed_start) {
     /*
-     * merges the list of seeds of across all types
-     * @param seed_positions_perfect vector of perfect seed positions
-     * @param seed_positions_substut vector of repeat positions with mismatches allowed
-     * @param seed_positions_anchored vector of repeat positions with indels allowed
-     * @param from_index_perfect index of perfect seed to resume merging from
-     * @param from_index_substut index of substitute seeds to resume merging from
-     * @param last_types index of substitute seeds to resume merging from
-     * @param last_indices index of substitute seeds to resume merging from
-     * @param seed_start start of the seed
-     * @returns void
-    */
+     *  merges the list of seeds of across all types
+     *  @param seed_positions_perfect vector of perfect seed positions
+     *  @param seed_positions_substut vector of repeat positions with mismatches allowed
+     *  @param seed_positions_anchored vector of repeat positions with indels allowed
+     *  @param from_index_perfect index of perfect seed to resume merging from
+     *  @param from_index_substut index of substitute seeds to resume merging from
+     *  @param last_types index of substitute seeds to resume merging from
+     *  @param last_indices index of substitute seeds to resume merging from
+     *  @param seed_start start of the seed
+     *  @returns void
+     */
 
     int perfect_start_bool = false, substut_start_bool = false;
     int perfect_index = from_index_perfect, substut_index = from_index_substut;

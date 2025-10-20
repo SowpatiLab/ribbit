@@ -6,11 +6,11 @@ using namespace boost;
 
 string calculateMotif(uint256_t motif_unit, int motif_length) {
     /*
-     * converts a integer representation of motif to string
-     * @param motif the 32-bit integer representation of motif
-     * @param motif_length length of the motif
-     * @returns string string representation of the motif
-    */
+     *  converts a integer representation of motif to string
+     *  @param motif the 32-bit integer representation of motif
+     *  @param motif_length length of the motif
+     *  @returns string string representation of the motif
+     */
 
     if (MOTIFS_MAP[motif_length].find(motif_unit) != MOTIFS_MAP[motif_length].end()) {
         return MOTIFS_MAP[motif_length][motif_unit];
@@ -33,11 +33,11 @@ string calculateMotif(uint256_t motif_unit, int motif_length) {
 
 int calculateAtomicity(dynamic_bitset<> &window, int &motif_length) {
     /*
-     * finding the atomicity of a motif represented in dynamic bits
-     * @param window the dynamic bitset of the motif sequence; length = 2*motif_length
-     * @param motif_length length of the motif
-     * @returns int atomicity of the motif
-    */
+     *  finding the atomicity of a motif represented in dynamic bits
+     *  @param window the dynamic bitset of the motif sequence; length = 2*motif_length
+     *  @param motif_length length of the motif
+     *  @returns int atomicity of the motif
+     */
     uint256_t motif = window.to_ulong();
     if (ATOMICITY_MAP[motif_length].find(motif) != ATOMICITY_MAP[motif_length].end()) {
         // if motif already existing in the atomicity map
@@ -80,10 +80,10 @@ int calculateAtomicity(dynamic_bitset<> &window, int &motif_length) {
 
 int calculateAtomicity(uint256_t &motif, int &motif_length) {
     /*
-     * finding the atomicity of a motif represented in dynamic bits
-     * @param window the dynamic bitset of the motif sequence; length = 2*motif_length
-     * @param motif_length length of the motif
-     * @returns int atomicity of the motif
+     *  finding the atomicity of a motif represented in dynamic bits
+     *  @param window the dynamic bitset of the motif sequence; length = 2*motif_length
+     *  @param motif_length length of the motif
+     *  @returns int atomicity of the motif
     */
 
     vector<int> motif_factors;
@@ -109,11 +109,11 @@ int calculateAtomicity(uint256_t &motif, int &motif_length) {
 
 int calculateAtomicityLongMotif(uint256_t &motif, int &motif_length) {
     /*
-     * finding the atomicity of a motif represented in dynamic bits
-     * @param window the dynamic bitset of the motif sequence; length = 2*motif_length
-     * @param motif_length length of the motif
-     * @returns int atomicity of the motif
-    */
+     *  finding the atomicity of a motif represented in dynamic bits
+     *  @param window the dynamic bitset of the motif sequence; length = 2*motif_length
+     *  @param motif_length length of the motif
+     *  @returns int atomicity of the motif
+     */
 
     uint256_t shift, original;
     uint256_t mask;
@@ -136,11 +136,11 @@ int calculateAtomicityLongMotif(uint256_t &motif, int &motif_length) {
 
 int calculateAtomicity(uint32_t &motif, int &motif_length) {
     /*
-     * finding the atomicity of a motif represented in dynamic bits
-     * @param window the dynamic bitset of the motif sequence; length = 2*motif_length
-     * @param motif_length length of the motif
-     * @returns int atomicity of the motif
-    */
+     *  finding the atomicity of a motif represented in dynamic bits
+     *  @param window the dynamic bitset of the motif sequence; length = 2*motif_length
+     *  @param motif_length length of the motif
+     *  @returns int atomicity of the motif
+     */
 
     if (ATOMICITY_MAP[motif_length].find(motif) != ATOMICITY_MAP[motif_length].end()) {
         // if motif already existing in the atomicity map
@@ -183,12 +183,12 @@ int calculateAtomicity(uint32_t &motif, int &motif_length) {
 
 uint32_t calculateRepeatClass(boost::dynamic_bitset<> &window, int &motif_length) {
     /*
-     * calculates repeat class of the motif within the given window
-     * @param window the dynamic bitset which has the motif in bits
+     *  calculates repeat class of the motif within the given window
+     *  @param window the dynamic bitset which has the motif in bits
      *               length of the window bset is same as the motif size
-     * @param motif_length length of the motif
-     * @returns uint32_t the repeat class represented as bits
-    */
+     *  @param motif_length length of the motif
+     *  @returns uint32_t the repeat class represented as bits
+     */
 
     uint32_t motif = window.to_ulong();
     uint32_t repeat_class = REPEAT_CLASSES[motif_length-1][motif];

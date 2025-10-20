@@ -111,11 +111,11 @@ void mergeRepeats(vector<tuple<string, int, int, string, double, string, int, in
 void printRepeatsToOutput(ofstream &out, vector<tuple<string, int, int, string, double, string, int, int, int>> &repeat_loci,
                           int end_index) {
     /*
-     * print repeats from the recorded repeat loci and clears the repeat loci
-     * @param out outstream of the output file
-     * @param repeat_loci vector of recorded repeat loci sorted based on the start
-     * @param end_index index to which point repeats should be printed to the output
-    */
+     *  print repeats from the recorded repeat loci and clears the repeat loci
+     *  @param out outstream of the output file
+     *  @param repeat_loci vector of recorded repeat loci sorted based on the start
+     *  @param end_index index to which point repeats should be printed to the output
+     */
 
     mergeRepeats(repeat_loci, out, end_index);
     repeat_loci.erase(repeat_loci.begin(), repeat_loci.begin() + end_index + 1);
@@ -124,10 +124,10 @@ void printRepeatsToOutput(ofstream &out, vector<tuple<string, int, int, string, 
 
 int absolute(int x) {
     /*
-     * returns the absolute value of an integer
-     * @param x integer
-     * @return int absolute value of the integer
-    */
+     *  returns the absolute value of an integer
+     *  @param x integer
+     *  @return int absolute value of the integer
+     */
     if (x < 0) return -x;
     return x;
 }
@@ -135,11 +135,11 @@ int absolute(int x) {
 
 bool checkCyclicalVariation(string query, string ref) {
     /*
-     * checks if a query motif is cyclical variation of reference motif
-     * @param query sequence of the query motif 
-     * @param ref sequence of reference motif
-     * @return bool if the query motif is a cyclical variation of the reference motif
-    */
+     *  checks if a query motif is cyclical variation of reference motif
+     *  @param query sequence of the query motif 
+     *  @param ref sequence of reference motif
+     *  @return bool if the query motif is a cyclical variation of the reference motif
+     */
     if (query.length() != ref.length()) return false;
 
     string cycle;
@@ -225,14 +225,14 @@ tuple<vector<int>, vector<char>> extractNonOverlapCigar(int a_end, int b_start, 
 void alignSequenceWithPerfectRepeat(string &sequence, string &motif, int &repeat_start, int &repeat_end,
                                     double &purity, string &new_cigar) {
     /*
-     * aligns the sequence with a perfect repeat of the motif
+     *  aligns the sequence with a perfect repeat of the motif
      *  @param sequence the sequence to be aligned
      *  @param motif the motif to be aligned with
      *  @param repeat_start start position of the repeat
      *  @param repeat_end end position of the repeat
      *  @param purity purity of the alignment
      *  @param new_cigar cigar string of the alignment
-    */
+     */
 
     string perfect_repeat = "";
     int ppr_length = 0;
@@ -299,10 +299,10 @@ void alignSequenceWithPerfectRepeat(string &sequence, string &motif, int &repeat
 
 bool onlyMatches(vector<char> &ctypes) {
     /*
-     * checks if the cigar operations are only matches
-     * @param ctypes vector of cigar operations
-     * @return bool if the cigar operations are only matches
-    */
+     *  checks if the cigar operations are only matches
+     *  @param ctypes vector of cigar operations
+     *  @return bool if the cigar operations are only matches
+     */
     if (ctypes.size() == 0 || ctypes.size() > 1) return false;
     if (ctypes[0] == '=' || ctypes[0] == 'M') return true;
     return true;
@@ -312,7 +312,7 @@ bool onlyMatches(vector<char> &ctypes) {
 int getBoundaryOverlappingLoci(int upstart, int upend, string &upmotif, tuple<vector<int>, vector<char>> &up_cigarvalues, string &upcigar,
                                int dnstart, int dnend, string &dnmotif, tuple<vector<int>, vector<char>> &dn_cigarvalues, string &dncigar) {
     /*
-     * gets the boundary of the overlapping loci
+     *  gets the boundary of the overlapping loci
      *  @param upstart start position of the upstream locus
      *  @param upend end position of the upstream locus
      *  @param upmotif motif of the upstream locus
@@ -321,7 +321,7 @@ int getBoundaryOverlappingLoci(int upstart, int upend, string &upmotif, tuple<ve
      *  @param dnend end position of the downstream locus
      *  @param dnmotif motif of the downstream locus
      *  @param dn_cigarvalues the lengths and types of cigar operations of the downstream locus
-    */
+     */
 
     int overlap_length = upend - dnstart;
     int up_matches = 0, dn_matches = 0, longest_match = 0, shortmotif_length = 0;
@@ -390,14 +390,14 @@ int getBoundaryOverlappingLoci(int upstart, int upend, string &upmotif, tuple<ve
 void compareOverlappingLoci(int &upstart, int &upend, string &upcigar, string &upmotif, double &uppurity, bool &up_drop, bool &up_update,
                             int &dnstart, int &dnend, string &dncigar, string &dnmotif, double &dnpurity, bool &dn_drop, bool &dn_update) {
     /*
-     * compares the overlapping cigar of two overlapping loci and merges them
-     * @param upstart start position of the upstream locus
-     * @param upend end position of the upstream locus
-     * @param upcigar CIGAR of the upstream locus
-     * @param dnstart start position of the downstream locus
-     * @param dnend end position of the downstream locus
-     * @param dncigar CIGAR of the downstream locus
-    */
+     *  compares the overlapping cigar of two overlapping loci and merges them
+     *  @param upstart start position of the upstream locus
+     *  @param upend end position of the upstream locus
+     *  @param upcigar CIGAR of the upstream locus
+     *  @param dnstart start position of the downstream locus
+     *  @param dnend end position of the downstream locus
+     *  @param dncigar CIGAR of the downstream locus
+     */
 
     string full_sequence = "", new_cigar = "";
 
@@ -496,11 +496,11 @@ void compareOverlappingLoci(int &upstart, int &upend, string &upcigar, string &u
 bool compareRepeatLoci(const tuple<string, int, int, string, double, string, int, int, int> &a,
                        const tuple<string, int, int, string, double, string, int, int, int> &b) {
     /*
-     * compares repeat loci based on the start positions; if starts are same, returns the one with larger end position first
+     *  compares repeat loci based on the start positions; if starts are same, returns the one with larger end position first
      *  @param a tuple of the first repeat location
      *  @param b tuple of the second repeat location
      *  @returns bool bool value indicating if the first repeat is before second repeat
-    */
+     */
     if (get<1> (a) == get<1> (b)) {
         // if the start positions are same, compare based on the end positions
         return get<2> (a) > get<2> (b);
@@ -511,13 +511,13 @@ bool compareRepeatLoci(const tuple<string, int, int, string, double, string, int
 
 tuple<string, double> mergeRepeatsIdenticalMotif(int upend, int dnstart, string upcigar, string dncigar) {
     /*
-     * merges the two overlapping loci with identical motifs
+     *  merges the two overlapping loci with identical motifs
      *  @param upend end position of the upstream locus
      *  @param dnstart start position of the downstream locus
      *  @param upcigar CIGAR of the upstream locus
      *  @param dncigar CIGAR of the downstream locus
      *  @return tuple<string, double> merged CIGAR and purity of the merged locus
-    */
+     */
 
     tuple<vector<int>, vector<char>> up_cigarvalues = cigarSplit(upcigar);
     vector<int>  up_clens  = get<0> (up_cigarvalues);
@@ -574,7 +574,7 @@ bool handleOverlapRelation(string &sequence_id, int repeat_start, int repeat_end
      *  @param purity purity of the current repeat
      *  @param cigar_string CIGAR of the current repeat
      *  @param repeat_loci vector of recorded repeat loci sorted based on the start positions
-    */
+     */
 
     int last_start, last_end, last_length, last_mlen, last_units;
     int segment_length; double segment_purity;
@@ -805,7 +805,7 @@ bool handleNestedParentRelation(string &sequence_id, int repeat_start, int repea
      *  @param purity purity of the current repeat
      *  @param cigar_string CIGAR of the current repeat
      *  @param repeat_loci vector of recorded repeat loci sorted based on the start positions
-    */
+     */
 
     int last_start, last_end, last_length, last_mlen, last_units;
     int segment_length; double segment_purity;
@@ -891,14 +891,14 @@ bool handleNestedParentRelation(string &sequence_id, int repeat_start, int repea
 bool checkDuplicateEntry(string sequence_id, int repeat_start, int repeat_end, string motif,
                          vector<tuple<string, int, int, string, double, string, int, int, int>> &repeat_loci) {
     /*
-     * checks if the current repeat locus is a duplicate entry in the recorded repeats
+     *  checks if the current repeat locus is a duplicate entry in the recorded repeats
      *  @param sequence_id the name of the sequence the repeat is found in
      *  @param repeat_start the start position of the repeat
      *  @param repeat_end the end position of the repeat
      *  @param motif the sequence of the repeat motif
      *  @param repeat_loci the vector of tuples of all repeat loci
      *  @returns bool bool value indicating if the current repeat is a duplicate entry
-    */
+     */
 
     for (int i=repeat_loci.size()-1; i >= 0; i--) {
         if (i >= repeat_loci.size()) { i = repeat_loci.size()-1; }
@@ -936,7 +936,7 @@ void addLocusToOutput(string sequence_id, int repeat_start, int repeat_end, stri
      *  @param out the output file stream
      *  @param repeat_loci the vector of tuples of all repeat loci
      *  @returns void
-    */
+     */
 
     int recursion_limit = 100;
 

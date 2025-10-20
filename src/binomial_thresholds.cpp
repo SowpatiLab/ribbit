@@ -4,11 +4,11 @@
 
 long double combination(int n, int r) {
     /*
-     * Returns the binomial coefficient C(n, r) = n! / (r! * (n - r)!)
-     * @param n Total number of trials.
-     * @param r Number of successes.
-     * @return long double Binomial coefficient C(n, r).
-    */
+     *  returns the binomial coefficient C(n, r) = n! / (r! * (n - r)!)
+     *  @param n Total number of trials.
+     *  @param r Number of successes.
+     *  @return long double Binomial coefficient C(n, r).
+     */
 
     if (r > n) return 0;
     if (r == 0 || r == n) return 1;
@@ -24,13 +24,13 @@ long double combination(int n, int r) {
 
 long double probWithRunApprox(int n, int x, int r, long double p) {
     /*
-     * Returns the probability of having at least one run of length r given x successes in n trials.
-     * @param n total number of trials
-     * @param x number of successes
-     * @param r length of the run
-     * @param p probability of success in each trial
-     * @return long double approximate probability of having at least one run of length r
-    */
+     *  returns the probability of having at least one run of length r given x successes in n trials.
+     *  @param n total number of trials
+     *  @param x number of successes
+     *  @param r length of the run
+     *  @param p probability of success in each trial
+     *  @return long double approximate probability of having at least one run of length r
+     */
 
     // cout << n << "\t" << x << "\t" << nCr(n,x) << "\t" << combination(n, x) << "\n";
     // long double binom_probability = combination(n, x) * pow(p, x) * pow(1 - p, n - x);
@@ -47,21 +47,21 @@ long double probWithRunApprox(int n, int x, int r, long double p) {
 
 int minimumNumberOfSuccesses(int n, int r, long double p) {
     /*
-     * Returns the minimum number of successes required to exceed a given probability threshold.
-     * @param n total number of trials
-     * @param r continuous run of successes
-     * @param p probability of success in each trial
-     * @return minimum number of successes required
+     * returns the minimum number of successes required to exceed a given probability threshold.
+     *  @param n total number of trials
+     *  @param r continuous run of successes
+     *  @param p probability of success in each trial
+     *  @return minimum number of successes required
     */
 
     /*
-     * This function calculates the threshold number of 1s in an anchor seed
-     * n i.e., the total number of trials is the length of the anchor seed
-     * r i.e., the continuous run of successes is the required minimum continuous 
+     *  This function calculates the threshold number of 1s in an anchor seed
+     *  n i.e., the total number of trials is the length of the anchor seed
+     *  r i.e., the continuous run of successes is the required minimum continuous 
      *         matches in the anchor seed which is also the length of minimum number of 1s
      *         when considering anchors from the neighboring shifts
-     * p i.e., the probability of success in a trial is the purity threshold of the repeat
-    */
+     *  p i.e., the probability of success in a trial is the purity threshold of the repeat
+     */
 
         
     // For the total number of trials n, we calculated the probability for x number of successes with
