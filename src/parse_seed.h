@@ -14,4 +14,4 @@ void processLargeMotifSeed(tuple<int, int> seed_position, int seq_start, int &mo
                  boost::dynamic_bitset<> &N_bset, ofstream &out, vector<boost::dynamic_bitset<>> &lshift_xor_bsets,
                  vector<boost::dynamic_bitset<>*> &MATRIX, StripedSmithWaterman::Aligner &aligner, StripedSmithWaterman::Filter &filter,
                  StripedSmithWaterman::Alignment &alignment, vector<tuple<string, int, int, string, double, string, int, int, int>> &repeat_loci,
-                 set<int> &skip_atomicity);
+                 set<int> &skip_atomicity, string identified_motif="");
