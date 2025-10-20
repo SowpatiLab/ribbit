@@ -114,8 +114,10 @@ void concatenateThreadOutputs(const vector<string> &temp_files, ofstream &out) {
             repeat_units = stoi(fields[8]);
             cigar_string = fields[9];
 
+            int recursion_level = 0;
+            vector<tuple<string, int, int, string, double, string, int, int, int>> new_repeat_loci;
             addLocusToOutput(sequence_id, start, end, motif, purity, cigar_string,
-                             motif_length, repeat_length, repeat_units, out, repeat_loci);
+                             motif_length, repeat_length, repeat_units, out, repeat_loci, recursion_level, new_repeat_loci);
 
             fields.clear();
         }

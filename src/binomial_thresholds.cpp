@@ -122,7 +122,7 @@ void calculateWindowThresholds() {
     */
 
     int window_length;
-    float fraction_motif = 0.7;
+    float fraction_motif = 1;
     int motif_cutoff = 8 / fraction_motif;
     double cumm_prob_threshold = 0.9, cumm_prob = 0.0;
     double window_prob = PURITY_THRESHOLD;
@@ -132,11 +132,12 @@ void calculateWindowThresholds() {
         if (window_length > motif_cutoff) { cumm_prob_threshold = 0.9; }
         else { cumm_prob_threshold = 0.9; }
 
-        if (window_prob < 0.85) window_prob = 0.85;
+        if (window_prob < 0.85) window_prob = 0.85;  // Even if the user sets a lower purity threshold, the window
+                                                     // probability is set to 0.85 to avoid very low thresholds as the
+                                                     // locus is already supported by anchors from neighboring shifts
         WINDOW_LENGTHS[mlen - MINIMUM_MLEN] = window_length;
         for (int i = window_length; i >= 0; i--) {
             cumm_prob = cumulativeBinomialProbability(window_length, i, window_prob);
-            // cumm_prob = cumulativeBinomialProbability(window_length, i, 0.85);
             if (cumm_prob >= cumm_prob_threshold) {
                 // If m is divisible by i, set the threshold
                 WINDOW_THRESHOLDS[mlen - MINIMUM_MLEN] = i;
