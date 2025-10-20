@@ -18,6 +18,7 @@ The conversion of DNA to 2-bit stretches results in fast identification of poten
     <li><a href="#options-description">Options description</a></li>
     <li><a href="#output">Output</a></li>
     <li><a href="#citation">Citation</a></li>
+    <li><a href="#change-log">Change log</a></li>
     <li><a href="#authors">Authors</a></li>
     <li><a href="#contact">Contact</a></li>
 </ol>
@@ -194,6 +195,13 @@ If you found ribbit useful, we would appreciate it if you could cite our manuscr
 <a href="https://doi.org/10.1101/2025.02.06.636828">Ribbit: Accurate identification and annotation of complex tandem repeat sequences in genomes</a>
 </p>
 
+
+## Change log
+
+### version 1.0.0 - 20-10-2025
+- Ribbit underwent major changes in this version. The algorithmic logic for identifying the potential tandem repeats (seed TRs) has
+ changed.
+- The output format has been changed. TR regions are reported with the nested nested repeats reported in the `info` column.
 
 ## Authors
 Anukrati Sharma <br>
