@@ -190,18 +190,371 @@ int longestContinuousMatches(boost::dynamic_bitset<> &bset, int start_pos, int e
 }
 
 
-void processOverlappingSeeds(vector<tuple<int,int,int,int,int,int,int>> &overlapping_seeds, vector<boost::dynamic_bitset<>> &motif_bsets,
-                             vector<boost::dynamic_bitset<>> &perfect_bsets, vector<boost::dynamic_bitset<>> &anchored_bsets, int bset_size,
-                             vector<set<int>> &skip_atomicity) {
-    
-    vector<int> sorted_idx(overlapping_seeds.size());
-    
-    sort(overlapping_seeds.begin(), overlapping_seeds.end(), [](const tuple<int,int,int,int,int,int,int> &a, const tuple<int,int,int,int,int,int,int> &b) {
+void previouslyIdentifiedMotif(int seed_start, int seed_end, int motif_length, int chunk_start,
+                               vector<tuple<string, int, int, string, double, string, int, int, int>> &repeat_loci,
+                               string &motif) {
+
+    int distance = 2000;
+    int last_start, last_end, overlap_start, overlap_end, overlap_length;
+    if (motif_length > SMALL_MLEN_LIMIT && repeat_loci.size() > 0) {
+        for (int _=repeat_loci.size()-1; _ >= 0; _--) {
+            
+            if (_ >= repeat_loci.size()) { _ = repeat_loci.size()-1; }
+            
+            if (get<2>(repeat_loci[_]) < seed_start + chunk_start - distance) return;
+            
+            if (motif_length != get<6>(repeat_loci[_])) continue;
+            
+            // start comparing repeats from the end
+            last_start  = get<1> (repeat_loci[_]);
+            last_end    = get<2> (repeat_loci[_]);
+
+            if ((seed_end + chunk_start < last_start) || (seed_start + chunk_start > last_end)) {
+                // continue if repeat doesn't overlap with the repeat
+                continue;
+            }
+
+            overlap_start = (seed_start + chunk_start < last_start) ? last_start : seed_start + chunk_start;
+            overlap_end   = (seed_end + motif_length + chunk_start > last_end) ? last_end : seed_end + motif_length + chunk_start;
+            overlap_length = overlap_end - overlap_start;
+            if (overlap_length >= 0.8 * (seed_end + motif_length - seed_start)) {
+                motif = get<3>(repeat_loci[_]); return;
+            }
+        }
+    }
+
+    return;
+}
+
+
+void sortSeedPositions(vector<tuple<int,int,int,int,int,int,int>> &seed_positions) {
+    /*
+     *  sorts the seed positions based on start position, end position and motif length
+     *  @param seed_positions vector of seed positions
+     *  @return none
+     */
+
+    sort(seed_positions.begin(), seed_positions.end(), [](const tuple<int,int,int,int,int,int,int> &a, const tuple<int,int,int,int,int,int,int> &b) {
         if (get<0>(a) == get<0>(b))
             return get<1>(a) < get<1>(b);
         return get<0>(a) < get<0>(b);
     });
+}
+
+
+void checkAtomicity(vector<tuple<int,int,int,int,int,int,int>> &overlapping_seeds, vector<boost::dynamic_bitset<>> &motif_bsets,
+                    vector<boost::dynamic_bitset<>> &perfect_bsets, vector<boost::dynamic_bitset<>> &anchored_bsets) {
+    /*
+     *  filters out the nested seeds based on the number of matches found in anchored bset and motif bset
+     *  @param overlapping_seeds vector of overlapping seed positions
+     *  @param motif_bsets shift XOR bsets of all shift sizes
+     *  @param perfect_bsets perfect motif bsets of all shift sizes
+     *  @param anchored_bsets anchored motif bsets of all shift sizes
+     *  @return none
+     */
     
+    sortSeedPositions(overlapping_seeds);
+
+    int istart, iend, imlen, islen, itype, iacount, imcount, ipcount, iajump;
+    int jstart, jend, jmlen, jslen, jtype, jacount, jmcount, jpcount, jajump;
+
+    int ostart, oend, olength;
+    int threshold;
+
+    for (int i=0; i<overlapping_seeds.size(); i++) {
+        tie(istart, iend, imlen, itype, iacount, imcount, ipcount) = overlapping_seeds[i];
+        islen = iend - istart;
+        if (itype == RANK_N) continue;
+
+        // marking all the overlapping seeds as invalid
+        for (int j=i+1; j<overlapping_seeds.size(); j++) {
+            tie(jstart, jend, jmlen, jtype, jacount, jmcount, jpcount) = overlapping_seeds[j];
+            jslen = jend - jstart;
+
+            // as the seeds are sorted by start position, if the later seed start exceed the current seed end, we break
+            if (jstart > iend) break;
+            if (jtype == RANK_N) continue;
+
+            // if the seeds are identical, we mark the later one as invalid
+            if (istart == jstart && iend == jend && imlen == jmlen) {
+                overlapping_seeds[j] = tuple<int,int,int,int,int,int,int>{jstart, jend, jmlen, RANK_N, 0, 0, 0};
+                continue;
+            }
+
+            if (jend <= iend && jmlen != imlen && jslen >= 3*imlen) {
+                // seed j is nested and length of j seed is thrice the motif length of imlen
+                
+                int nia_count = 0, nim_count = 0;
+                getBitCount(anchored_bsets[imlen - MINIMUM_MLEN], jstart, jend, nia_count);
+                getBitCount(motif_bsets[imlen - MINIMUM_SHIFT],   jstart, jend, nim_count);
+
+                int sd = sqrt(jslen * 0.9 * 0.1);
+                threshold = (islen < 300) ? 3 * sd : 5 * sd;
+                if (jacount - nia_count < threshold) { continue; } // checks if nested seed qualifies
+
+                else if (imlen % jmlen == 0) {
+                    int pja_count = 0, pjm_count = 0, pjp_count = 0;
+
+                    // bitcounts of the motif length of nested seed in the span of the parent seed
+                    getBitCount(anchored_bsets[jmlen - MINIMUM_MLEN], istart, iend, pja_count);
+                    getBitCount(motif_bsets[jmlen - MINIMUM_SHIFT],   istart, iend, pjm_count);
+                    getBitCount(perfect_bsets[jmlen - MINIMUM_SHIFT],   istart, iend, pjp_count);
+
+                    sd = sqrt(islen * 0.9 * 0.1);
+                    threshold = (islen < 300) ? 3 * sd : 5 * sd;
+                    // if the bitcount for jmlen in the span of i seed is greater in the motif_bset or greater in than the threshold
+                    // in the anchored bitset then reassign atomicity for the seed i
+                    if (pjm_count >= imcount || pja_count >= threshold + iacount) {
+                        overlapping_seeds[i] = tuple<int,int,int,int,int,int,int>{ istart, iend, jmlen, RANK_A, pja_count, pjm_count, pjp_count};
+                        overlapping_seeds[j] = tuple<int,int,int,int,int,int,int>{ jstart, jend, jmlen, RANK_N, 0, 0, 0};
+                        i -= 1; break;
+                    }                    
+                }
+            }
+        }
+    }
+}
+
+
+void filterLowerMatchOverlapSeeds(vector<tuple<int,int,int,int,int,int,int>> &overlapping_seeds,
+                                  vector<boost::dynamic_bitset<>> &motif_bsets, vector<boost::dynamic_bitset<>> &perfect_bsets,
+                                  vector<boost::dynamic_bitset<>> &anchored_bsets) {
+
+    /*
+     *  filters out the nested seeds based on the number of matches found in anchored bset and motif bset
+     *  @param overlapping_seeds vector of overlapping seed positions
+     *  @param motif_bsets shift XOR bsets of all shift sizes
+     *  @param perfect_bsets perfect motif bsets of all shift sizes
+     *  @param anchored_bsets anchored motif bsets of all shift sizes
+     *  @return none
+    */
+
+    sortSeedPositions(overlapping_seeds);
+
+    int istart, iend, imlen, islen, itype, iacount, imcount, ipcount, iajump;
+    int jstart, jend, jmlen, jslen, jtype, jacount, jmcount, jpcount, jajump;
+    int ostart, oend, olength;
+    int sd, threshold;
+
+    for (int i=0; i<overlapping_seeds.size(); i++) {
+        tie(istart, iend, imlen, itype, iacount, imcount, ipcount) = overlapping_seeds[i];
+        islen = iend - istart;
+        if (itype == RANK_N) continue;
+        
+        // marking all the overlapping seeds as invalid
+        for (int j=i+1; j<overlapping_seeds.size(); j++) {
+            tie(jstart, jend, jmlen, jtype, jacount, jmcount, jpcount) = overlapping_seeds[j];
+            jslen = jend - jstart;
+
+            // as the seeds are sorted by start position, if the later seed start exceed the current seed end, we break
+            if (jstart >= iend) break;
+            if (jtype == RANK_N) continue;
+
+            // if the seeds are identical, we mark the later one as invalid
+            if (istart == jstart && iend == jend && imlen == jmlen) {
+                overlapping_seeds[j] = tuple<int,int,int,int,int,int,int>{jstart, jend, jmlen, RANK_N, 0, 0, 0};
+                continue;
+            }
+
+            if (jend <= iend && jmlen != imlen && jslen >= imlen ) {
+                // seed j is nested in seed i and length of j seed is thrice the motif length of imlen
+                int nia_count = 0, nim_count = 0, nip_count = 0;
+                getBitCount(anchored_bsets[imlen - MINIMUM_MLEN], jstart, jend, nia_count);
+                getBitCount(motif_bsets[imlen - MINIMUM_SHIFT],   jstart, jend, nim_count);
+                getBitCount(perfect_bsets[imlen - MINIMUM_SHIFT], jstart, jend, nip_count);
+
+                sd = sqrt(jslen * 0.9 * 0.1);
+                threshold = (jslen < 300) ? 3*sd : 5*sd;
+                if (jacount < (nia_count - threshold)) {
+                    overlapping_seeds[j] = tuple<int,int,int,int,int,int,int>{ jstart, jend, jmlen, RANK_N, 0, 0, 0};
+                }
+            }
+
+            else if (jend > iend && jmlen != imlen) {
+                // the seeds overlap partially
+                olength = iend - jstart;
+                bool icheck = false, jcheck = false;
+
+                // In the overlapping condition
+                // If any of the seed overlaps at least 80 % of its length and at least 3 motif lengths, we consider it for trimming
+                if (olength >= 0.8*islen && olength >= 3*jmlen) { icheck = true; }
+                if (olength >= 0.8*jslen && olength >= 3*imlen) { jcheck = true; }
+
+                int oia_count = 0, oim_count = 0;
+                int oja_count = 0, ojm_count = 0;
+                getBitCount(anchored_bsets[imlen - MINIMUM_MLEN], jstart, iend, oia_count);
+                getBitCount(motif_bsets[imlen - MINIMUM_SHIFT],   jstart, iend, oim_count);
+                getBitCount(anchored_bsets[jmlen - MINIMUM_MLEN], jstart, iend, oja_count);
+                getBitCount(motif_bsets[jmlen - MINIMUM_SHIFT],   jstart, iend, ojm_count);
+                
+                sd = sqrt(olength * 0.9 * 0.1);
+                threshold = (olength < 300) ? 3*sd : 5*sd;
+                if (icheck && !jcheck) {
+                    if (oia_count < (oja_count - threshold) && imlen > SMALL_MLEN_LIMIT) {
+                        // trim seed i to the non-overlapping part
+                        int acount = 0, mcount = 0, pcount = 0;
+                        getBitCount(anchored_bsets[jmlen - MINIMUM_MLEN], istart, jstart, acount);
+                        getBitCount(motif_bsets[jmlen - MINIMUM_SHIFT], istart, jstart, mcount);
+                        getBitCount(perfect_bsets[jmlen - MINIMUM_SHIFT], istart, jstart, pcount);
+                        overlapping_seeds[i] = tuple<int,int,int,int,int,int,int>{ istart, jstart, imlen, RANK_A, acount, mcount, pcount};
+                        i -= 1; break;
+                    }
+                }
+                else if (!icheck && jcheck) {
+                    if (oja_count < (oia_count - threshold) && jmlen > SMALL_MLEN_LIMIT) {
+                        // trim seed j to the non-overlapping part
+                        int acount = 0, mcount = 0, pcount = 0;
+                        getBitCount(anchored_bsets[jmlen - MINIMUM_MLEN], iend, jend, acount);
+                        getBitCount(motif_bsets[jmlen - MINIMUM_SHIFT], iend, jend, mcount);
+                        getBitCount(perfect_bsets[jmlen - MINIMUM_SHIFT], iend, jend, pcount);
+                        overlapping_seeds[j] = tuple<int,int,int,int,int,int,int>{ iend, jend, jmlen, RANK_A, acount, mcount, pcount};
+                    }
+                }
+                else if (icheck && jcheck) {
+                    // both seeds engulf each other
+                    int fia_count = 0, fim_count = 0, fip_count = 0;
+                    int fja_count = 0, fjm_count = 0, fjp_count = 0;
+                    getBitCount(anchored_bsets[imlen - MINIMUM_MLEN], istart, jend, fia_count);
+                    getBitCount(motif_bsets[imlen - MINIMUM_SHIFT],   istart, jend, fim_count);
+                    getBitCount(perfect_bsets[imlen - MINIMUM_SHIFT], istart, jend, fip_count);
+                    getBitCount(anchored_bsets[jmlen - MINIMUM_MLEN], istart, jend, fja_count);
+                    getBitCount(motif_bsets[jmlen - MINIMUM_SHIFT],   istart, jend, fjm_count);
+                    getBitCount(perfect_bsets[jmlen - MINIMUM_SHIFT], istart, jend, fjp_count);
+
+                    sd = sqrt((iend - jstart) * 0.9 * 0.1);
+                    threshold = ((iend - jstart) < 300) ? 3*sd : 5*sd;
+                    if (fia_count - fja_count > threshold && fim_count >= fjm_count) {
+                        // trim seed i to the non-overlapping part
+                        overlapping_seeds[i] = tuple<int,int,int,int,int,int,int>{ istart, jend, imlen, RANK_A, fia_count, fim_count, fip_count};
+                        overlapping_seeds[j] = tuple<int,int,int,int,int,int,int>{ jstart, jend, jmlen, RANK_N, 0, 0, 0};
+                        i -= 1; break;
+                    }
+                    else if (fja_count - fia_count > threshold && fjm_count >= fim_count) {
+                        // trim seed j to the non-overlapping part
+                        overlapping_seeds[i] = tuple<int,int,int,int,int,int,int>{ istart, jend, jmlen, RANK_A, fja_count, fjm_count, fjp_count};
+                        overlapping_seeds[j] = tuple<int,int,int,int,int,int,int>{ jstart, jend, jmlen, RANK_N, 0, 0, 0};
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+void filterNearAtomicSeeds(vector<tuple<int,int,int,int,int,int,int>> &overlapping_seeds, vector<boost::dynamic_bitset<>> &motif_bsets,
+                           vector<boost::dynamic_bitset<>> &perfect_bsets, vector<boost::dynamic_bitset<>> &anchored_bsets) {
+    /*
+     *  filters out the seeds which are not strictly atomic but are very close to atomicity
+     *  @param overlapping_seeds vector of overlapping seed positions
+     *  @param motif_bsets shift XOR bsets of all shift sizes
+     *  @param perfect_bsets perfect motif bsets of all shift sizes
+     *  @param anchored_bsets anchored motif bsets of all shift sizes
+     *  @return none
+    */
+    
+    sortSeedPositions(overlapping_seeds);
+
+    int istart, iend, imlen, islen, itype, iacount, imcount, ipcount, iajump;
+    int jstart, jend, jmlen, jslen, jtype, jacount, jmcount, jpcount, jajump;
+
+    int ostart, oend, olength;
+
+    for (int i=0; i<overlapping_seeds.size(); i++) {
+        tie(istart, iend, imlen, itype, iacount, imcount, ipcount) = overlapping_seeds[i];
+        islen = iend - istart;
+        if (itype == RANK_N) continue;
+
+        // marking all the overlapping seeds as invalid
+        for (int j=i+1; j<overlapping_seeds.size(); j++) {
+            tie(jstart, jend, jmlen, jtype, jacount, jmcount, jpcount) = overlapping_seeds[j];
+            jslen = jend - jstart;
+
+            // as the seeds are sorted by start position, if the later seed start exceed the current seed end, we break
+            if (jstart > iend) break;
+            if (jtype == RANK_N) continue;
+
+            // if the seeds are identical, we mark the later one as invalid
+            if (istart == jstart && iend == jend && imlen == jmlen) {
+                overlapping_seeds[j] = tuple<int,int,int,int,int,int,int>{jstart, jend, jmlen, RANK_N, 0, 0, 0};
+                continue;
+            }
+
+            ostart = jstart;
+            if (jend > iend) { oend = iend; }
+            else { oend = jend; }
+            olength = oend - ostart;
+
+            // things to consider now. The relationship of the motif lengths of the seeds
+            // Only compare seeds which substantially overlap with each other
+            if (jmlen < imlen) {
+                if (islen - olength < imlen) {
+                    int perfect_jlen = longestContinuousMatches(perfect_bsets[jmlen - MINIMUM_SHIFT], ostart, oend) + jmlen;
+                    if (itype != RANK_P) {
+                        bool check = (imlen <= 6 && perfect_jlen >= 12);  // if it's a short motif then the perfect match should be at least 12
+                        check = check || ((imlen > 6 && imlen >= 2*jmlen) && ((imlen < 20 && perfect_jlen >= imlen - 1) || (imlen >= 20 && perfect_jlen >= 0.9*imlen)));
+                        check = check || ((imlen > 6 && imlen <  2*jmlen) && ((imlen < 20 && perfect_jlen >= 2*imlen - 1) || (imlen >= 20 && perfect_jlen >= 0.9*2*imlen)));
+                        if (check) {
+                            overlapping_seeds[i] = tuple<int,int,int,int,int,int,int>{istart, iend, imlen, RANK_N, 0,0,0};
+                            break;
+                        }
+                    }
+                    else if (itype == RANK_P) {
+                        bool check = (imlen <= 6 && perfect_jlen >= 12);  // if it's a short motif then the perfect match should be at least 12
+                        check = check || ((imlen > 6 && imlen >= 2*jmlen) && (perfect_jlen >= imlen - 1));
+                        check = check || ((imlen > 6 && imlen < 2*jmlen) && (perfect_jlen >= 2*imlen - 1));
+                        if (check) {
+                            overlapping_seeds[i] = tuple<int,int,int,int,int,int,int>{istart, iend, imlen, RANK_N, 0,0,0};
+                            break;
+                        }
+                    }
+                }
+            }
+
+            else if (jmlen > imlen) {
+                if (jslen - olength < jmlen) {
+                    int perfect_ilen = longestContinuousMatches(perfect_bsets[imlen - MINIMUM_SHIFT], ostart, oend) + imlen;
+                    if (jtype != RANK_P) {
+                        bool check = (jmlen <= 6 && perfect_ilen >= 12);  // if it's a short motif then the perfect match should be at least 12
+                        check = check || ( (jmlen > 6 && jmlen >= 2*imlen) && ((jmlen < 20 && perfect_ilen >= jmlen - 1) || (jmlen >= 20 && perfect_ilen >= 0.9*jmlen)) );
+                        check = check || ( (jmlen > 6 && jmlen < 2*imlen) && ((jmlen < 20 && perfect_ilen >= 2*jmlen - 1) || (jmlen >= 20 && perfect_ilen >= 0.9*2*jmlen)) );
+                        if (check) {
+                            overlapping_seeds[j] = tuple<int,int,int,int,int,int,int>{jstart, jend, jmlen, RANK_N, 0,0,0};
+                            continue;
+                        }
+                    }
+                    else if (jtype == RANK_P) {
+                        bool check = (jmlen <= 6 && perfect_ilen >= 12);  // if it's a short motif then the perfect match should be at least 12
+                        check = check || ((jmlen > 6 && jmlen >= 2*imlen) && (perfect_ilen >= jmlen - 1));
+                        check = check || ((jmlen > 6 && jmlen < 2*imlen) && (perfect_ilen >= 2*jmlen - 1));
+                        if (check) {
+                            overlapping_seeds[j] = tuple<int,int,int,int,int,int,int>{jstart, jend, jmlen, RANK_N, 0,0,0};
+                            continue;
+                        }
+                    }
+                }                
+            }
+        }
+    }
+}
+
+
+void processOverlappingSeeds(vector<tuple<int,int,int,int,int,int,int>> &overlapping_seeds, vector<boost::dynamic_bitset<>> &motif_bsets,
+                             vector<boost::dynamic_bitset<>> &perfect_bsets, vector<boost::dynamic_bitset<>> &anchored_bsets, int bset_size,
+                             vector<set<int>> &skip_atomicity) {
+    
+    /*
+     *  processes the overlapping seeds to remove redundant seeds
+     *  @param overlapping_seeds vector of overlapping seed positions
+     *  @param motif_bsets shift XOR bsets of all shift sizes
+     *  @param perfect_bsets perfect motif bsets of all shift sizes
+     *  @param anchored_bsets anchored motif bsets of all shift sizes
+     *  @param bset_size size of the shift XOR bitsets
+     *  @param skip_atomicity vector of sets of motif lengths to skip atomicity checks
+     *  @return none
+    */
+
+    sortSeedPositions(overlapping_seeds);
+
     skip_atomicity.resize(overlapping_seeds.size());
     for (size_t i = 0; i < overlapping_seeds.size(); ++i) {
         skip_atomicity[i] = set<int>();
@@ -209,56 +562,47 @@ void processOverlappingSeeds(vector<tuple<int,int,int,int,int,int,int>> &overlap
     
     int istart, iend, imlen, islen, itype, imcount, ipcount, iacount, iajump;
     int jstart, jend, jmlen, jslen, jtype, jmcount, jpcount, jacount, jajump;
-
     int ostart, oend, olength;
 
     for (int i=0; i<overlapping_seeds.size(); i++) {
-        istart = get<0>(overlapping_seeds[i]);
-        iend   = get<1>(overlapping_seeds[i]);
+        tie(istart, iend, imlen, itype, iacount, imcount, ipcount) = overlapping_seeds[i];
         islen = iend - istart;
-        imlen  = get<2>(overlapping_seeds[i]);
-        itype  = get<3>(overlapping_seeds[i]);
-        imcount = get<4>(overlapping_seeds[i]);
-        ipcount = get<5>(overlapping_seeds[i]);
-        iacount = get<6>(overlapping_seeds[i]);
+        if (itype == RANK_N) continue;
+
         if (imlen <= 6) { iajump = 1; }
         else { iajump = ((2 * imlen / 10) > 1) ? (2 * imlen / 10) : 2; }
         
         // marking all the overlapping seeds as invalid
         for (int j=i+1; j<overlapping_seeds.size(); j++) {
-            jstart = get<0>(overlapping_seeds[j]);
-            if (jstart > iend) break;
-            jend   = get<1>(overlapping_seeds[j]);
-            jslen  = jend - jstart;
-            jmlen  = get<2>(overlapping_seeds[j]);
-            jtype  = get<3>(overlapping_seeds[j]);
-            jmcount = get<4>(overlapping_seeds[j]);
-            jpcount = get<5>(overlapping_seeds[j]);
-            jacount = get<6>(overlapping_seeds[j]);
+            tie(jstart, jend, jmlen, jtype, jacount, jmcount, jpcount) = overlapping_seeds[j];
+            jslen = jend - jstart;
             if (jmlen <= 6) { jajump = 1; }
             else { jajump = ((2 * jmlen / 10) > 1) ? (2 * jmlen / 10) : 2; }
 
-            if (itype == RANK_N || jtype == RANK_N) continue;
+            // as the seeds are sorted by start position, if the later seed start exceed the current seed end, we break
+            if (jstart > iend) break;
+            if (jtype == RANK_N) continue;
 
+            // if the seeds are identical, we mark the later one as invalid
             if (istart == jstart && iend == jend && imlen == jmlen) {
-                overlapping_seeds[j] = tuple<int,int,int,int,int,int,int>{jstart, jend, jmlen, RANK_N, 0,0,0};
+                overlapping_seeds[j] = tuple<int,int,int,int,int,int,int>{jstart, jend, jmlen, RANK_N, 0, 0, 0};
                 continue;
             }
 
-            if (jstart <= iend) { ostart = jstart; }
-
+            ostart = jstart;
             if (jend > iend) { oend = iend; }
             else { oend = jend; }
             olength = oend - ostart;
 
             if (imlen == jmlen && imlen <= SMALL_MLEN_LIMIT) {
                 if (islen - olength < imlen && itype == RANK_A && jtype > RANK_A) {
-                    overlapping_seeds[i] = tuple<int,int,int,int,int,int,int>{istart, iend, imlen, RANK_N, 0,0,0};
+                    overlapping_seeds[i] = tuple<int,int,int,int,int,int,int>{istart, iend, imlen, RANK_N, 0, 0, 0};
+                    break;
                 }
                 else if (jslen - olength < jmlen && jtype == RANK_A && itype > RANK_A) {
-                    overlapping_seeds[j] = tuple<int,int,int,int,int,int,int>{jstart, jend, jmlen, RANK_N, 0,0,0};
+                    overlapping_seeds[j] = tuple<int,int,int,int,int,int,int>{jstart, jend, jmlen, RANK_N, 0, 0, 0};
+                    continue;
                 }
-                continue;
             }
 
             if ((jmlen < imlen && islen - olength < imlen) && jtype != RANK_N) {
@@ -269,78 +613,57 @@ void processOverlappingSeeds(vector<tuple<int,int,int,int,int,int,int>> &overlap
                 // do not need to processes if atomicity is identified
                 skip_atomicity[j].insert(imlen);
             }
+        }
+    }
+}
 
-            // skip the comparisons for seeds of motif length that differ only by the jump size
-            // because these are result of the algorithm and the region could possibly be a repeat of those motif sizes
-            if (imlen <= jmlen + jajump && imlen >= jmlen - jajump) {
-                continue;
-            }
-            else if (jmlen <= imlen + iajump && jmlen >= imlen - iajump) {
-                continue;
-            }
 
-            // cout << "Comparing seeds: " << istart << "-" << iend << " (" << imlen << "," << itype << ") and "
-            //      << jstart << "-" << jend << " (" << jmlen << "," << jtype << ")\t";
-            
-            // things to consider now. The relationship of the motif lengths of the seeds
-            // Only compare seeds which substantially overlap with each other
-            if (jmlen < imlen) {
-                // cout << "Overlap length: " << olength << "\t" << islen - olength << "\t";
-                if (itype != RANK_P) {
-                    if (islen - olength < imlen) {
-                        int lmatches = longestContinuousMatches(perfect_bsets[jmlen - MINIMUM_SHIFT], ostart, oend) + imlen;
-                        // cout << "Longest matches: " << lmatches << "\t";
-                        if ((imlen <= 6 && lmatches >= 12) ||
-                            ((imlen > 6 && imlen >= 2*jmlen) && ((imlen < 30 && lmatches >= imlen - 1) || (imlen >= 30 && lmatches >= 0.9*imlen))) ||
-                            ((imlen > 6 && imlen < 2*jmlen) && ((imlen < 30 && lmatches >= 2*imlen - 1) || (imlen >= 30 && lmatches >= 0.9*2*imlen)))) {
-                            overlapping_seeds[i] = tuple<int,int,int,int,int,int,int>{istart, iend, imlen, RANK_N, 0,0,0};
-                            // cout << "Marking seed i as invalid";
-                        }
-                    }
-                }
-                else if (itype == RANK_P) {
-                    if (islen - olength < imlen) {
-                        int lmatches = longestContinuousMatches(perfect_bsets[jmlen - MINIMUM_SHIFT], ostart, oend) + imlen;
-                        // cout << "Longest matches: " << lmatches << "\t";
-                        if ((imlen <= 6 && lmatches >= 12) ||
-                            ((imlen > 6 && imlen >= 2*jmlen) && (lmatches >= imlen - 1)) ||
-                            ((imlen > 6 && imlen < 2*jmlen) && (lmatches >= 2*imlen - 1))) {
-                            overlapping_seeds[i] = tuple<int,int,int,int,int,int,int>{istart, iend, imlen, RANK_N, 0,0,0};
-                            // cout << "Marking seed i as invalid";
-                        }
-                    }
-                }
+void MergeIdenticalMotifSeeds(vector<tuple<int,int,int,int,int,int,int>> &overlapping_seeds, vector<boost::dynamic_bitset<>> &motif_bsets,
+                              vector<boost::dynamic_bitset<>> &perfect_bsets, vector<boost::dynamic_bitset<>> &anchored_bsets) {
+    /*
+     *  merges identical motif seeds into a single seed with updated positions and bitcounts
+     *  @param overlapping_seeds vector of overlapping seed positions
+     *  @param motif_bsets shift XOR bsets of all shift sizes
+     *  @param perfect_bsets perfect motif bsets of all shift sizes
+     *  @param anchored_bsets anchored motif bsets of all shift sizes
+     *  @return none
+    */
+    
+    
+    sortSeedPositions(overlapping_seeds);
+    
+    int istart, iend, imlen, islen, itype, imcount, ipcount, iacount, iajump;
+    int jstart, jend, jmlen, jslen, jtype, jmcount, jpcount, jacount, jajump;
+
+    int ostart, oend, olength;
+
+    for (int i=0; i<overlapping_seeds.size(); i++) {
+        tie(istart, iend, imlen, itype, iacount, imcount, ipcount) = overlapping_seeds[i];
+        islen = iend - istart;
+        if (itype == RANK_N) continue;
+        
+        // marking all the overlapping seeds as invalid
+        for (int j=i+1; j<overlapping_seeds.size(); j++) {
+            tie(jstart, jend, jmlen, jtype, jacount, jmcount, jpcount) = overlapping_seeds[j];
+            jslen = jend - jstart;
+
+            // as the seeds are sorted by start position, if the later seed start exceed the current seed end, we break
+            if (jstart > iend) break;
+            if (jtype == RANK_N) continue;
+
+            // if the seeds are identical, we mark the later one as invalid
+            if (imlen == jmlen && jmlen > SMALL_MLEN_LIMIT) {
+                // merge the two seeds if they overlap and are of same long motif length
+                int merge_start = (istart < jstart) ? istart : jstart;
+                int merge_end   = (iend > jend) ? iend : jend;
+                int acount = 0, mcount = 0, pcount = 0;
+                getBitCount(anchored_bsets[jmlen - MINIMUM_MLEN], merge_start, merge_end, acount);
+                getBitCount(motif_bsets[jmlen - MINIMUM_SHIFT], merge_start, merge_end, mcount);
+                getBitCount(perfect_bsets[jmlen - MINIMUM_SHIFT], merge_start, merge_end, pcount);
+                overlapping_seeds[i] = tuple<int,int,int,int,int,int,int>{merge_start, merge_end, jmlen, RANK_A, acount, mcount, pcount};
+                overlapping_seeds[j] = tuple<int,int,int,int,int,int,int>{jstart, jend, jmlen, RANK_N, 0, 0, 0};
+                i -= 1; break;
             }
-            else if (jmlen > imlen) {
-                // cout << "Overlap length: " << olength << "\t" << jslen - olength << "\t";
-                if (jtype != RANK_P) {
-                    if (jslen - olength < jmlen) {
-                        int lmatches = longestContinuousMatches(perfect_bsets[imlen - MINIMUM_SHIFT], ostart, oend) + jmlen;
-                        // cout << "Longest matches: " << lmatches << "\t";
-                        if ((jmlen <= 6 && lmatches >= 12) ||
-                            (jmlen > 6 && jmlen >= 2*imlen) && ((jmlen < 30 && lmatches >= jmlen - 1) || (jmlen >= 30 && lmatches >= 0.9*jmlen)) ||
-                            (jmlen > 6 && jmlen < 2*imlen) && ((jmlen < 30 && lmatches >= 2*jmlen - 1) || (jmlen >= 30 && lmatches >= 0.9*2*jmlen))) {
-                            overlapping_seeds[j] = tuple<int,int,int,int,int,int,int>{jstart, jend, jmlen, RANK_N, 0,0,0};
-                            // cout << "Marking seed j as invalid";
-                        }
-                    }
-                }
-                else if (jtype == RANK_P) {
-                    // cout << "Overlap length: " << olength << "\t";
-                    if (jslen - olength < jmlen) {
-                        int lmatches = longestContinuousMatches(perfect_bsets[imlen - MINIMUM_SHIFT], ostart, oend) + jmlen;
-                        // cout << "Longest matches: " << lmatches << "\t";
-                        if ((jmlen <= 6 && lmatches >= 12) ||
-                            ((jmlen > 6 && jmlen >= 2*imlen) && (lmatches >= jmlen - 1)) ||
-                            ((jmlen > 6 && jmlen < 2*imlen) && (lmatches >= 2*jmlen - 1))) {
-                            overlapping_seeds[j] = tuple<int,int,int,int,int,int,int>{jstart, jend, jmlen, RANK_N, 0,0,0};
-                            // cout << "Marking seed j as invalid";
-                        }
-                    }
-                }
-                
-            }
-            // cout << "\n";
         }
     }
 }

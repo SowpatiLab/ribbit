@@ -155,6 +155,9 @@ void processSeed(tuple<int, int, int, int, int, int, int> &seed, int sequence_le
     if (THREADS > 1) MTX.unlock();
     if (o_bset_size < seedlen_cutoff) { return; }
 
+    string motif = "";
+    previouslyIdentifiedMotif(o_start, o_end, o_mlen, chunk_start, repeat_loci, motif);
+
     // process seed if it is alteast the size of the motif length
     processed_seeds += 1;
     int slice_length = 20000 - 2 * o_mlen;
@@ -176,7 +179,7 @@ void processSeed(tuple<int, int, int, int, int, int, int> &seed, int sequence_le
                 processLargeMotifSeed(tuple<int, int>{o_start + slice_start, o_start + slice_end}, chunk_start, o_mlen,
                                       o_type, sequence_id, sequence, sequence_length, lshift_xor_bsets[o_mlen - MINIMUM_SHIFT],
                                       left_bset, right_bset, N_bset, out, lshift_xor_bsets, MATRIX,
-                                      aligner, filter, alignment, repeat_loci, skip_atomicity);
+                                      aligner, filter, alignment, repeat_loci, skip_atomicity, motif);
             }
 
             slice_start += slice_length - 500;
@@ -194,7 +197,7 @@ void processSeed(tuple<int, int, int, int, int, int, int> &seed, int sequence_le
         else {
             processLargeMotifSeed(tuple<int, int>{o_start, o_end}, chunk_start, o_mlen, o_type, sequence_id, sequence,
                                   sequence_length, lshift_xor_bsets[o_mlen - MINIMUM_SHIFT], left_bset, right_bset, N_bset,
-                                  out, lshift_xor_bsets, MATRIX, aligner, filter, alignment, repeat_loci, skip_atomicity);
+                                  out, lshift_xor_bsets, MATRIX, aligner, filter, alignment, repeat_loci, skip_atomicity, motif);
         }
     }
 }
@@ -356,8 +359,11 @@ void processSequence(string sequence_id, string sequence, ofstream &out, int chu
 
             else {
                 // process the overlapping seeds to remove redundant seeds
-                processOverlappingSeeds(overlapping_seeds, lshift_xor_bsets, lsxor_perfect_bsets, lsxor_anchored_bsets,
-                                        sequence_length, skip_atomicity);
+                checkAtomicity(overlapping_seeds, lshift_xor_bsets, lsxor_perfect_bsets, lsxor_anchored_bsets);
+                filterLowerMatchOverlapSeeds(overlapping_seeds, lshift_xor_bsets, lsxor_perfect_bsets, lsxor_anchored_bsets);
+                filterNearAtomicSeeds(overlapping_seeds, lshift_xor_bsets, lsxor_perfect_bsets, lsxor_anchored_bsets);
+                processOverlappingSeeds(overlapping_seeds, lshift_xor_bsets, lsxor_perfect_bsets, lsxor_anchored_bsets, sequence_length, skip_atomicity);
+                MergeIdenticalMotifSeeds(overlapping_seeds, lshift_xor_bsets, lsxor_perfect_bsets, lsxor_anchored_bsets);
 
                 for (int j = 0; j < overlapping_seeds.size(); j++) {
                     if (get<3>(overlapping_seeds[j]) == RANK_N) { continue; }
