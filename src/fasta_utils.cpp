@@ -380,15 +380,19 @@ void processSequence(string sequence_id, string sequence, ofstream &out, int chu
     }
 
     if (overlapping_seeds.size() > 0) {
+        // process the overlapping seeds to remove redundant seeds
+        checkAtomicity(overlapping_seeds, lshift_xor_bsets, lsxor_perfect_bsets, lsxor_anchored_bsets);
+        filterLowerMatchOverlapSeeds(overlapping_seeds, lshift_xor_bsets, lsxor_perfect_bsets, lsxor_anchored_bsets);
+        filterNearAtomicSeeds(overlapping_seeds, lshift_xor_bsets, lsxor_perfect_bsets, lsxor_anchored_bsets);
         processOverlappingSeeds(overlapping_seeds, lshift_xor_bsets, lsxor_perfect_bsets, lsxor_anchored_bsets, sequence_length, skip_atomicity);
+        MergeIdenticalMotifSeeds(overlapping_seeds, lshift_xor_bsets, lsxor_perfect_bsets, lsxor_anchored_bsets);
 
         for (int j = 0; j < overlapping_seeds.size(); j++) {
             if (get<3>(overlapping_seeds[j]) == RANK_N) { continue; }
             processSeed(overlapping_seeds[j], sequence_length, processed_seeds, chunk_start, sequence_id, sequence,
-                        lshift_xor_bsets, MATRIX, left_bset, right_bset, N_bset, out, aligner, filter, alignment, repeat_loci,
-                        skip_atomicity[j]);
+                        lshift_xor_bsets, MATRIX, left_bset, right_bset, N_bset, out, aligner, filter, alignment,
+                        repeat_loci, skip_atomicity[j]);
         }
-
     }
 
     if (THREADS > 1) {
@@ -592,3 +596,5 @@ void parseFasta(string fasta_file, string output_file) {
 
     out.close();
 }
+
+
