@@ -113,7 +113,9 @@ void addPerfectRepeatPositions(int seed_start, int seed_end, int motif_length, i
         seed_end = bset_size-motif_length;
     }
 
-    repeat_positions.push_back(tuple<int,int,int,int,int,int,int> { seed_start, seed_end, motif_length, RANK_P, 0,0,0});
+    seed_length = seed_end - seed_start;
+    repeat_positions.push_back(tuple<int,int,int,int,int,int,int> { seed_start, seed_end, motif_length, RANK_P, seed_length, 
+                                                                    seed_length , seed_length });
 }
 
 
@@ -200,7 +202,9 @@ void addSeedToSeedPositionsPerfect(int seed_start, int seed_end, int motif_lengt
         seed_end = bset_size-motif_length;
     }
 
-    seed_positions.push_back(tuple<int,int,int,int,int,int,int> { seed_start, seed_end, motif_length, RANK_P, 0,0,0});
+    seed_length = seed_end - seed_start;
+    seed_positions.push_back(tuple<int,int,int,int,int,int,int> { seed_start, seed_end, motif_length, RANK_P, seed_length,
+                                                                  seed_length, seed_length });
 }
 
 

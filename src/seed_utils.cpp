@@ -236,7 +236,7 @@ void sortSeedPositions(vector<tuple<int,int,int,int,int,int,int>> &seed_position
 
     sort(seed_positions.begin(), seed_positions.end(), [](const tuple<int,int,int,int,int,int,int> &a, const tuple<int,int,int,int,int,int,int> &b) {
         if (get<0>(a) == get<0>(b))
-            return get<1>(a) < get<1>(b);
+            return get<1>(a) > get<1>(b);
         return get<0>(a) < get<0>(b);
     });
 }
@@ -264,6 +264,10 @@ void checkAtomicity(vector<tuple<int,int,int,int,int,int,int>> &overlapping_seed
     for (int i=0; i<overlapping_seeds.size(); i++) {
         tie(istart, iend, imlen, itype, iacount, imcount, ipcount) = overlapping_seeds[i];
         islen = iend - istart;
+
+        if (imlen <= 6) { iajump = 1; }
+        else { iajump = ((2 * imlen / 10) > 1) ? (2 * imlen / 10) : 2; }
+
         if (itype == RANK_N) continue;
 
         // marking all the overlapping seeds as invalid
@@ -281,7 +285,20 @@ void checkAtomicity(vector<tuple<int,int,int,int,int,int,int>> &overlapping_seed
                 continue;
             }
 
-            if (jend <= iend && jmlen != imlen && jslen >= 3*imlen) {
+            if (istart == jstart && jend <= iend && imlen > SMALL_MLEN_LIMIT &&
+                jmlen < imlen - iajump && imlen >= 3* jmlen && jtype == RANK_P && (jslen + jmlen) >= imlen) {
+                // seed j is nested in seed i and length of j seed is atleast the motif length of imlen
+                int tia_count = 0, tim_count = 0, tip_count = 0;
+
+                // bitcounts of the motif length of nested seed in the span of the parent seed
+                getBitCount(anchored_bsets[imlen - MINIMUM_MLEN], jstart, iend, tia_count);
+                getBitCount(motif_bsets[imlen - MINIMUM_SHIFT],   jstart, iend, tim_count);
+                getBitCount(perfect_bsets[imlen - MINIMUM_SHIFT],   jstart, iend, tip_count);
+                overlapping_seeds[i] = tuple<int,int,int,int,int,int,int>{ jend, iend, imlen, itype, tia_count, tim_count, tip_count};
+                i -= 1; break;
+            }
+
+            else if (jend <= iend && jmlen != imlen && jslen >= 3*imlen) {
                 // seed j is nested and length of j seed is thrice the motif length of imlen
                 
                 int nia_count = 0, nim_count = 0;
@@ -289,7 +306,7 @@ void checkAtomicity(vector<tuple<int,int,int,int,int,int,int>> &overlapping_seed
                 getBitCount(motif_bsets[imlen - MINIMUM_SHIFT],   jstart, jend, nim_count);
 
                 int sd = sqrt(jslen * 0.9 * 0.1);
-                threshold = (islen < 300) ? 3 * sd : 5 * sd;
+                threshold = 5 * sd;
                 if (jacount - nia_count < threshold) { continue; } // checks if nested seed qualifies
 
                 else if (imlen % jmlen == 0) {
@@ -301,7 +318,7 @@ void checkAtomicity(vector<tuple<int,int,int,int,int,int,int>> &overlapping_seed
                     getBitCount(perfect_bsets[jmlen - MINIMUM_SHIFT],   istart, iend, pjp_count);
 
                     sd = sqrt(islen * 0.9 * 0.1);
-                    threshold = (islen < 300) ? 3 * sd : 5 * sd;
+                    threshold = 5 * sd;
                     // if the bitcount for jmlen in the span of i seed is greater in the motif_bset or greater in than the threshold
                     // in the anchored bitset then reassign atomicity for the seed i
                     if (pjm_count >= imcount || pja_count >= threshold + iacount) {
@@ -362,10 +379,9 @@ void filterLowerMatchOverlapSeeds(vector<tuple<int,int,int,int,int,int,int>> &ov
                 getBitCount(anchored_bsets[imlen - MINIMUM_MLEN], jstart, jend, nia_count);
                 getBitCount(motif_bsets[imlen - MINIMUM_SHIFT],   jstart, jend, nim_count);
                 getBitCount(perfect_bsets[imlen - MINIMUM_SHIFT], jstart, jend, nip_count);
-
                 sd = sqrt(jslen * 0.9 * 0.1);
-                threshold = (jslen < 300) ? 3*sd : 5*sd;
-                if (jacount < (nia_count - threshold)) {
+                threshold = 5*sd;
+                if (jacount < (nia_count - threshold) && jmcount < nim_count) {
                     overlapping_seeds[j] = tuple<int,int,int,int,int,int,int>{ jstart, jend, jmlen, RANK_N, 0, 0, 0};
                 }
             }
@@ -388,7 +404,7 @@ void filterLowerMatchOverlapSeeds(vector<tuple<int,int,int,int,int,int,int>> &ov
                 getBitCount(motif_bsets[jmlen - MINIMUM_SHIFT],   jstart, iend, ojm_count);
                 
                 sd = sqrt(olength * 0.9 * 0.1);
-                threshold = (olength < 300) ? 3*sd : 5*sd;
+                threshold = 5*sd;
                 if (icheck && !jcheck) {
                     if (oia_count < (oja_count - threshold) && imlen > SMALL_MLEN_LIMIT) {
                         // trim seed i to the non-overlapping part
@@ -422,7 +438,7 @@ void filterLowerMatchOverlapSeeds(vector<tuple<int,int,int,int,int,int,int>> &ov
                     getBitCount(perfect_bsets[jmlen - MINIMUM_SHIFT], istart, jend, fjp_count);
 
                     sd = sqrt((iend - jstart) * 0.9 * 0.1);
-                    threshold = ((iend - jstart) < 300) ? 3*sd : 5*sd;
+                    threshold = 5*sd;
                     if (fia_count - fja_count > threshold && fim_count >= fjm_count) {
                         // trim seed i to the non-overlapping part
                         overlapping_seeds[i] = tuple<int,int,int,int,int,int,int>{ istart, jend, imlen, RANK_A, fia_count, fim_count, fip_count};
