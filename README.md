@@ -40,7 +40,7 @@ sudo apt-get install zlib1g-dev
 
 ```bash
 git clone https://github.com/SowpatiLab/ribbit.git
-git checkout top-down
+git checkout dev
 cd ribbit
 make
 ```
