@@ -55,6 +55,56 @@ void printMergedRepeats(vector<tuple<string, int, int, string, double, string, i
 }
 
 
+bool checkNonSupportCoverage(vector<tuple<string, int, int, string, double, string, int, int, int>> &repeat_loci) {
+
+
+    sort(repeat_loci.begin(), repeat_loci.end(), [](const tuple<string,int,int,string,double,string,int,int,int> &a, const tuple<string,int,int,string,double,string,int,int,int> &b) {
+        if (get<1>(a) == get<1>(b))
+            return get<2>(a) > get<2>(b);
+        return get<1>(a) < get<1>(b);
+    });
+
+    int repeat_start = get<1>(repeat_loci[0]), repeat_end = get<2>(repeat_loci[0]);
+    int repeat_length = get<7>(repeat_loci[0]);
+    int motif_length = get<6>(repeat_loci[0]);
+    int threshold;
+    if      (repeat_length < 100) threshold = repeat_length;
+    else if (repeat_length < 1000) threshold = repeat_length - 20;
+    else                         threshold = repeat_length - 100;
+
+    int nstart, nend, nmlen;
+    unordered_map<int, int> coverage_map;
+    unordered_map<int, int> nmlen_end;
+    for (int i=1; i<repeat_loci.size(); i++) {
+        nstart = get<1>(repeat_loci[i]);
+        nend   = get<2>(repeat_loci[i]);
+        nmlen  = get<6>(repeat_loci[i]);
+        if (nmlen == motif_length) continue;
+        // accumulate non-support coverage per motif length, ensuring we don't double-count overlaps
+        auto it = nmlen_end.find(nmlen);
+        if (it == nmlen_end.end()) {
+            nmlen_end[nmlen] = nend;
+            coverage_map[nmlen] = nend - nstart;
+        }
+        else {
+            if (nstart >= it->second) {
+                coverage_map[nmlen] += nend - nstart;
+                nmlen_end[nmlen] = nend;
+            }
+            else if (nend > it->second) {
+                coverage_map[nmlen] += nend - it->second;
+                nmlen_end[nmlen] = nend;
+            }
+        }
+    }
+
+    for (auto const& [nmlen, cov] : coverage_map) {
+        if (cov >= threshold) { return false; }
+    }
+    return true;
+}
+
+
 void mergeRepeats(vector<tuple<string, int, int, string, double, string, int, int, int>> &repeat_loci, 
                   ofstream &out, int &end_index) {
     /*
@@ -82,7 +132,6 @@ void mergeRepeats(vector<tuple<string, int, int, string, double, string, int, in
             continue;
         }
 
-
         if (repeat_end <= get<2>(overlapping_repeats[0]) ) {
             // add repeats to the set of overlapping repeats
             overlapping_repeats.push_back(repeat_loci[i]);
@@ -91,7 +140,14 @@ void mergeRepeats(vector<tuple<string, int, int, string, double, string, int, in
         else {
 
             if (overlapping_repeats.size() == 1) printIsolatedRepeats(overlapping_repeats, out);
-            else if (overlapping_repeats.size() > 1) printMergedRepeats(overlapping_repeats, out);
+            else if (overlapping_repeats.size() > 1) {
+                if (checkNonSupportCoverage(overlapping_repeats)) printMergedRepeats(overlapping_repeats, out);
+                else {
+                    overlapping_repeats.erase(overlapping_repeats.begin());
+                    int idx = overlapping_repeats.size() - 1;
+                    mergeRepeats(overlapping_repeats, out, idx);
+                }
+            }
 
             overlapping_repeats.clear();
             if (i <= end_index) {
@@ -759,7 +815,7 @@ bool handleOverlapRelation(string &sequence_id, int repeat_start, int repeat_end
 
                 // if the repeats are of the same motif
                 if (repeat_start == last_start || repeat_end == last_end) { continue; }
-                // else {
+
                 tuple <string, double> merge_values;
                 int merge_start = repeat_start, merge_end = repeat_end, merge_length, merge_units;
                 string merge_cigar = "";
@@ -782,9 +838,8 @@ bool handleOverlapRelation(string &sequence_id, int repeat_start, int repeat_end
                 recursion_level += 1;
                 new_repeat_loci.push_back(make_tuple(sequence_id, merge_start, merge_end, motif, merge_purity, merge_cigar, motif_length,
                                                      merge_length, merge_units));
-                addLocusToOutput(sequence_id, merge_start, merge_end, motif, merge_purity, merge_cigar,
-                                    motif_length, merge_length, merge_units, out, repeat_loci, recursion_level, new_repeat_loci);
-                // }
+                addLocusToOutput(sequence_id, merge_start, merge_end, motif, merge_purity, merge_cigar, motif_length,
+                                 merge_length, merge_units, out, repeat_loci, recursion_level, new_repeat_loci);
             }
         }
     }
