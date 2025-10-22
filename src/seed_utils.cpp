@@ -546,53 +546,6 @@ void filterNearAtomicSeeds(vector<tuple<int,int,int,int,int,int,int>> &overlappi
 }
 
 
-bool checkNonSupportCoverage(int seed_start, int seed_end, int seed_mlen, vector<tuple<int, int, int>> &non_support) {
-    
-    
-    sort(non_support.begin(), non_support.end(), [](const tuple<int,int,int> &a, const tuple<int,int,int> &b) {
-        if (get<0>(a) == get<0>(b))
-            return get<1>(a) > get<1>(b);
-        return get<0>(a) < get<0>(b);
-    });
-
-    int seed_length = seed_end - seed_start;
-    int threshold = seed_length - 20;
-
-    int nstart, nend, nmlen;
-    unordered_map<int, int> coverage_map;
-    unordered_map<int, int> nmlen_end;
-    for (int i=0; i<non_support.size(); i++) {
-        tie(nstart, nend, nmlen) = non_support[i];
-        // accumulate non-support coverage per motif length, ensuring we don't double-count overlaps
-        auto it = nmlen_end.find(nmlen);
-        if (it == nmlen_end.end()) {
-            nmlen_end[nmlen] = nend;
-            coverage_map[nmlen] = nend - nstart;
-        }
-        else {
-            if (nstart >= it->second) {
-                coverage_map[nmlen] += nend - nstart;
-                nmlen_end[nmlen] = nend;
-            }
-            else if (nend > it->second) {
-                coverage_map[nmlen] += nend - it->second;
-                nmlen_end[nmlen] = nend;
-            }
-        }
-    }
-
-    for (auto const& [nmlen, cov] : coverage_map) {
-        if (seed_mlen == 83) {
-            cout << "Non-support motif length: " << nmlen << " coverage: " << cov << "\tSeed length: " << seed_length << "\tThreshold: " << threshold << endl;
-        }
-        if (cov >= threshold) {
-            return false;
-        }
-    }
-    return true;
-}
-
-
 void processOverlappingSeeds(vector<tuple<int,int,int,int,int,int,int>> &overlapping_seeds, vector<boost::dynamic_bitset<>> &motif_bsets,
                              vector<boost::dynamic_bitset<>> &perfect_bsets, vector<boost::dynamic_bitset<>> &anchored_bsets, int bset_size,
                              vector<set<int>> &skip_atomicity) {

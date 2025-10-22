@@ -67,11 +67,23 @@ int minimumNumberOfSuccesses(int n, int r, long double p) {
     // For the total number of trials n, we calculated the probability for x number of successes with
     // x ranging from 0 to n with at least one run of continuous successes of length r
     long double sumProb = 0.0;
-    for (int x = 0; x <= n; x++) {
+    int x = 0;
+    for (x = 0; x <= n; x++) {
         sumProb += probWithRunApprox(n, x, r, p);
         // if (sumProb >= 0.1) { threshold_bits[n] = x; return x; }
         if (sumProb >= 0.02) { return x; }
     }
+
+    if (x == n) {
+        r = 5;
+        for (x = 0; x <= n; x++) {
+            sumProb += probWithRunApprox(n, x, r, p);
+            // if (sumProb >= 0.1) { threshold_bits[n] = x; return x; }
+            if (sumProb >= 0.02) { return x; }
+        }
+    }
+
+    return n;
 
     // Threshold number of successes is defined as the value x where cumulative probability from x to n
     // values is >= 0.98
