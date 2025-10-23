@@ -3,7 +3,7 @@
 using namespace std;
 
 
-tuple<int, int> adjustSeedPositions(boost::dynamic_bitset<> &anchor_bset, boost::dynamic_bitset<> &N_bset, int seed_start, int seed_end) {
+tuple<int, int> adjustSeedPositions(boost::dynamic_bitset<> &anchored_bset, boost::dynamic_bitset<> &N_bset, int seed_start, int seed_end) {
     /*
      *  adjusts the seed positions to the actual positions in the anchored bitset
      *  @param anchor_bset the anchored bitset
@@ -12,14 +12,15 @@ tuple<int, int> adjustSeedPositions(boost::dynamic_bitset<> &anchor_bset, boost:
      *  @return a tuple containing the adjusted start and end positions
      */
 
-    int bset_size = anchor_bset.size();
+    int bset_size = N_bset.size();
     int adjusted_start = seed_start, adjusted_end = seed_end;
 
     int window_size = 5;
-    boost::dynamic_bitset<> window(window_size, 0ull);
     int max_offset = 11;
+    int xor_idx = 0;
 
-    // Iteratively adjust start position
+    // Iteratively adjust start position extend the start position backwards
+    // to include positions with 5 continuous 1s in anchored_bset
     bool start_found = false;
     int start_adjustment_count = 0;
     do {
@@ -27,9 +28,9 @@ tuple<int, int> adjustSeedPositions(boost::dynamic_bitset<> &anchor_bset, boost:
         for (int offset = 5; (offset <= max_offset + window_size) && (seed_start - offset) >= 0; ++offset) {
             bool found = true;
             for (int j = 0; j < window_size; ++j) {
-                if (!anchor_bset[bset_size - 1 - (seed_start - offset + j)] || N_bset[bset_size - 1 - (seed_start - offset + j)]) {
-                    found = false;
-                    break;
+                xor_idx = bset_size - 1 - (seed_start - offset + j);
+                if ((anchored_bset[xor_idx] == 0) || N_bset[xor_idx]) {
+                    found = false; break;
                 }
             }
             if (found) {
@@ -47,10 +48,11 @@ tuple<int, int> adjustSeedPositions(boost::dynamic_bitset<> &anchor_bset, boost:
     int end_adjustment_count = 0;
     do {
         end_found = false;
-        for (int offset = 1; offset <= max_offset && (seed_end + offset - window_size) < bset_size; ++offset) {
+        for (int offset = 1; offset <= max_offset && (seed_end + offset + window_size) < bset_size; ++offset) {
             bool found = true;
             for (int j = 0; j < window_size; ++j) {
-                if (!anchor_bset[bset_size - 1 - (seed_end + offset + j)] || N_bset[bset_size - 1 - (seed_end + offset + j)]) {
+                xor_idx = bset_size - 1 - (seed_end + offset + j);
+                if ((anchored_bset[xor_idx] == 0) || N_bset[xor_idx]) {
                     found = false;
                     break;
                 }
@@ -308,10 +310,9 @@ tuple<int,int> addSeedToSeedPositionsAnchored(int seed_start, int seed_end, int 
     
     if (seed_end-seed_start < seedlen_cutoffs[motif_length-MINIMUM_MLEN]) { return tuple<int,int>{from_index_perfect, from_index_substut}; }
     
-    
     vector<int> last_types, last_indices;
     mergeAllLists(seed_positions_perfect, seed_positions_substut, from_index_perfect, from_index_substut, last_types, last_indices, seed_start);
-    for (int i=0; i<last_indices.size(); i++) {
+    for (int i=0; i < last_indices.size(); i++) {
         tuple<int,int,int,int,int,int,int> last_seed;
         if (last_types[i] == RANK_P) { last_seed = seed_positions_perfect[last_indices[i]]; }
         else if (last_types[i] == RANK_S) { last_seed = seed_positions_substut[last_indices[i]]; }

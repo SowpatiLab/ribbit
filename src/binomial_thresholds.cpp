@@ -32,8 +32,6 @@ long double probWithRunApprox(int n, int x, int r, long double p) {
      *  @return long double approximate probability of having at least one run of length r
      */
 
-    // cout << n << "\t" << x << "\t" << nCr(n,x) << "\t" << combination(n, x) << "\n";
-    // long double binom_probability = combination(n, x) * pow(p, x) * pow(1 - p, n - x);
     boost::math::binomial_distribution<long double> dist(n, p);
     long double binom_probability = boost::math::pdf(dist, x);
 
