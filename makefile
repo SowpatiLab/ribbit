@@ -2,10 +2,10 @@ CXX      = g++	# GNU c++ compiler
 CXXFLAGS = -O3 -w # optimisation level flag; suppress warnings
 SHARED_LIBS = -shared -fPIC $(shell python -m pybind11 --includes)	# shared library flags
 
-BOOST_LIB  = -lboost_system
+BOOST_LIB     = -lboost_system
 BOOST_AUXLIBS = -lboost_program_options -lboost_filesystem # including the program options library from boost
-PTHREAD_LIB = -lpthread
-ZLIB	   = -lz # zlib library for gzip file handling
+PTHREAD_LIB   = -lpthread
+ZLIB	      = -lz # zlib library for gzip file handling
 
 # library includes for striped-smithwaterman alignment
 SRC_SSW    = src/ssw.c src/ssw_cpp.cpp
