@@ -210,6 +210,7 @@ If you found ribbit useful, we would appreciate it if you could cite our manuscr
 - Fixed concatenating outputs in multi-threaded mode.
 - Taking sequence input from standard input.
 - Default output directed to standard output.
+- Fixed seed sorting for seed with identical coordinates.
 
 ### version 1.0.0 - 20-10-2025
 - Ribbit underwent major changes in this version. The algorithmic logic for identifying the potential tandem repeats (seed TRs) has
