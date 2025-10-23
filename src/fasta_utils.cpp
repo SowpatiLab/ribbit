@@ -329,7 +329,7 @@ void processSequence(string sequence_id, string sequence, ostream *out, int chun
 
     vector<tuple<int, int, int, int, int, int, int>> overlapping_seeds;
     vector<set<int>> skip_atomicity;
-    int overlap_end = -1;
+    int overlap_end = -1; overlapping_seeds.clear(); skip_atomicity.clear();
 
     while (spidx_p < seed_positions_perfect.size() || spidx_s < seed_positions_substut.size() || spidx_a < seed_positions_anchored.size()) {
         minimum_position = -1;
@@ -350,7 +350,11 @@ void processSequence(string sequence_id, string sequence, ostream *out, int chun
             seed_end = sequence_length - seed_mlen;
         }
         seed_mlen = get<2>(seed);
-        if (overlap_end == -1) { overlapping_seeds.push_back(seed); overlap_end = seed_end + seed_mlen; }
+        if (overlap_end == -1) { 
+            overlapping_seeds.clear(); skip_atomicity.clear();
+            overlapping_seeds.push_back(seed);
+            overlap_end = seed_end + seed_mlen;
+        }
         else {
             if (seed_start <= overlap_end) {
                 overlapping_seeds.push_back(seed);

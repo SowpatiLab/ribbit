@@ -235,8 +235,20 @@ void sortSeedPositions(vector<tuple<int,int,int,int,int,int,int>> &seed_position
      */
 
     sort(seed_positions.begin(), seed_positions.end(), [](const tuple<int,int,int,int,int,int,int> &a, const tuple<int,int,int,int,int,int,int> &b) {
-        if (get<0>(a) == get<0>(b))
+        if (get<0>(a) == get<0>(b)) {
+            if (get<1>(a) == get<1>(b)) {
+                if (get<2>(a) == get<2>(b)) {
+                    // higher rank first
+                    return get<3>(a) > get<3>(b);
+                }
+                // lower motif length first
+                return get<2>(a) < get<2>(b);
+            }
+            // higher end position first
             return get<1>(a) > get<1>(b);
+        }
+
+        // lower start position first
         return get<0>(a) < get<0>(b);
     });
 }
@@ -344,13 +356,13 @@ void filterLowerMatchOverlapSeeds(vector<tuple<int,int,int,int,int,int,int>> &ov
     while ( i < overlapping_seeds.size()) {
         tie(istart, iend, imlen, itype, iacount, imcount, ipcount) = overlapping_seeds[i];
         islen = iend - istart;
-        if (itype == RANK_N) continue;
+        if (itype == RANK_N) { i += 1; continue; }
 
         // marking all the overlapping seeds as invalid
         for (int j=i+1; j<overlapping_seeds.size(); j++) {
             tie(jstart, jend, jmlen, jtype, jacount, jmcount, jpcount) = overlapping_seeds[j];
             jslen = jend - jstart;
-
+            
             // as the seeds are sorted by start position, if the later seed start exceed the current seed end, we break
             if (jstart >= iend) break;
             if (jtype == RANK_N) continue;
@@ -398,7 +410,7 @@ void filterLowerMatchOverlapSeeds(vector<tuple<int,int,int,int,int,int,int>> &ov
                         // trim seed i to the non-overlapping part
                         int acount = 0, mcount = 0, pcount = 0;
                         getBitCount(anchored_bsets[jmlen - MINIMUM_MLEN], istart, jstart, acount);
-                        getBitCount(motif_bsets[jmlen - MINIMUM_SHIFT], istart, jstart, mcount);
+                        getBitCount(motif_bsets[jmlen - MINIMUM_SHIFT],   istart, jstart, mcount);
                         getBitCount(perfect_bsets[jmlen - MINIMUM_SHIFT], istart, jstart, pcount);
                         overlapping_seeds[i] = tuple<int,int,int,int,int,int,int>{ istart, jstart, imlen, RANK_A, acount, mcount, pcount};
                         i -= 1; break;
@@ -409,7 +421,7 @@ void filterLowerMatchOverlapSeeds(vector<tuple<int,int,int,int,int,int,int>> &ov
                         // trim seed j to the non-overlapping part
                         int acount = 0, mcount = 0, pcount = 0;
                         getBitCount(anchored_bsets[jmlen - MINIMUM_MLEN], iend, jend, acount);
-                        getBitCount(motif_bsets[jmlen - MINIMUM_SHIFT], iend, jend, mcount);
+                        getBitCount(motif_bsets[jmlen - MINIMUM_SHIFT],   iend, jend, mcount);
                         getBitCount(perfect_bsets[jmlen - MINIMUM_SHIFT], iend, jend, pcount);
                         overlapping_seeds[j] = tuple<int,int,int,int,int,int,int>{ iend, jend, jmlen, RANK_A, acount, mcount, pcount};
                     }
@@ -576,7 +588,7 @@ void processOverlappingSeeds(vector<tuple<int,int,int,int,int,int,int>> &overlap
     while ( i < overlapping_seeds.size()) {
         tie(istart, iend, imlen, itype, iacount, imcount, ipcount) = overlapping_seeds[i];
         islen = iend - istart;
-        if (itype == RANK_N) continue;
+        if (itype == RANK_N) { i += 1; continue; }
 
         if (imlen <= 6) { iajump = 1; }
         else { iajump = ((2 * imlen / 10) > 1) ? (2 * imlen / 10) : 2; }

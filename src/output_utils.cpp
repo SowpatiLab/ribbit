@@ -60,8 +60,20 @@ bool checkNonSupportCoverage(vector<tuple<string, int, int, string, double, stri
 
 
     sort(repeat_loci.begin(), repeat_loci.end(), [](const tuple<string,int,int,string,double,string,int,int,int> &a, const tuple<string,int,int,string,double,string,int,int,int> &b) {
-        if (get<1>(a) == get<1>(b))
+        if (get<1>(a) == get<1>(b)) {
+            if (get<2>(a) == get<2>(b)) {
+                if (get<6>(a) == get<6>(b)) {
+                    // higher purity first
+                    return get<4>(a) > get<4>(b);
+                }
+                // lower motif length first
+                return get<6>(a) < get<6>(b);
+            }
+            // higher end position first
             return get<2>(a) > get<2>(b);
+        }
+
+        // lower start position first
         return get<1>(a) < get<1>(b);
     });
 
