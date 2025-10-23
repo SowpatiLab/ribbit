@@ -80,8 +80,8 @@ bool parseArguments(int &argc, char *argv[], string &input_file, string &output_
     argparser.add_options()("help,h", "Ribbit detects tandem repeat regions in DNA, accurately resolving complex repeat "
                                       "structures and motif sizes up to 100 bp.")
 
-        ("input-file,i",  po::value<string>(), "File path for the input fasta file.")
-        ("output-file,o", po::value<string>(), "File path for output file. Default: {input-file}.ribbit")
+        ("input-file,i",  po::value<string>()->required(), "File path for the input fasta file.")
+        ("output-file,o", po::value<string>(), "File path for output file. Default: stdout")
 
         ("min-motif-length,m", po::value<int>(), "The minimum length of the motif of the TR loci. [int] Default: 2")
         ("max-motif-length,M", po::value<int>(), "The maximum length of the motif of the TR loci. [int] Default: 100")
@@ -203,10 +203,12 @@ int main(int argc, char *argv[]) {
     if (!success) exit(1);
 
     // check if the input fasta file exists
-    fs::path input_path(input_file);
-    if (!fs::exists(input_path)) {
-        cerr << "ERROR: Input fasta file " << input_file << " does not exist!\n";
-        exit(1);
+    if (input_file != "-") {
+        fs::path input_path(input_file);
+        if (!fs::exists(input_path)) {
+            cerr << "ERROR: Input fasta file " << input_file << " does not exist!\n";
+            exit(1);
+        }
     }
 
     if (!LENGTH_CUTOFF_MODE) {

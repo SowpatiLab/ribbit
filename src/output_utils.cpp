@@ -4,7 +4,7 @@ using namespace std;
 using namespace boost;
 
 
-void printIsolatedRepeats(vector<tuple<string, int, int, string, double, string, int, int, int>> &repeat_loci, ofstream &out) {
+void printIsolatedRepeats(vector<tuple<string, int, int, string, double, string, int, int, int>> &repeat_loci, ostream *out) {
     /*
      *  prints the repeats to output file merging the overlapping ones and reporting the nested ones in a separate column
      *  @param repeat_loci vector of tuples containing the repeat loci information
@@ -12,15 +12,15 @@ void printIsolatedRepeats(vector<tuple<string, int, int, string, double, string,
      */
 
     cleanCigar(get<5> (repeat_loci[0]));
-    out << get<0>(repeat_loci[0]) << "\t" << get<1>(repeat_loci[0]) << "\t" << get<2>(repeat_loci[0]) << "\t" 
-        << get<3>(repeat_loci[0]) << "\t" << get<4>(repeat_loci[0]) << "\t" << get<6>(repeat_loci[0]) << "\t"
-        << get<7>(repeat_loci[0]) << "\t" << get<8>(repeat_loci[0]) << "\tI";
-    if (CIGAROUTPUT) { out << ":" << get<5>(repeat_loci[0]); }
-    out << "\n";
+    *out << get<0>(repeat_loci[0]) << "\t" << get<1>(repeat_loci[0]) << "\t" << get<2>(repeat_loci[0]) << "\t" 
+         << get<3>(repeat_loci[0]) << "\t" << get<4>(repeat_loci[0]) << "\t" << get<6>(repeat_loci[0]) << "\t"
+         << get<7>(repeat_loci[0]) << "\t" << get<8>(repeat_loci[0]) << "\tI";
+    if (CIGAROUTPUT) { *out << ":" << get<5>(repeat_loci[0]); }
+    *out << "\n";
 }
 
 
-void printMergedRepeats(vector<tuple<string, int, int, string, double, string, int, int, int>> &repeat_loci, ofstream & out) {
+void printMergedRepeats(vector<tuple<string, int, int, string, double, string, int, int, int>> &repeat_loci, ostream* out) {
     /*
      *  prints the repeats to output file merging the overlapping ones and reporting the nested ones in a separate column
      *  @param repeat_loci vector of tuples containing the repeat loci information
@@ -28,30 +28,31 @@ void printMergedRepeats(vector<tuple<string, int, int, string, double, string, i
      */
 
     cleanCigar(get<5> (repeat_loci[0]));
-    out << get<0>(repeat_loci[0]) << "\t" << get<1>(repeat_loci[0]) << "\t" << get<2>(repeat_loci[0]) << "\t" 
-        << get<3>(repeat_loci[0]) << "\t" << get<4>(repeat_loci[0]) << "\t" << get<6>(repeat_loci[0]) << "\t" 
-        << get<7>(repeat_loci[0]) << "\t" << get<8>(repeat_loci[0]) << "\t";
+    *out << get<0>(repeat_loci[0]) << "\t" << get<1>(repeat_loci[0]) << "\t" << get<2>(repeat_loci[0]) << "\t" 
+         << get<3>(repeat_loci[0]) << "\t" << get<4>(repeat_loci[0]) << "\t" << get<6>(repeat_loci[0]) << "\t" 
+         << get<7>(repeat_loci[0]) << "\t" << get<8>(repeat_loci[0]) << "\t";
 
-    out << "M:";
-    if (CIGAROUTPUT) { out << get<5>(repeat_loci[0]) << ":"; }
+    *out << "M:";
+    if (CIGAROUTPUT) { *out << get<5>(repeat_loci[0]) << ":"; }
+    *out << repeat_loci.size()-1 << ":";
     for (int j=1; j<repeat_loci.size(); j++) {
         cleanCigar(get<5> (repeat_loci[j]));
-        out << get<1> (repeat_loci[j]) << "-" << get<2> (repeat_loci[j]) << "-" << get<6> (repeat_loci[j]) << "-" << get<4> (repeat_loci[j]);
-        if (j != repeat_loci.size() - 1) { out << ","; }
+        *out << get<1> (repeat_loci[j]) << "-" << get<2> (repeat_loci[j]) << "-" << get<6> (repeat_loci[j]) << "-" << get<4> (repeat_loci[j]);
+        if (j != repeat_loci.size() - 1) { *out << ","; }
     }
-    out << ":";
+    *out << ":";
     for (int j=1; j<repeat_loci.size(); j++) {
-        out << get<3> (repeat_loci[j]);
-        if (j != repeat_loci.size() - 1) { out << ","; }
+        *out << get<3> (repeat_loci[j]);
+        if (j != repeat_loci.size() - 1) { *out << ","; }
     }
     if (CIGAROUTPUT) {
-        out << ":";
+        *out << ":";
         for (int j=1; j<repeat_loci.size(); j++) {
-            out << get<5> (repeat_loci[j]);
-            if (j != repeat_loci.size() - 1) { out << ","; }
+            *out << get<5> (repeat_loci[j]);
+            if (j != repeat_loci.size() - 1) { *out << ","; }
         }
     }
-    out << "\n";
+    *out << "\n";
 }
 
 
@@ -106,7 +107,7 @@ bool checkNonSupportCoverage(vector<tuple<string, int, int, string, double, stri
 
 
 void mergeRepeats(vector<tuple<string, int, int, string, double, string, int, int, int>> &repeat_loci, 
-                  ofstream &out, int &end_index) {
+                  ostream *out, int &end_index) {
     /*
      *  merges the repeats in the repeat loci and reports the nested ones in a separate column
      *  @param repeat_loci vector of tuples containing the repeat loci information
@@ -115,7 +116,7 @@ void mergeRepeats(vector<tuple<string, int, int, string, double, string, int, in
 
     vector<tuple<string, int, int, string, double, string, int, int, int>> overlapping_repeats;
 
-    out << std::setprecision(2) << fixed;
+    *out << std::setprecision(2) << fixed;
     int didx, repeat_start, repeat_end, motif_length;
     string motif;
     double purity;
@@ -164,7 +165,7 @@ void mergeRepeats(vector<tuple<string, int, int, string, double, string, int, in
 }
 
 
-void printRepeatsToOutput(ofstream &out, vector<tuple<string, int, int, string, double, string, int, int, int>> &repeat_loci,
+void printRepeatsToOutput(ostream *out, vector<tuple<string, int, int, string, double, string, int, int, int>> &repeat_loci,
                           int end_index) {
     /*
      *  print repeats from the recorded repeat loci and clears the repeat loci
@@ -618,7 +619,7 @@ tuple<string, double> mergeRepeatsIdenticalMotif(int upend, int dnstart, string 
 
 
 bool handleOverlapRelation(string &sequence_id, int repeat_start, int repeat_end, string motif, double purity, string &cigar_string,
-                           int motif_length, int repeat_length, int repeat_units, ofstream &out,
+                           int motif_length, int repeat_length, int repeat_units, ostream *out,
                            vector<tuple<string, int, int, string, double, string, int, int, int>> &repeat_loci, vector<int> &remove_loci,
                            int &recursion_level, vector<tuple<string, int, int, string, double, string, int, int, int>> &new_repeat_loci) {
     /*
@@ -848,8 +849,8 @@ bool handleOverlapRelation(string &sequence_id, int repeat_start, int repeat_end
 }
 
 
-bool handleNestedParentRelation(string &sequence_id, int repeat_start, int repeat_end, string motif, double purity, string &cigar_string,
-                                int motif_length, int repeat_length, int repeat_units, ofstream &out,
+bool handleNestedParentRelation(int repeat_start, int repeat_end, string motif, double purity, string &cigar_string,
+                                int motif_length, int repeat_length, int repeat_units,
                                 vector<tuple<string, int, int, string, double, string, int, int, int>> &repeat_loci, vector<int> &remove_loci) {
     /*
      *  handles nested-parent relationship of the current repeat with the recorded repeats
@@ -974,7 +975,7 @@ bool checkDuplicateEntry(string sequence_id, int repeat_start, int repeat_end, s
 
 
 void addLocusToOutput(string sequence_id, int repeat_start, int repeat_end, string motif, double purity, string cigar_string,
-                      int motif_length, int repeat_length, int repeat_units, ofstream &out,
+                      int motif_length, int repeat_length, int repeat_units, ostream *out,
                       vector<tuple<string, int, int, string, double, string, int, int, int>> &repeat_loci,
                       int &recursion_level, vector<tuple<string, int, int, string, double, string, int, int, int>> &new_repeat_loci) {
     /*
@@ -1037,8 +1038,8 @@ void addLocusToOutput(string sequence_id, int repeat_start, int repeat_end, stri
     if (!addRepeat) return;
 
     vector<int> remove_loci;
-    addRepeat = handleNestedParentRelation(sequence_id, repeat_start, repeat_end, motif, purity, cigar_string,
-                                                motif_length, repeat_length, repeat_units, out, repeat_loci, remove_loci);
+    addRepeat = handleNestedParentRelation(repeat_start, repeat_end, motif, purity, cigar_string,
+                                           motif_length, repeat_length, repeat_units, repeat_loci, remove_loci);
     if (!addRepeat) return;
     for (int j: remove_loci) { repeat_loci.erase(repeat_loci.begin() + j, repeat_loci.begin() + j + 1); }
     remove_loci.clear();
@@ -1050,8 +1051,8 @@ void addLocusToOutput(string sequence_id, int repeat_start, int repeat_end, stri
     for (int j: remove_loci) { repeat_loci.erase(repeat_loci.begin() + j, repeat_loci.begin() + j + 1); }
     remove_loci.clear();
 
-    addRepeat = handleNestedParentRelation(sequence_id, repeat_start, repeat_end, motif, purity, cigar_string,
-                                           motif_length, repeat_length, repeat_units, out, repeat_loci, remove_loci);
+    addRepeat = handleNestedParentRelation(repeat_start, repeat_end, motif, purity, cigar_string,
+                                           motif_length, repeat_length, repeat_units, repeat_loci, remove_loci);
     if (!addRepeat) return;
     for (int j: remove_loci) { repeat_loci.erase(repeat_loci.begin() + j, repeat_loci.begin() + j + 1); }
 

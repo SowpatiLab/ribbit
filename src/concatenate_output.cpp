@@ -34,43 +34,80 @@ void sortBedRecords(std::vector<BedRecord>& records) {
 }
 
 
-void concatenateOutputs(string out_file, vector<string>seq_names, int THREADS) {
+vector<tuple<string, int, int, string, double, string, int, int, int>> splitInfoField(string &info, int nloci,
+                                                                                      string &sequence_id) {
     /*
-     *  sorts and concatenates all the outputs from different threads
-     *  @param out_file the name of the output file
-     *  @param seq_names vector of the sequence names
-     *  @param THREADS number of threads used by the program
-     *  @returns void
+     *  splits the info field of the output into individual repeat loci
+     *  @param info the info field string
+     *  @param sequence_id the sequence id of the repeats
+     *  @returns vector of tuples of repeat loci
      */
 
-    ofstream out(out_file);
-    vector<int> starts;
-    string line; vector<string> lines;
-    string chrom; int start, end;
+    vector<tuple<string, int, int, string, double, string, int, int, int>> repeat_loci;
+    vector<tuple<int, int, int, double>> coords;
+    vector<string> motifs;
+    vector<string> cigars;
+    size_t pos = 0, dash_pos = 0;
+    string token;
+    int repeat_start, repeat_end, motif_length;
+    double purity;
 
-    std::vector<BedRecord> records;
-    for (string seq_name: seq_names) {
-        for (int tnum = 1; tnum <= THREADS; tnum++) {
-            records.clear();
-            string output_name = out_file + "_" + seq_name + "_" + to_string(tnum);
-            ifstream chunk(output_name);
-            cerr << "Concatenating " << output_name << "\n";
-            while (getline(chunk, line)) {
-                chrom = line.substr(0, line.find('\t')); line = line.substr(line.find('\t')+1, line.length()-(line.find('\t') +1));
-                start = stoi(line.substr(0, line.find('\t'))); line = line.substr(line.find('\t')+1, line.length()-(line.find('\t') +1));
-                end = stoi(line.substr(0, line.find('\t'))); line = line.substr(line.find('\t')+1, line.length()-(line.find('\t') +1));
-                records.push_back({start, end, line});
-            }
-            sortBedRecords(records);
-
-            for (BedRecord record: records) {
-                out << seq_name << "\t" << record.start << "\t" << record.end << "\t" << record.record << "\n";
-            }
-            chunk.close();
-            remove(output_name.c_str());
-        }
+    string coords_str = info.substr(0, info.find(':'));
+    info = info.substr(info.find(':') + 1);
+    while ((pos = coords_str.find(',')) != string::npos) {
+        token = coords_str.substr(0, pos); dash_pos = token.find('-');
+        repeat_start = stoi(token.substr(0, dash_pos));
+        token = token.substr(dash_pos + 1); dash_pos = token.find('-');
+        repeat_end = stoi(token.substr(0, dash_pos));
+        token = token.substr(dash_pos + 1); dash_pos = token.find('-');
+        motif_length = stoi(token.substr(0, dash_pos));
+        token = token.substr(dash_pos + 1);
+        purity = stod(token);
+        coords.push_back(make_tuple(repeat_start, repeat_end, motif_length, purity));
+        coords_str.erase(0, pos + 1);
     }
-    out.close();
+
+    // last coordinate
+    token = coords_str;
+    token = coords_str.substr(0, pos); dash_pos = token.find('-');
+    repeat_start = stoi(token.substr(0, dash_pos));
+    token = token.substr(dash_pos + 1); dash_pos = token.find('-');
+    repeat_end = stoi(token.substr(0, dash_pos));
+    token = token.substr(dash_pos + 1); dash_pos = token.find('-');
+    motif_length = stoi(token.substr(0, dash_pos));
+    token = token.substr(dash_pos + 1);
+    purity = stod(token);
+    coords.push_back(make_tuple(repeat_start, repeat_end, motif_length, purity));
+    coords_str.erase(0, pos + 1);
+
+    string motifs_str = info.substr(0, info.find(':'));
+    info = info.substr(info.find(':') + 1);
+    while ((pos = motifs_str.find(',')) != string::npos) {
+        token = motifs_str.substr(0, pos);
+        motifs.push_back(token);
+        motifs_str.erase(0, pos + 1);
+    }
+    motifs.push_back(motifs_str); // last motif
+
+    string cigars_str = info;
+    while ((pos = cigars_str.find(',')) != string::npos) {
+        token = cigars_str.substr(0, pos);
+        cigars.push_back(token);
+        cigars_str.erase(0, pos + 1);
+    }
+    cigars.push_back(cigars_str); // last cigar
+
+    for (int i=0; i<nloci; i++) {
+        tie(repeat_start, repeat_end, motif_length, purity) = coords[i];
+        string motif = motifs[i];
+        string cigar_string = cigars[i];
+        int repeat_length = repeat_end - repeat_start;
+        int repeat_units = repeat_length / motif_length;
+        repeat_loci.push_back(make_tuple(sequence_id, repeat_start, repeat_end, motif, purity, cigar_string,
+                                         motif_length, repeat_length, repeat_units));
+    }
+
+    return repeat_loci;
 }
 
 
@@ -86,8 +123,11 @@ void concatenateThreadOutputs(const vector<string> &temp_files, ofstream &out) {
     int start, end;
     string motif, orientation;
     double purity;
+    string info;
     string cigar_string;
     int motif_length, repeat_length, repeat_units;
+
+    ostream* out_ptr = &out;
 
     vector<tuple<string, int, int, string, double, string, int, int, int>> repeat_loci;
     for (const auto& temp_file : temp_files) {
@@ -110,16 +150,34 @@ void concatenateThreadOutputs(const vector<string> &temp_files, ofstream &out) {
             end = stoi(fields[2]);
             motif = fields[3];
             purity = stod(fields[4]);
-            orientation = fields[5];
-            motif_length = stoi(fields[6]);
-            repeat_length = stoi(fields[7]);
-            repeat_units = stoi(fields[8]);
-            cigar_string = fields[9];
+            motif_length = stoi(fields[5]);
+            repeat_length = stoi(fields[6]);
+            repeat_units = stoi(fields[7]);
+            info = fields[8];
 
-            int recursion_level = 0;
-            vector<tuple<string, int, int, string, double, string, int, int, int>> new_repeat_loci;
-            addLocusToOutput(sequence_id, start, end, motif, purity, cigar_string,
-                             motif_length, repeat_length, repeat_units, out, repeat_loci, recursion_level, new_repeat_loci);
+            if (info[0] == 'I') {
+                cigar_string = info.substr(2);
+                int recursion_level = 0;
+                vector<tuple<string, int, int, string, double, string, int, int, int>> new_repeat_loci;
+                addLocusToOutput(sequence_id, start, end, motif, purity, cigar_string, motif_length, repeat_length,
+                                 repeat_units, out_ptr, repeat_loci, recursion_level, new_repeat_loci);
+            }
+            else if (info[0] == 'M') {
+                info = info.substr(2);
+                cigar_string = info.substr(0, info.find(':'));
+                info = info.substr(info.find(':') + 1);
+                int nloci = stoi(info.substr(0, info.find(':')));
+                info = info.substr(info.find(':') + 1);
+                vector<tuple<string, int, int, string, double, string, int, int, int>> nested_loci = splitInfoField(info, nloci, sequence_id);
+                // add the merged locus
+                for (auto locus: nested_loci) {
+                    int recursion_level = 0;
+                    vector<tuple<string, int, int, string, double, string, int, int, int>> new_repeat_loci;
+                    tie(sequence_id, start, end, motif, purity, cigar_string, motif_length, repeat_length, repeat_units) = locus;
+                    addLocusToOutput(sequence_id, start, end, motif, purity, cigar_string, motif_length, repeat_length,
+                                     repeat_units, out_ptr, repeat_loci, recursion_level, new_repeat_loci);
+                }
+            }
 
             fields.clear();
         }
@@ -139,4 +197,6 @@ void concatenateThreadOutputs(const vector<string> &temp_files, ofstream &out) {
     for (const auto& temp_file : temp_files) {
         std::remove(temp_file.c_str());
     }
+
+    out_ptr = nullptr;
 }

@@ -114,7 +114,7 @@ void findMinimumPositionSeed(tuple<int, int, int, int, int, int, int> &seed, int
 void processSeed(tuple<int, int, int, int, int, int, int> &seed, int sequence_length, int &processed_seeds, int chunk_start,
                  string &sequence_id, string &sequence, vector<boost::dynamic_bitset<>> &lshift_xor_bsets,
                  vector<boost::dynamic_bitset<>*> &MATRIX, boost::dynamic_bitset<> &left_bset, boost::dynamic_bitset<> &right_bset,
-                 boost::dynamic_bitset<> &N_bset, ofstream &out, StripedSmithWaterman::Aligner &aligner, StripedSmithWaterman::Filter &filter,
+                 boost::dynamic_bitset<> &N_bset, ostream* out, StripedSmithWaterman::Aligner &aligner, StripedSmithWaterman::Filter &filter,
                  StripedSmithWaterman::Alignment &alignment, vector<tuple<string, int, int, string, double, string, int, int, int>> &repeat_loci,
                  set<int> &skip_atomicity) {
     /*
@@ -203,7 +203,7 @@ void processSeed(tuple<int, int, int, int, int, int, int> &seed, int sequence_le
 }
 
 
-void processSequence(string sequence_id, string sequence, ofstream &out, int chunk_start, int chunk_end,
+void processSequence(string sequence_id, string sequence, ostream *out, int chunk_start, int chunk_end,
                      vector<tuple<string, int, int, string, double, string, int, int, int>> &repeat_loci) {
     /*
      *  processes each sequence from 2-bit conversion to identifying repeats
@@ -434,7 +434,7 @@ vector<tuple<size_t, size_t>> splitSequenceIntoBins(string &sequence, size_t bin
 }
 
 
-void splitProcessSequence(const string &sequence_id, string &sequence, ofstream &out, string output_file) {
+void splitProcessSequence(const string &sequence_id, string &sequence, ostream* out, string output_file) {
     /*
      *  splits a sequence into bins and writes them to the output stream.
      *  @param sequence_id: ID of the sequence.
@@ -454,7 +454,9 @@ void splitProcessSequence(const string &sequence_id, string &sequence, ofstream 
         std::vector<std::thread> threads;
         std::vector<std::string> temp_files(nbins);
         std::vector<std::ofstream> temp_streams(nbins);
+        std::vector<std::ostream*> temp_outs(nbins);
 
+        if (output_file == "") output_file = "tmp_ribbit.out";
 
         ofstream seq_out(output_file + '.' + sequence_id);
 
@@ -464,8 +466,7 @@ void splitProcessSequence(const string &sequence_id, string &sequence, ofstream 
         for (int i = 0; i < nbins; i++) {
             temp_files[i] = output_file + "." + sequence_id + ".thread" + std::to_string(i) + ".tmp";
             temp_streams[i].open(temp_files[i]);
-
-
+            temp_outs[i] = &temp_streams[i];
         }
 
         for (size_t i = 0; i < nbins; ++i) {
@@ -474,13 +475,15 @@ void splitProcessSequence(const string &sequence_id, string &sequence, ofstream 
             // Each thread processes its bin and writes to its temp file
             threads.emplace_back([&, i, start, end]() {
                 vector<tuple<string, int, int, string, double, string, int, int, int>> thread_repeat_loci;
-                processSequence(sequence_id, sequence.substr(start, end - start), temp_streams[i], start, end, thread_repeat_loci); });
+                processSequence(sequence_id, sequence.substr(start, end - start), temp_outs[i], start, end, thread_repeat_loci); });
         }
 
         // Wait for all threads to finish
         for (auto &t : threads) { t.join(); }
 
         for (auto &ts : temp_streams) { ts.close(); }
+
+        for (auto &ts : temp_outs) { ts = nullptr; }
 
         CIGAROUTPUT = original_CIGAROUTPUT; // restore original CIGAROUTPUT setting
 
@@ -508,20 +511,33 @@ void parseFasta(string fasta_file, string output_file) {
 
     vector<string> sequence_ids;
     bool is_gzipped = false;
+    bool std_input = false;
     if (fasta_file.size() > 3 && fasta_file.substr(fasta_file.size() - 3) == ".gz") {
         is_gzipped = true;
     }
+    else if (fasta_file == "-") std_input = true;
 
     string line;
-    // if the output file is not given by default: input file + ".ribbit"
-    if (output_file == "") { output_file = fasta_file + ".ribbit"; }
-    ofstream out(output_file);
+    int unknown_seq_count = 0;
+
+    // if the output file is not given by default: stdout
+    ofstream out_filestream;
+    ostream* out = nullptr;
+    if (output_file == "") { out = &cout; }
+    else {
+        out_filestream.open(output_file);
+        if (!out_filestream.is_open()) {
+            std::cerr << "Error: cannot open output file " << output_file << "\n";
+            return;
+        }
+        out = &out_filestream;
+    }
 
     // adding header to the output file
-    out << "#chrom\t" << "start\t" << "stop\t" << "motif\t" << "purity\t" << "motif_length\t"
-        << "repeat_length\t" << "repeat_units";
-    if (CIGAROUTPUT) { out << "\tcigar"; }
-    out << "\n";
+    *out << "#chrom\t" << "start\t" << "stop\t" << "motif\t" << "purity\t" << "motif_length\t"
+         << "repeat_length\t" << "repeat_units\t" << "info";
+    if (CIGAROUTPUT) { *out << "\tcigar"; }
+    *out << "\n";
 
     if (is_gzipped) {
         gzFile gzfin = gzopen(fasta_file.c_str(), "rb");
@@ -553,27 +569,34 @@ void parseFasta(string fasta_file, string output_file) {
     }
     
     else {
-        ifstream fastain(fasta_file);
-        if (!fastain) {
-            cerr << "Error opening fasta file: " << fasta_file << endl;
-            return;
+        istream* fastain_ptr = nullptr;
+        ifstream fastain;
+        if (std_input) fastain_ptr = &cin;
+        else {
+            fastain.open(fasta_file);
+            if (!fastain) {
+                cerr << "Error opening fasta file: " << fasta_file << endl;
+                return;
+            }
+            fastain_ptr = &fastain;
         }
-        while (getline(fastain, line)) {
+
+        while (getline(*fastain_ptr, line)) {
             if (line[0] == '>') {
                 if (SEQUENCE != "") {
                     std::cerr << "Processing " << SEQUENCE_ID << "\n";
                     std::cerr << "Length of the sequence: " << SEQUENCE.length() << "\n";
+
+                    if (SEQUENCE_ID == "") { SEQUENCE_ID = "seq_" + to_string(++unknown_seq_count); }
                     splitProcessSequence(SEQUENCE_ID, SEQUENCE, out, output_file);
                 }
                 SEQUENCE_ID = line.substr(1, line.find(' ') - 1);
                 sequence_ids.push_back(SEQUENCE_ID);
                 SEQUENCE = "";
             }
-            else {
-                SEQUENCE += line;
-            }
+            else SEQUENCE += line;
         }
-        fastain.close();
+        if (fastain.is_open()) fastain.close();
     }
 
     if (SEQUENCE != "") {
@@ -584,17 +607,19 @@ void parseFasta(string fasta_file, string output_file) {
 
     if (THREADS > 1) {
         for (string sequence_id: sequence_ids) {
+            if (output_file == "") output_file = "tmp_ribbit.out";
             string seq_outfile = output_file + '.' + sequence_id;
             ifstream seq_out(seq_outfile);
             while(getline(seq_out, line)) {
-                out << line << "\n";
+                *out << line << "\n";
             }
             seq_out.close();
             remove(seq_outfile.c_str());
         }
     }
 
-    out.close();
+    out->flush();
+    if (out_filestream.is_open()) out_filestream.close();
 }
 
 

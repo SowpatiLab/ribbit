@@ -312,7 +312,7 @@ void orderMotifs(vector<uint32_t> &motifs, vector<int> &starts, vector<int> &end
 
 void processSmallMotifSeed(tuple<int, int> seed_position, int chunk_start, int &motif_length, int &seed_type, string &sequence_id,
                            string &sequence, int &sequence_length, boost::dynamic_bitset<> &xor_bset, boost::dynamic_bitset<> &left_bset,
-                           boost::dynamic_bitset<> &right_bset, boost::dynamic_bitset<> &N_bset, ofstream &out,
+                           boost::dynamic_bitset<> &right_bset, boost::dynamic_bitset<> &N_bset, ostream* out,
                            StripedSmithWaterman::Aligner &aligner, StripedSmithWaterman::Filter &filter, StripedSmithWaterman::Alignment &alignment,
                            vector<tuple<string, int, int, string, double, string, int, int, int>> &repeat_loci) {
     /*
@@ -462,8 +462,10 @@ void processSmallMotifSeed(tuple<int, int> seed_position, int chunk_start, int &
             repeat_start += chunk_start; repeat_end += chunk_start;
             int recursion_level = 0;
             vector<tuple<string, int, int, string, double, string, int, int, int>> new_repeat_loci;
-            addLocusToOutput(sequence_id, repeat_start, repeat_end, motif.substr(0, atomicity), purity, cigar_string,
-                             atomicity, repeat_length, repeat_units, out, repeat_loci, recursion_level, new_repeat_loci);
+            if (out) {
+                addLocusToOutput(sequence_id, repeat_start, repeat_end, motif.substr(0, atomicity), purity, cigar_string,
+                                 atomicity, repeat_length, repeat_units, out, repeat_loci, recursion_level, new_repeat_loci);
+            }
         }
     }
 }
