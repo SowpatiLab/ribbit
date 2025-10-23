@@ -77,10 +77,13 @@ bool parseArguments(int &argc, char *argv[], string &input_file, string &output_
      */
 
     po::options_description argparser("Options for running the tool", 100, 30);
-    argparser.add_options()("help,h", "Ribbit detects tandem repeat regions in DNA, accurately resolving complex repeat "
+    argparser.add_options()
+        ("help,h", "Ribbit detects tandem repeat regions in DNA, accurately resolving complex repeat "
                                       "structures and motif sizes up to 100 bp.")
+        
+        ("version", "Prints out the version of ribbit.")
 
-        ("input-file,i",  po::value<string>()->required(), "File path for the input fasta file.")
+        ("input-file,i",  po::value<string>(), "File path for the input fasta file.")
         ("output-file,o", po::value<string>(), "File path for output file. Default: stdout")
 
         ("min-motif-length,m", po::value<int>(), "The minimum length of the motif of the TR loci. [int] Default: 2")
@@ -114,6 +117,11 @@ bool parseArguments(int &argc, char *argv[], string &input_file, string &output_
 
     if (args.count("help")) {
         cerr << argparser << "\n";
+        return 0;
+    }
+
+    if (args.count("version")) {
+        cout << "Ribbit version " << RIBBIT_VERSION << "\n";
         return 0;
     }
 
@@ -193,7 +201,7 @@ int main(int argc, char *argv[]) {
     */
 
     cerr << "\nRibbit: identification of tandem repeats and annotation of complex TRs in genomes\n";
-    cerr << "Version 1.0.0\n\n";
+    cerr << "Version: " << RIBBIT_VERSION << "\n\n";
 
     // exception for handling missing fasta files handling gzip inputs
     string input_file = "", output_file = "";

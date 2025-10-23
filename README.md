@@ -46,10 +46,18 @@ make
 ```
 
 ## Usage
-#### Here’s a basic usage example:
+#### Here are some basic usage examples:
 
 ```bash
+
+$ ./ribbit [options] -i sequence.fasta 
+
+# with output file provided
 $ ./ribbit [options] -i sequence.fasta -o results.bed
+
+# pip input from standard input
+$ cat sequence.fasta | ./ribbit [options] -i - 
+$ echo "ATgcatgcGGAGGAGGAGGAGGAGGAcagtcgata" | ./ribbit -i - 
 ```
 
 #### To view detailed help information
@@ -197,6 +205,11 @@ If you found ribbit useful, we would appreciate it if you could cite our manuscr
 
 
 ## Change log
+
+### version 1.0.1 - 23-10-2025
+- Fixed concatenating outputs in multi-threaded mode.
+- Taking sequence input from standard input.
+- Default output directed to standard output.
 
 ### version 1.0.0 - 20-10-2025
 - Ribbit underwent major changes in this version. The algorithmic logic for identifying the potential tandem repeats (seed TRs) has

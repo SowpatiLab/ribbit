@@ -18,6 +18,8 @@ using namespace boost::multiprecision;
 
 using namespace std;
 
+extern string RIBBIT_VERSION;
+
 extern uint32_t **REPEAT_CLASSES;
 extern int NUM_MOTIFS;
 
