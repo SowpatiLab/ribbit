@@ -473,13 +473,22 @@ void splitProcessSequence(const string &sequence_id, string &sequence, ostream* 
             temp_outs[i] = &temp_streams[i];
         }
 
-        for (size_t i = 0; i < nbins; ++i) {
-            start = get<0>(bins[i]);
-            end = get<1>(bins[i]);
+        // for (size_t i = 0; i < nbins; ++i) {
+        int bin_idx = 0;
+        while (bin_idx < nbins) {
+            // Limit the number of concurrent threads
+            while (threads.size() >= THREADS) {
+                threads.front().join();
+                threads.erase(threads.begin());
+            }
+            start = get<0>(bins[bin_idx]);
+            end = get<1>(bins[bin_idx]);
             // Each thread processes its bin and writes to its temp file
-            threads.emplace_back([&, i, start, end]() {
+            threads.emplace_back([&, bin_idx, start, end]() {
                 vector<tuple<string, int, int, string, double, string, int, int, int>> thread_repeat_loci;
-                processSequence(sequence_id, sequence.substr(start, end - start), temp_outs[i], start, end, thread_repeat_loci); });
+                processSequence(sequence_id, sequence.substr(start, end - start), temp_outs[bin_idx], start, end, thread_repeat_loci);
+            });
+            ++bin_idx;
         }
 
         // Wait for all threads to finish
