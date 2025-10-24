@@ -4,6 +4,34 @@ using namespace std;
 using namespace boost;
 
 
+// Define a comparison function for tuples (e.g., comparing the first element)
+bool compareRepeatLoci(const tuple<string, int, int, string, double, string, int, int, int> &a,
+                       const tuple<string, int, int, string, double, string, int, int, int> &b) {
+    /*
+     *  compares repeat loci based on the start positions; if starts are same, returns the one with larger end position first
+     *  @param a tuple of the first repeat location
+     *  @param b tuple of the second repeat location
+     *  @returns bool bool value indicating if the first repeat is before second repeat
+     */
+
+    if (get<1>(a) == get<1>(b)) {
+        if (get<2>(a) == get<2>(b)) {
+            if (get<6>(a) == get<6>(b)) {
+                // higher purity first
+                return get<4>(a) > get<4>(b);
+            }
+            // lower motif length first
+            return get<6>(a) < get<6>(b);
+        }
+        // higher end position first
+        return get<2>(a) > get<2>(b);
+    }
+
+    // lower start position first
+    return get<1>(a) < get<1>(b);
+}
+
+
 void printIsolatedRepeats(vector<tuple<string, int, int, string, double, string, int, int, int>> &repeat_loci, ostream *out) {
     /*
      *  prints the repeats to output file merging the overlapping ones and reporting the nested ones in a separate column
@@ -57,33 +85,21 @@ void printMergedRepeats(vector<tuple<string, int, int, string, double, string, i
 
 
 bool checkNonSupportCoverage(vector<tuple<string, int, int, string, double, string, int, int, int>> &repeat_loci) {
+    /*
+     *  checks if the non-support coverage across different motif lengths is below threshold
+     *  @param repeat_loci vector of tuples containing the repeat loci information
+     *  @return bool true if the non-support coverage is below threshold for all motif lengths, false otherwise
+     */
 
-
-    sort(repeat_loci.begin(), repeat_loci.end(), [](const tuple<string,int,int,string,double,string,int,int,int> &a, const tuple<string,int,int,string,double,string,int,int,int> &b) {
-        if (get<1>(a) == get<1>(b)) {
-            if (get<2>(a) == get<2>(b)) {
-                if (get<6>(a) == get<6>(b)) {
-                    // higher purity first
-                    return get<4>(a) > get<4>(b);
-                }
-                // lower motif length first
-                return get<6>(a) < get<6>(b);
-            }
-            // higher end position first
-            return get<2>(a) > get<2>(b);
-        }
-
-        // lower start position first
-        return get<1>(a) < get<1>(b);
-    });
+    sort(repeat_loci.begin(), repeat_loci.end(), compareRepeatLoci);
 
     int repeat_start = get<1>(repeat_loci[0]), repeat_end = get<2>(repeat_loci[0]);
     int repeat_length = get<7>(repeat_loci[0]);
     int motif_length = get<6>(repeat_loci[0]);
     int threshold;
-    if      (repeat_length < 100) threshold = repeat_length;
+    if      (repeat_length < 100)  threshold = repeat_length - 2;
     else if (repeat_length < 1000) threshold = repeat_length - 20;
-    else                         threshold = repeat_length - 100;
+    else                           threshold = repeat_length - 100;
 
     int nstart, nend, nmlen;
     unordered_map<int, int> coverage_map;
@@ -561,23 +577,6 @@ void compareOverlappingLoci(int &upstart, int &upend, string &upcigar, string &u
 }
 
 
-// Define a comparison function for tuples (e.g., comparing the first element)
-bool compareRepeatLoci(const tuple<string, int, int, string, double, string, int, int, int> &a,
-                       const tuple<string, int, int, string, double, string, int, int, int> &b) {
-    /*
-     *  compares repeat loci based on the start positions; if starts are same, returns the one with larger end position first
-     *  @param a tuple of the first repeat location
-     *  @param b tuple of the second repeat location
-     *  @returns bool bool value indicating if the first repeat is before second repeat
-     */
-    if (get<1> (a) == get<1> (b)) {
-        // if the start positions are same, compare based on the end positions
-        return get<2> (a) > get<2> (b);
-    }
-    return get<1> (a) < get<1> (b); // Compare based on the first element (int)
-}
-
-
 tuple<string, double> mergeRepeatsIdenticalMotif(int upend, int dnstart, string upcigar, string dncigar) {
     /*
      *  merges the two overlapping loci with identical motifs
@@ -707,8 +706,8 @@ bool handleOverlapRelation(string &sequence_id, int repeat_start, int repeat_end
                             last_length = last_end - last_start;
                             last_units = last_length / last_mlen;
                             recursion_level += 1;
-                            new_repeat_loci.push_back(make_tuple(sequence_id, last_start, last_end, last_motif, last_purity, last_cigar, last_mlen,
-                                                                 last_length, last_units));
+                            new_repeat_loci.push_back(make_tuple(sequence_id, last_start, last_end, last_motif, last_purity,
+                                                                 last_cigar, last_mlen, last_length, last_units));
                             addLocusToOutput(sequence_id, last_start, last_end, last_motif, last_purity, last_cigar, last_mlen,
                                              last_length, last_units, out, repeat_loci, recursion_level, new_repeat_loci);
                         }
@@ -716,8 +715,8 @@ bool handleOverlapRelation(string &sequence_id, int repeat_start, int repeat_end
                             repeat_length = repeat_end - repeat_start;
                             repeat_units = repeat_length / motif_length;
                             recursion_level += 1;
-                            new_repeat_loci.push_back(make_tuple(sequence_id, repeat_start, repeat_end, motif, purity, cigar_string, motif_length,
-                                                                 repeat_length, repeat_units));
+                            new_repeat_loci.push_back(make_tuple(sequence_id, repeat_start, repeat_end, motif, purity, cigar_string,
+                                                                 motif_length, repeat_length, repeat_units));
                             addLocusToOutput(sequence_id, repeat_start, repeat_end, motif, purity, cigar_string, motif_length, repeat_length,
                                              repeat_units, out, repeat_loci, recursion_level, new_repeat_loci);
                         }
@@ -731,10 +730,10 @@ bool handleOverlapRelation(string &sequence_id, int repeat_start, int repeat_end
                         repeat_length = repeat_end - repeat_start;
                         repeat_units = repeat_length / motif_length;
                         recursion_level += 1;
-                        new_repeat_loci.push_back(make_tuple(sequence_id, repeat_start, repeat_end, motif, purity, cigar_string, motif_length,
-                                                             repeat_length, repeat_units));
-                        addLocusToOutput(sequence_id, repeat_start, repeat_end, motif, purity, cigar_string, motif_length, repeat_length,
-                                         repeat_units, out, repeat_loci, recursion_level, new_repeat_loci);
+                        new_repeat_loci.push_back(make_tuple(sequence_id, repeat_start, repeat_end, motif, purity, cigar_string,
+                                                             motif_length, repeat_length, repeat_units));
+                        addLocusToOutput(sequence_id, repeat_start, repeat_end, motif, purity, cigar_string, motif_length,
+                                         repeat_length, repeat_units, out, repeat_loci, recursion_level, new_repeat_loci);
                         return false;
                     }
     
@@ -745,8 +744,8 @@ bool handleOverlapRelation(string &sequence_id, int repeat_start, int repeat_end
                         last_length = last_end - last_start;
                         last_units = last_length / last_mlen;
                         recursion_level += 1;
-                        new_repeat_loci.push_back(make_tuple(sequence_id, last_start, last_end, last_motif, last_purity, last_cigar, last_mlen,
-                                                             last_length, last_units));
+                        new_repeat_loci.push_back(make_tuple(sequence_id, last_start, last_end, last_motif, last_purity,
+                                                             last_cigar, last_mlen, last_length, last_units));
                         addLocusToOutput(sequence_id, last_start, last_end, last_motif, last_purity, last_cigar, last_mlen,
                                          last_length, last_units, out, repeat_loci, recursion_level, new_repeat_loci);
                         if (fail) return false;
@@ -787,8 +786,8 @@ bool handleOverlapRelation(string &sequence_id, int repeat_start, int repeat_end
                         merge_motif = ((repeat_end-repeat_start)*purity >= (last_end-last_start)*last_purity) ? motif : last_motif;
                         merge_purity = ((double) (getMatches(merge_cigar))) / ((double) (getAlignmentLength(merge_cigar)));
                         recursion_level += 1;
-                        new_repeat_loci.push_back(make_tuple(sequence_id, merge_start, merge_end, merge_motif, merge_purity, merge_cigar, motif_length,
-                                                             merge_length, merge_units));
+                        new_repeat_loci.push_back(make_tuple(sequence_id, merge_start, merge_end, merge_motif, merge_purity,
+                                                             merge_cigar, motif_length, merge_length, merge_units));
                         addLocusToOutput(sequence_id, merge_start, merge_end, merge_motif, merge_purity, merge_cigar,
                                          motif_length, merge_length, merge_units, out, repeat_loci, recursion_level, new_repeat_loci);
                         continue;
@@ -817,8 +816,8 @@ bool handleOverlapRelation(string &sequence_id, int repeat_start, int repeat_end
                     merge_units  = merge_length / motif_length;
                     assert(merge_length == getRepeatLength(merge_cigar));
                     recursion_level += 1;
-                    new_repeat_loci.push_back(make_tuple(sequence_id, merge_start, merge_end, merge_motif, merge_purity, merge_cigar, motif_length,
-                                                         merge_length, merge_units));
+                    new_repeat_loci.push_back(make_tuple(sequence_id, merge_start, merge_end, merge_motif, merge_purity,
+                                                         merge_cigar, motif_length, merge_length, merge_units));
                     addLocusToOutput(sequence_id, merge_start, merge_end, merge_motif, merge_purity, merge_cigar,
                                      motif_length, merge_length, merge_units, out, repeat_loci, recursion_level, new_repeat_loci);
                 }
@@ -849,8 +848,8 @@ bool handleOverlapRelation(string &sequence_id, int repeat_start, int repeat_end
                 merge_units  = merge_length / motif_length;
                 merge_cigar = get<0> (merge_values); merge_purity = get<1> (merge_values);
                 recursion_level += 1;
-                new_repeat_loci.push_back(make_tuple(sequence_id, merge_start, merge_end, motif, merge_purity, merge_cigar, motif_length,
-                                                     merge_length, merge_units));
+                new_repeat_loci.push_back(make_tuple(sequence_id, merge_start, merge_end, motif, merge_purity, merge_cigar,
+                                                     motif_length, merge_length, merge_units));
                 addLocusToOutput(sequence_id, merge_start, merge_end, motif, merge_purity, merge_cigar, motif_length,
                                  merge_length, merge_units, out, repeat_loci, recursion_level, new_repeat_loci);
             }
@@ -1070,9 +1069,9 @@ void addLocusToOutput(string sequence_id, int repeat_start, int repeat_end, stri
 
     int end_breakpoint = 10000; // 10kb
     for (int j=repeat_loci.size()-1; j>=0; j--) {
-        // if the repeat is 10kb away from the last repeat
+        // if the repeat is 10kb away from the last repeat and there are at lease 500 repeats accumulated
         // print the repeats to the output
-        if (repeat_start - get<2> (repeat_loci[j]) > end_breakpoint) {
+        if (repeat_start - get<2> (repeat_loci[j]) > end_breakpoint && repeat_loci.size() - j > 500) {
             // if the output stream is not null, print the repeats to the output
             // output stream is null in the case of the python module
             if (out) { printRepeatsToOutput(out, repeat_loci, j); }
