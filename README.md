@@ -65,14 +65,16 @@ $ echo "ATgcatgcGGAGGAGGAGGAGGAGGAcagtcgata" | ./ribbit -i -
 ```bash
 ./ribbit -h
 
-Ribbit: accurate identification of tandem repeats and annotation of complex tandem repeat sequences in genomes
-Version 1.0.0
+Ribbit: identification of tandem repeats and annotation of complex TRs in genomes
+Version: 1.0.1
 
 Options for running the tool:
   -h [ --help ]                 Ribbit detects tandem repeat regions in DNA, accurately resolving 
                                 complex repeat structures and motif sizes up to 100 bp.
-  -i [ --input-file ] arg       File path for the input fasta file.
-  -o [ --output-file ] arg      File path for output file. Default: {input-file}.ribbit
+  --version                     Prints out the version of ribbit.
+  -i [ --input-file ] arg       Input sequence. Can be a fasta file (optionally gzipped) or '-' for
+                                stdin.
+  -o [ --output-file ] arg      File path for output file. Default: stdout
   -m [ --min-motif-length ] arg The minimum length of the motif of the TR loci. [int] Default: 2
   -M [ --max-motif-length ] arg The maximum length of the motif of the TR loci. [int] Default: 100
   -p [ --min-purity ] arg       The minimum allowed purity of repeat sequence. Purity is calculated

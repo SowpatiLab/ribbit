@@ -83,7 +83,7 @@ bool parseArguments(int &argc, char *argv[], string &input_file, string &output_
         
         ("version", "Prints out the version of ribbit.")
 
-        ("input-file,i",  po::value<string>(), "File path for the input fasta file.")
+        ("input-file,i",  po::value<string>(), "Input sequence. Can be a fasta file (optionally gzipped) or '-' for stdin.")
         ("output-file,o", po::value<string>(), "File path for output file. Default: stdout")
 
         ("min-motif-length,m", po::value<int>(), "The minimum length of the motif of the TR loci. [int] Default: 2")
