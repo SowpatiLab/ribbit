@@ -308,14 +308,14 @@ void processLargeMotifSeed(tuple<int, int> seed_position, int chunk_start, int &
     int left_flank, right_flank;
 
     if (seed_type == RANK_P) {
-        motif = seed_sequence.substr(0, motif_length);
+        atomicity = motif_length;
+        motif = seed_sequence.substr(0, atomicity);
         repeat_start = seed_start; repeat_end = seed_end + motif_length;
         repeat_length = repeat_end - repeat_start;
         if (repeat_length >= MINIMUM_LENGTH[atomicity]) {
             repeat_units = repeat_length/atomicity;
             match_units = repeat_units; purity = 1.0; cigar_string = to_string(repeat_length) + "M";
             purity = 1.0; motifwise_purity = 1.0; motifwise_indels = 0;
-            atomicity = motif_length;
 
             if (((atomicity < 10  && (match_units >= PERFECT_UNITS[atomicity] || (purity > 0.9 && purity*repeat_length >= 2*atomicity))) 
                 || ((atomicity >= 10) && (((purity * repeat_length) >= 3*atomicity) || (purity > 0.9 && purity*repeat_length >= 2*atomicity))))
