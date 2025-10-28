@@ -112,7 +112,7 @@ void findMinimumPositionSeed(tuple<int, int, int, int, int, int, int> &seed, int
 
 
 void processSeed(tuple<int, int, int, int, int, int, int> &seed, int sequence_length, int &processed_seeds, int chunk_start,
-                 string &sequence_id, string &sequence, vector<boost::dynamic_bitset<>> &lshift_xor_bsets,
+                 string &sequence_id, string &sequence, vector<boost::dynamic_bitset<>> &lshift_xor_bsets, vector<boost::dynamic_bitset<>> &lsxor_anchored_bsets,
                  vector<boost::dynamic_bitset<>*> &MATRIX, boost::dynamic_bitset<> &left_bset, boost::dynamic_bitset<> &right_bset,
                  boost::dynamic_bitset<> &N_bset, ostream* out, StripedSmithWaterman::Aligner &aligner, StripedSmithWaterman::Filter &filter,
                  StripedSmithWaterman::Alignment &alignment, vector<tuple<string, int, int, string, double, string, int, int, int>> &repeat_loci,
@@ -160,45 +160,18 @@ void processSeed(tuple<int, int, int, int, int, int, int> &seed, int sequence_le
 
     // process seed if it is alteast the size of the motif length
     processed_seeds += 1;
-    int slice_length = 20000 - 2 * o_mlen;
-    if (o_bset_size > slice_length) {
-        int slice_start = 0, slice_end = 0;
-        while (slice_end < o_bset_size) {
-            if (slice_start + slice_length > o_bset_size)
-                slice_end = o_bset_size;
-            else
-                slice_end = slice_start + slice_length;
 
-            if (o_mlen <= SMALL_MLEN_LIMIT) {
-                processSmallMotifSeed(tuple<int, int>{o_start + slice_start, o_start + slice_end}, chunk_start, o_mlen,
-                                      o_type, sequence_id, sequence, sequence_length, lshift_xor_bsets[o_mlen - MINIMUM_SHIFT],
-                                      left_bset, right_bset, N_bset, out, aligner, filter, alignment, repeat_loci);
-            }
-
-            else {
-                processLargeMotifSeed(tuple<int, int>{o_start + slice_start, o_start + slice_end}, chunk_start, o_mlen,
-                                      o_type, sequence_id, sequence, sequence_length, lshift_xor_bsets[o_mlen - MINIMUM_SHIFT],
-                                      left_bset, right_bset, N_bset, out, lshift_xor_bsets, MATRIX,
-                                      aligner, filter, alignment, repeat_loci, skip_atomicity, motif);
-            }
-
-            slice_start += slice_length - 500;
-        }
+    if (o_mlen <= SMALL_MLEN_LIMIT) {
+        processSmallMotifSeed(tuple<int, int>{o_start, o_end}, chunk_start, o_mlen, o_type, sequence_id,
+                                sequence, sequence_length, lshift_xor_bsets[o_mlen - MINIMUM_SHIFT], left_bset, right_bset,
+                                N_bset, out, aligner, filter, alignment, repeat_loci);
     }
 
     else {
-
-        if (o_mlen <= SMALL_MLEN_LIMIT) {
-            processSmallMotifSeed(tuple<int, int>{o_start, o_end}, chunk_start, o_mlen, o_type, sequence_id,
-                                  sequence, sequence_length, lshift_xor_bsets[o_mlen - MINIMUM_SHIFT], left_bset, right_bset,
-                                  N_bset, out, aligner, filter, alignment, repeat_loci);
-        }
-
-        else {
-            processLargeMotifSeed(tuple<int, int>{o_start, o_end}, chunk_start, o_mlen, o_type, sequence_id, sequence,
-                                  sequence_length, lshift_xor_bsets[o_mlen - MINIMUM_SHIFT], left_bset, right_bset, N_bset,
-                                  out, lshift_xor_bsets, MATRIX, aligner, filter, alignment, repeat_loci, skip_atomicity, motif);
-        }
+        processLargeMotifSeed(tuple<int, int>{o_start, o_end}, chunk_start, o_mlen, o_type, sequence_id, sequence,
+                            sequence_length, lshift_xor_bsets[o_mlen - MINIMUM_SHIFT], left_bset, right_bset, N_bset,
+                            out, lshift_xor_bsets, lsxor_anchored_bsets, MATRIX, aligner, filter, alignment, repeat_loci,
+                            skip_atomicity, motif);
     }
 }
 
@@ -372,7 +345,7 @@ void processSequence(string sequence_id, string sequence, ostream *out, int chun
                 for (int j = 0; j < overlapping_seeds.size(); j++) {
                     if (get<3>(overlapping_seeds[j]) == RANK_N) { continue; }
                     processSeed(overlapping_seeds[j], sequence_length, processed_seeds, chunk_start, sequence_id, sequence,
-                                lshift_xor_bsets, MATRIX, left_bset, right_bset, N_bset, out, aligner, filter, alignment,
+                                lshift_xor_bsets, lsxor_anchored_bsets, MATRIX, left_bset, right_bset, N_bset, out, aligner, filter, alignment,
                                 repeat_loci, skip_atomicity[j]);
                 }
 
@@ -394,9 +367,11 @@ void processSequence(string sequence_id, string sequence, ostream *out, int chun
         for (int j = 0; j < overlapping_seeds.size(); j++) {
             if (get<3>(overlapping_seeds[j]) == RANK_N) { continue; }
             processSeed(overlapping_seeds[j], sequence_length, processed_seeds, chunk_start, sequence_id, sequence,
-                        lshift_xor_bsets, MATRIX, left_bset, right_bset, N_bset, out, aligner, filter, alignment,
+                        lshift_xor_bsets, lsxor_anchored_bsets, MATRIX, left_bset, right_bset, N_bset, out, aligner, filter, alignment,
                         repeat_loci, skip_atomicity[j]);
         }
+        overlapping_seeds.clear();
+        skip_atomicity.clear();
     }
 
     if (THREADS > 1) {

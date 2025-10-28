@@ -31,8 +31,11 @@ void parseFunctionArguments(int minimum_mlen = 2, int maximum_mlen = 100, double
 }
 
 
-vector<tuple<string, int, int, string, double, string, int, int, int>> parseSequence(string sequence, string sequence_id="test", int minimum_mlen = 2,
-                                                                                     int maximum_mlen = 100, double purity_threshold = 0.8, double motif_purity_threshold = 0.8) {
+vector<tuple<string, int, int, string, double, string, int, int, int>> parseSequence(string sequence, string sequence_id="test",
+                                                                                     int minimum_mlen = 2,
+                                                                                     int maximum_mlen = 100,
+                                                                                     double purity_threshold = 0.8,
+                                                                                     double motif_purity_threshold = 0.8) {
     /*
      *  parsing the sequence and identifying repeat loci
      *  @param sequence the sequence to be parsed
@@ -40,7 +43,7 @@ vector<tuple<string, int, int, string, double, string, int, int, int>> parseSequ
      *  @param out output file stream to write results
      *  @param repeat_loci vector to store identified repeat loci
      *  @return void
-    */
+     */
 
     int default_minimum_length = 12; // default minimum length for the motif
 
@@ -138,6 +141,7 @@ vector<tuple<string, int, int, string, double, string, int, int, int>> parseSequ
     delete[] MOTIF_UNITS;
     delete[] MOTIF_GAPS;
     delete[] MOTIF_GAPSIZE;
+    out.close();
 
     return repeat_loci;
 }

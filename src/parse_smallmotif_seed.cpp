@@ -344,8 +344,8 @@ void processSmallMotifSeed(tuple<int, int> seed_position, int chunk_start, int &
     for (int s=seed_start; s < seed_end+motif_length; s++) {
         if (N_bset[sequence_length-1-s] == 1) {
             if (s - seed_start >= motif_length) {
-                processSmallMotifSeed(tuple<int,int>{seed_start, s - motif_length}, chunk_start, motif_length, seed_type, sequence_id,
-                                      sequence, sequence_length, xor_bset, left_bset, right_bset, N_bset, out,
+                processSmallMotifSeed(tuple<int,int>{seed_start, s - motif_length}, chunk_start, motif_length, seed_type,
+                                      sequence_id, sequence, sequence_length, xor_bset, left_bset, right_bset, N_bset, out,
                                       aligner, filter, alignment, repeat_loci);
             }
             seed_start = s - motif_length + 1;
@@ -430,8 +430,15 @@ void processSmallMotifSeed(tuple<int, int> seed_position, int chunk_start, int &
         perfect_repeat = "";
         while(perfect_repeat.length() <= ppr_length) perfect_repeat += motif;
 
-        aligner.Align(motif_seed_sequence.c_str(), perfect_repeat.c_str(), ppr_length, filter, &alignment, 15);
-        processCIGARMotifWise(starts[motif_idx], motif_seed_length, alignment.cigar_string, motif_seed_sequence, atomicity,
+        string intermediate_cigar = "";
+        if (motif_seed_sequence.length() < 5000) {
+            aligner.Align(motif_seed_sequence.c_str(), perfect_repeat.c_str(), ppr_length, filter, &alignment, 15);
+            intermediate_cigar = alignment.cigar_string;
+        }
+        else {
+            intermediate_cigar = alignLargeSequence(motif_seed_sequence, motif, motif_length, aligner, filter, alignment);
+        }
+        processCIGARMotifWise(starts[motif_idx], motif_seed_length, intermediate_cigar, motif_seed_sequence, atomicity,
                               repeat_start, repeat_end, alignment_length, cigar_string, purity, substitutions, indels,
                               motifwise_purity, motifwise_indels, avg_matchlen);
         repeat_length = repeat_end - repeat_start;

@@ -41,6 +41,56 @@ int countBitsDiagonal(int row, int col, int diagonal_length, vector<boost::dynam
 }
 
 
+int highestMatchRegion(boost::dynamic_bitset<> &lshift_xor_bset, boost::dynamic_bitset<> &lshift_anchored_bset,
+                       int &o_start, int &o_end, int &o_mlen, int &sequence_length, boost::dynamic_bitset<> &N_bset) {
+    /*
+     *  picks the best region for searching for the motif in large motif seeds
+     *  @param lshift_xor_bset the left shift XOR bitset
+     *  @param lshift_anchored_bset the left shift anchored bitset
+     *  @param o_start the start position of the region
+     *  @param o_end the end position of the region
+     *  @param o_mlen the length of the motif
+     *  @param sequence_length the length of the sequence
+     *  @param N_bset the N bitset
+     *  @return int the best region for large motif
+     */
+
+    int best_region = -1;
+    int best_score = -1;
+    int window_length = 10000;
+    int window_score = -1;
+    int xor_idx;
+
+    for (int i = o_start; i <= o_end - window_length; i++) {
+        if (i == o_start) {
+            window_score = 0;
+            for (int j = 0; j < window_length; j++) {
+                xor_idx = sequence_length - 1 - (i + j);
+                if (lshift_anchored_bset[xor_idx] == 1 && N_bset[xor_idx] == 0) {
+                    window_score += 1;
+                }
+            }
+        }
+        else {
+            xor_idx = sequence_length - 1 - (i - 1);
+            if (lshift_anchored_bset[xor_idx] == 1 && N_bset[xor_idx] == 0) {
+                window_score -= 1;
+            }
+            xor_idx = sequence_length - 1 - (i - 1) + window_length;
+            if (lshift_anchored_bset[xor_idx] == 1 && N_bset[xor_idx] == 0) {
+                window_score += 1;
+            }
+        }
+        if (window_score > best_score) {
+            best_score = window_score;
+            best_region = i;
+        }
+    }
+
+    return best_region;
+}
+
+
 uint256_t mostFrequentLongMotif(boost::dynamic_bitset<> &left_bset, boost::dynamic_bitset<> &right_bset, int &seed_start,
                                 int &seed_sequence_length, int &motif_length, int &sequence_length, vector<boost::dynamic_bitset<>*> &MATRIX) {
     /*
@@ -191,8 +241,8 @@ uint256_t mostFrequentLongMotif(boost::dynamic_bitset<> &left_bset, boost::dynam
 
 void processLargeMotifSeed(tuple<int, int> seed_position, int chunk_start, int &motif_length, int &seed_type, string &sequence_id,
                            string &sequence, int &sequence_length, boost::dynamic_bitset<> &xor_bset, boost::dynamic_bitset<> &left_bset,
-                           boost::dynamic_bitset<> &right_bset, boost::dynamic_bitset<> &N_bset, ostream *out,
-                           vector<boost::dynamic_bitset<>> &lshift_xor_bsets, vector<boost::dynamic_bitset<>*> &MATRIX,
+                           boost::dynamic_bitset<> &right_bset, boost::dynamic_bitset<> &N_bset, ostream *out, vector<boost::dynamic_bitset<>> &lshift_xor_bsets,
+                           vector<boost::dynamic_bitset<>> &lshift_anchored_bsets, vector<boost::dynamic_bitset<>*> &MATRIX,
                            StripedSmithWaterman::Aligner &aligner, StripedSmithWaterman::Filter &filter, StripedSmithWaterman::Alignment &alignment,
                            vector<tuple<string, int, int, string, double, string, int, int, int>> &repeat_loci, set<int> &skip_atomicity,
                            string identified_motif) {
@@ -210,6 +260,7 @@ void processLargeMotifSeed(tuple<int, int> seed_position, int chunk_start, int &
      *  @param right_bset the dynamic bitset of the right bit of the sequence
      *  @param N_bset the dynamic bitset of the N positions in the sequence
      *  @param lshift_xor_bsets vector of dynamic bitsets of the shift XORs
+     *  @param lshift_anchored_bsets vector of dynamic bitsets of the shift anchored
      *  @param MATRIX dot matrix of the chromosome sequence
      *  @param aligner the aligner object
      *  @param filter the filter object
@@ -284,12 +335,22 @@ void processLargeMotifSeed(tuple<int, int> seed_position, int chunk_start, int &
     }
 
     // length of the pseudo perfect sequence
-    int ppr_length = seed_sequence_length + motif_length + ((1-PURITY_THRESHOLD)*seed_sequence_length);
+    int ppr_length = seed_sequence_length + (2*motif_length) + ((1-PURITY_THRESHOLD)*seed_sequence_length);
     uint256_t motif_unit;
 
     if (identified_motif == "") {
-        motif_unit = mostFrequentLongMotif(left_bset, right_bset, seed_start, seed_sequence_length,
-                                                motif_length, sequence_length, MATRIX);
+        int motif_search_start = seed_start;
+        int large_seed_threshold = 10000;
+        if (seed_bset_size > large_seed_threshold) {
+            motif_search_start = highestMatchRegion(lshift_xor_bsets[motif_length - MINIMUM_SHIFT],
+                                                             lshift_anchored_bsets[motif_length - MINIMUM_MLEN],
+                                                             seed_start, seed_end, motif_length, sequence_length, N_bset);
+            motif_unit = mostFrequentLongMotif(left_bset, right_bset, motif_search_start, large_seed_threshold, motif_length, sequence_length, MATRIX);
+        }
+        else {
+            motif_unit = mostFrequentLongMotif(left_bset, right_bset, seed_start, seed_sequence_length, motif_length, sequence_length, MATRIX);
+        }
+
         if (THREADS > 1) MTX.lock();
         atomicity = calculateAtomicityLongMotif(motif_unit, motif_length);
         if (skip_atomicity.find(atomicity) != skip_atomicity.end()) {
@@ -321,44 +382,73 @@ void processLargeMotifSeed(tuple<int, int> seed_position, int chunk_start, int &
     perfect_repeat = "";
     while(perfect_repeat.length() <= ppr_length) perfect_repeat += motif;
    
-    aligner.Align(seed_sequence.c_str(), perfect_repeat.c_str(), ppr_length, filter, &alignment, 15);
-    string pruned_cigar = alignment.cigar_string;
-    processCIGARWithPruning(seed_start, seed_sequence_length, pruned_cigar, seed_sequence, atomicity,
-                            repeat_start, repeat_end, alignment_length, match_units, cigar_string, purity,
-                            motifwise_purity, motifwise_indels);
-    trimCigarMotifPurity(cigar_string, atomicity, repeat_start, repeat_end, alignment_length, purity, motifwise_purity);
-    
-    if (seed_repeat_loci.size()==0) {
-        seed_repeat_loci.push_back(pair<int, int> { repeat_start, repeat_end - atomicity });
+    string pruned_cigar = "";
+    if (seed_sequence_length < 5000) {
+        aligner.Align(seed_sequence.c_str(), perfect_repeat.c_str(), ppr_length, filter, &alignment, 15);
+        pruned_cigar = alignment.cigar_string;
     }
     else {
-        bool inserted = false;
-        for (int i=0; i<seed_repeat_loci.size(); i++) {
-            if (seed_repeat_loci[i].first >= repeat_start) {
-                seed_repeat_loci.insert(seed_repeat_loci.begin()+i, pair<int, int> { repeat_start, repeat_end - atomicity } );
-                inserted = true;
-                break;
-            }
-        }
-        if (!inserted) { seed_repeat_loci.push_back(pair<int, int> { repeat_start, repeat_end - atomicity }); }
+        pruned_cigar = alignLargeSequence(seed_sequence, motif, atomicity, aligner, filter, alignment);
     }
 
-    if (alignment_length >= MINIMUM_LENGTH[atomicity]) {
-        repeat_length = repeat_end - repeat_start;
-        repeat_units = repeat_length/atomicity;
+    bool seed_trim = true;
+    if (seed_sequence_length > 10000) {
+        repeat_start = seed_start; repeat_end = seed_end + motif_length;
+        vector<tuple<int, int, string, double>> largecigar_repeats = processLargeCigar(repeat_start, repeat_end, atomicity,
+                                                                                       pruned_cigar,seed_repeat_loci);
 
-        if ((   (atomicity < 10  && (match_units >= PERFECT_UNITS[atomicity] || (purity > 0.9 && purity*repeat_length >= 2*atomicity))) 
-             || ((atomicity >= 10) && (((purity * repeat_length) >= 3*atomicity) || (purity > 0.9 && purity*repeat_length >= 2*atomicity))))
-            && atomicity >= MINIMUM_MLEN && atomicity <= MAXIMUM_MLEN
-            && repeat_length >= MINIMUM_LENGTH[atomicity]
-            && purity >= PURITY_THRESHOLD
-            && motifwise_purity >= MOTIFPURITY_THRESHOLD) {
-
+        for (auto &lcr : largecigar_repeats) {
+            repeat_start = get<0>(lcr); repeat_end = get<1>(lcr);
+            cigar_string = get<2>(lcr); purity = get<3>(lcr); 
+            repeat_length = repeat_end - repeat_start;
+            repeat_units = repeat_length/atomicity;
             repeat_start += chunk_start; repeat_end += chunk_start;
             int recursion_level = 0;
             vector<tuple<string, int, int, string, double, string, int, int, int>> new_repeat_loci;
             addLocusToOutput(sequence_id, repeat_start, repeat_end, motif.substr(0, atomicity), purity, cigar_string,
                              atomicity, repeat_length, repeat_units, out, repeat_loci, recursion_level, new_repeat_loci);
+        }
+    }
+
+    else {
+
+        processCIGARWithPruning(seed_start, seed_sequence_length, pruned_cigar, seed_sequence, atomicity,
+                                repeat_start, repeat_end, alignment_length, match_units, cigar_string, purity,
+                                motifwise_purity, motifwise_indels, seed_trim);
+        trimCigarMotifPurity(cigar_string, atomicity, repeat_start, repeat_end, alignment_length, purity, motifwise_purity);
+    
+        if (seed_repeat_loci.size()==0) {
+            seed_repeat_loci.push_back(pair<int, int> { repeat_start, repeat_end - atomicity });
+        }
+        else {
+            bool inserted = false;
+            for (int i=0; i<seed_repeat_loci.size(); i++) {
+                if (seed_repeat_loci[i].first >= repeat_start) {
+                    seed_repeat_loci.insert(seed_repeat_loci.begin()+i, pair<int, int> { repeat_start, repeat_end - atomicity } );
+                    inserted = true;
+                    break;
+                }
+            }
+            if (!inserted) { seed_repeat_loci.push_back(pair<int, int> { repeat_start, repeat_end - atomicity }); }
+        }
+    
+        if (alignment_length >= MINIMUM_LENGTH[atomicity]) {
+            repeat_length = repeat_end - repeat_start;
+            repeat_units = repeat_length/atomicity;
+    
+            if (((atomicity < 10  && (match_units >= PERFECT_UNITS[atomicity] || (purity > 0.9 && purity*repeat_length >= 2*atomicity))) 
+                 || ((atomicity >= 10) && (((purity * repeat_length) >= 3*atomicity) || (purity > 0.9 && purity*repeat_length >= 2*atomicity))))
+                && atomicity >= MINIMUM_MLEN && atomicity <= MAXIMUM_MLEN
+                && repeat_length >= MINIMUM_LENGTH[atomicity]
+                && purity >= PURITY_THRESHOLD
+                && motifwise_purity >= MOTIFPURITY_THRESHOLD) {
+    
+                repeat_start += chunk_start; repeat_end += chunk_start;
+                int recursion_level = 0;
+                vector<tuple<string, int, int, string, double, string, int, int, int>> new_repeat_loci;
+                addLocusToOutput(sequence_id, repeat_start, repeat_end, motif.substr(0, atomicity), purity, cigar_string,
+                                 atomicity, repeat_length, repeat_units, out, repeat_loci, recursion_level, new_repeat_loci);
+            }
         }
     }
 
@@ -374,9 +464,10 @@ void processLargeMotifSeed(tuple<int, int> seed_position, int chunk_start, int &
             if (seed_repeat_loci[i].first > seed_end) { seed_repeat_loci[i].first = seed_end; }
             if (!((flank_start == seed_start) && (seed_repeat_loci[i].first == seed_end))) {
                 skip_atomicity.clear();
-                processLargeMotifSeed(tuple<int, int> { flank_start, seed_repeat_loci[i].first }, chunk_start, motif_length, seed_type, sequence_id,
-                            sequence, sequence_length, xor_bset, left_bset, right_bset, N_bset, out,
-                            lshift_xor_bsets, MATRIX, aligner, filter, alignment, repeat_loci, skip_atomicity);
+                processLargeMotifSeed(tuple<int, int> { flank_start, seed_repeat_loci[i].first }, chunk_start, motif_length,
+                                      seed_type, sequence_id, sequence, sequence_length, xor_bset, left_bset, right_bset,
+                                      N_bset, out, lshift_xor_bsets, lshift_anchored_bsets, MATRIX, aligner, filter, alignment,
+                                      repeat_loci, skip_atomicity);
             }
         }
 
@@ -388,7 +479,7 @@ void processLargeMotifSeed(tuple<int, int> seed_position, int chunk_start, int &
         if (flank_start != seed_start) {
             skip_atomicity.clear();
             processLargeMotifSeed(tuple<int, int> { flank_start, seed_end }, chunk_start, motif_length, seed_type, sequence_id, sequence,
-                                  sequence_length, xor_bset, left_bset, right_bset, N_bset, out, lshift_xor_bsets,
+                                  sequence_length, xor_bset, left_bset, right_bset, N_bset, out, lshift_xor_bsets, lshift_anchored_bsets,
                                   MATRIX, aligner, filter, alignment, repeat_loci, skip_atomicity);
         }
     }

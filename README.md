@@ -66,7 +66,7 @@ $ echo "ATgcatgcGGAGGAGGAGGAGGAGGAcagtcgata" | ./ribbit -i -
 ./ribbit -h
 
 Ribbit: identification of tandem repeats and annotation of complex TRs in genomes
-Version: 1.0.1
+Version: 1.0.2
 
 Options for running the tool:
   -h [ --help ]                 Ribbit detects tandem repeat regions in DNA, accurately resolving 
@@ -207,6 +207,9 @@ If you found ribbit useful, we would appreciate it if you could cite our manuscr
 
 
 ## Change log
+
+### version 1.0.2 - 28-10-2025
+- Optimized alignment for seeds larger than 10kb.
 
 ### version 1.0.1 - 23-10-2025
 - Fixed concatenating outputs in multi-threaded mode.

@@ -583,3 +583,38 @@ void separateCigarsOverlappingLoci(int upstart, int upend, tuple<vector<int>, ve
     dn_nolseg_cigarvalues = { vector<int>(dn_clens.begin() + i + 1, dn_clens.end()), vector<char>(dn_ctypes.begin() + i + 1, dn_ctypes.end()) };
 }
 
+
+string trimSoftClipsinCigar(const std::string cigar, string direction) {
+    /*
+     *  trims leading and/or trailing soft clips from a CIGAR string
+     *  @param cigar the CIGAR string
+     *  @param direction specifies which soft clips to trim: "start", "end", or "both"
+     *  @return the trimmed CIGAR string
+     */
+
+    size_t start = 0;
+    size_t end = cigar.size();
+    size_t pos = 0;
+
+    // Remove leading soft clip
+    if (direction == "both" || direction == "start") {
+        pos = 0;
+        while (pos < cigar.size() && std::isdigit(cigar[pos])) pos++;
+        if (pos < cigar.size() && cigar[pos] == 'S') {
+            start = pos + 1;
+        }   
+    }
+
+    // Remove trailing soft clip
+    if (direction == "both" || direction == "end") {
+        pos = cigar.size();
+        if (pos > 0 && std::isalpha(cigar[pos-1]) && cigar[pos-1] == 'S') {
+            // walk backwards to find the number before 'S'
+            size_t num_start = pos - 1;
+            while (num_start > 0 && std::isdigit(cigar[num_start - 1])) num_start--;
+            end = num_start;
+        }
+    }
+
+    return cigar.substr(start, end - start);
+}

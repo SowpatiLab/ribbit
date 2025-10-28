@@ -410,7 +410,7 @@ void motifwiseParameters(string &cigar, int motif_length, double &avg_motifpurit
 
 void processCIGARWithPruning(int seed_start, int seed_sequence_length, string &cigar, string &seed_sequence, int motif_length,
                              int &repeat_start, int &repeat_end, int &alignment_length, int &match_units, string &new_cigar,
-                             double &purity, double &avg_motifpurity, int &avg_motifindels) {
+                             double &purity, double &avg_motifpurity, int &avg_motifindels, bool seed_trim) {
     /*
      *  processes the CIGAR string and returns the repeat based on the purity threshold
      *  @param seed_start position of the start of the seed sequence
@@ -501,7 +501,7 @@ void processCIGARWithPruning(int seed_start, int seed_sequence_length, string &c
     bool trim = false;
     if (purity < PURITY_THRESHOLD) trim = true;
 
-    if (trim) {
+    if (trim && seed_trim) {
 
         trim_edges = calculateTrimEdges(PURITY_THRESHOLD, purity, ccigar_lengths, alignment_length, motif_length);
 
@@ -786,14 +786,21 @@ void processCIGARMotifWise(int seed_start, int seed_sequence_length, string &cig
 }
 
 
-struct Op {
-    int len;
-    char type;
-};
+double calculateAveragePurity(vector<double> &purities) {
+    double avg_purity = 0.0;
+    if (purities.size() > 0) {
+        for (int _=0; _<purities.size(); _++) { avg_purity += purities[_]; }
+        avg_purity = avg_purity / ((double) (purities.size()));
+    }
+    return avg_purity;
+}
 
-// parse CIGAR into vector<Op>
-vector<Op> parseCigar(const string &cigar) {
-    vector<Op> ops;
+
+struct cigarOp { int len; char type; };
+
+// parse CIGAR into vector<cigarOp>
+vector<cigarOp> parseCigar(const string &cigar) {
+    vector<cigarOp> ops;
     int num = 0;
     for (char c : cigar) {
         if (isdigit(c)) {
@@ -807,16 +814,29 @@ vector<Op> parseCigar(const string &cigar) {
 }
 
 // convert back to string
-string toCigar(const vector<Op> &ops) {
-    string s;
+string vectorStructtoCigar(const vector<cigarOp> &ops) {
+    /*
+     *  converts vector of cigarOp back to CIGAR string
+     *  @param ops vector of cigarOp
+     *  @returns CIGAR string
+    */
+    string cigar = "";
     for (auto &op : ops) {
-        if (op.len > 0) s += to_string(op.len) + op.type;
+        if (op.len > 0) cigar += to_string(op.len) + op.type;
     }
-    return s;
+    return cigar;
 }
 
 // trim i from left, j from right
-string trimCigar(const string &cigar, int i, int j) {
+string trimCigarAlignOp(const string &cigar, int i, int j) {
+    /*
+     *  trims the CIGAR string to i alignment operations from left and j alignment operations from right
+     *  @param cigar CIGAR string
+     *  @param i length to be trimmed from left
+     *  @param j length to be trimmed from right
+     *  @returns trimmed CIGAR string
+    */
+
     auto ops = parseCigar(cigar);
 
     // trim from left
@@ -824,11 +844,9 @@ string trimCigar(const string &cigar, int i, int j) {
     for (auto &op : ops) {
         if (left == 0) break;
         if (left >= op.len) {
-            left -= op.len;
-            op.len = 0;
+            left -= op.len; op.len = 0;
         } else {
-            op.len -= left;
-            left = 0;
+            op.len -= left; left = 0;
         }
     }
 
@@ -836,24 +854,33 @@ string trimCigar(const string &cigar, int i, int j) {
     int right = j;
     for (int k = (int)ops.size()-1; k >= 0 && right > 0; k--) {
         if (right >= ops[k].len) {
-            right -= ops[k].len;
-            ops[k].len = 0;
+            right -= ops[k].len; ops[k].len = 0;
         } else {
-            ops[k].len -= right;
-            right = 0;
+            ops[k].len -= right; right = 0;
         }
     }
 
-    return toCigar(ops);
+    return vectorStructtoCigar(ops);
 }
 
 
 void trimCigarMotifPurity(string &cigar, int &motif_length, int & repeat_start, int &repeat_end, int &alignment_length,
                           double &purity, double &motifwise_purity) {
+    /*
+     *  trims the CIGAR string based on motif wise purity calculation to a threshold motif purity of 0.7
+     *  @param cigar CIGAR string
+     *  @param motif_length length of the repeating motif
+     *  @param repeat_start start of the repeat sequence; passed as reference; updated
+     *  @param repeat_end end of the repeat sequence; passed as reference; updated
+     *  @param alignment_length total alignment length between repeat sequence and a perfect repeat; passed as reference updated
+     *  @param purity purity of the complete repeat stretch; passed as reference; updated
+     *  @param motifwise_purity motif wise purity of the repeat; passed as reference; updated
+     *  return void
+     */
 
-    vector<int> windowLength;   // to be counted for the size of the motif length; INS are not considered - DEL are considered
-    vector<int> repeatLength;   // to be counted for the sequence to adjust the start and stop; INS are considered - DEL are not considered
-    vector<int> windowMatches;
+    vector<int> bc_windowlength;   // to be counted for the size of the motif length; INS are not considered - DEL are considered
+    vector<int> bc_repeatlength;   // to be counted for the sequence to adjust the start and stop; INS are considered - DEL are not considered
+    vector<int> bc_windowmatches;
 
     for (int i=0; i<cigar.size();) {
         int j = i;
@@ -867,47 +894,47 @@ void trimCigarMotifPurity(string &cigar, int &motif_length, int & repeat_start, 
             char type = cigar[j];
             if (type == 'M' || type == '=') {
                 for (int k=0; k<len; k++) {
-                    windowLength.push_back(1);
-                    windowMatches.push_back(1);
-                    repeatLength.push_back(1);
+                    bc_windowlength.push_back(1);
+                    bc_windowmatches.push_back(1);
+                    bc_repeatlength.push_back(1);
                 }
             } else if (type == 'X') {
                 for (int k=0; k<len; k++) {
-                    windowLength.push_back(1);
-                    windowMatches.push_back(0);
-                    repeatLength.push_back(1);
+                    bc_windowlength.push_back(1);
+                    bc_windowmatches.push_back(0);
+                    bc_repeatlength.push_back(1);
                 }
             } else if (type == 'I') {
                 for (int k=0; k<len; k++) {
-                    windowLength.push_back(0);
-                    windowMatches.push_back(0);
-                    repeatLength.push_back(1);
+                    bc_windowlength.push_back(0);   // insertion do no count towards motif length
+                    bc_windowmatches.push_back(0);
+                    bc_repeatlength.push_back(1);
                 }
             } else if (type == 'D') {
                 for (int k=0; k<len; k++) {
-                    windowLength.push_back(1);
-                    windowMatches.push_back(0);
-                    repeatLength.push_back(0);
+                    bc_windowlength.push_back(1);
+                    bc_windowmatches.push_back(0);
+                    bc_repeatlength.push_back(0);   // deletions do not count towards repeat length
                 }
             }
             i = j + 1;
-        } else {
-            break; // malformed CIGAR string
         }
+
+        else { break; }
     }
 
-    int n = windowLength.size();
+    int align_opcount = bc_windowlength.size();  // sums to number of alignment operations
     vector<double> purities;
 
-    int min_window = n; int max_window = 0;
-    for (int i=0; i<n; i++) {
-        if (windowMatches[i] == 0) continue;
-        for (int j=i+motif_length; j <= n; j++) {
+    int min_window = align_opcount; int max_window = 0;
+    for (int i=0; i < align_opcount; i++) {
+        if (bc_windowmatches[i] == 0) continue;
+        for (int j=i+motif_length; j <= align_opcount; j++) {
             int length = 0;
-            for (int k = i; k < j; k++) length += windowLength[k];
+            for (int k = i; k < j; k++) length += bc_windowlength[k];
             if (length == motif_length) {
                 int matches = 0;
-                for (int k = i; k < j; k++) matches += windowMatches[k];
+                for (int k = i; k < j; k++) matches += bc_windowmatches[k];
                 if ((double)matches / (double) (j-i) >= 0.8) {
                     if (i < min_window) min_window = i;
                     if (j > max_window) max_window = j;
@@ -918,20 +945,179 @@ void trimCigarMotifPurity(string &cigar, int &motif_length, int & repeat_start, 
         }
     }
 
+    for (int _=0; _<min_window; _++)  repeat_start += bc_repeatlength[_];
+    for (int _=max_window; _ < align_opcount; _++) repeat_end -= bc_repeatlength[_];
 
-    for (int _=0; _<min_window; _++) {
-        repeat_start += repeatLength[_];
-    }
-    for (int _=max_window; _<n; _++) {
-        repeat_end -= repeatLength[_];
-    }
-    cigar = trimCigar(cigar, min_window, n - max_window );
+    cigar = trimCigarAlignOp(cigar, min_window, align_opcount - max_window );
 
     alignment_length = getAlignmentLength(cigar);
     purity = (double)getMatches(cigar) / (double)alignment_length;
-    motifwise_purity = 0.0;
-    if (purities.size() > 0) {
-        for (int _=0; _<purities.size(); _++) { motifwise_purity += purities[_]; }
-        motifwise_purity = motifwise_purity / ((double) (purities.size()));
+    motifwise_purity = calculateAveragePurity(purities);
+}
+
+
+vector<tuple<int, int, string, double>> processLargeCigar(int &repeat_start, int &repeat_end, int motif_length, string &cigar,
+                                                          vector<pair<int, int>> &seed_repeat_loci) {
+    /*
+     *  processes large CIGAR strings to identify high motif purity regions
+     *  @param repeat_start start of the repeat sequence; passed as reference; updated
+     *  @param repeat_end end of the repeat sequence; passed as reference; updated
+     *  @param motif_length length of the repeating motif
+     *  @param cigar CIGAR string of the alignment of the repeat with a perfect repeat
+     *  @param seed_repeat_loci vector of pairs indicating the seed and repeat loci
+     *  @returns vector of tuples indicating the start, end, CIGAR string and purity of the high motif purity regions
+     */
+
+    vector<int> bc_windowlength;   // to be counted for the size of the motif length; INS are not considered - DEL are considered
+    vector<int> bc_repeatlength;   // to be counted for the sequence to adjust the start and stop; INS are considered - DEL are not considered
+    vector<int> bc_windowmatches;
+
+    for (int i=0; i<cigar.size();) {
+        int j = i;
+        char op = cigar[i];
+        int len = 0;
+        while (j < cigar.size() && isdigit(cigar[j])) {
+            len = len * 10 + (cigar[j] - '0');
+            j++;
+        }
+        if (j < cigar.size()) {
+            char type = cigar[j];
+            if (type == 'M' || type == '=') {
+                for (int k=0; k<len; k++) {
+                    bc_windowlength.push_back(1);
+                    bc_windowmatches.push_back(1);
+                    bc_repeatlength.push_back(1);
+                }
+            } else if (type == 'X') {
+                for (int k=0; k<len; k++) {
+                    bc_windowlength.push_back(1);
+                    bc_windowmatches.push_back(0);
+                    bc_repeatlength.push_back(1);
+                }
+            } else if (type == 'I') {
+                for (int k=0; k<len; k++) {
+                    bc_windowlength.push_back(0);   // insertion do no count towards motif length
+                    bc_windowmatches.push_back(0);
+                    bc_repeatlength.push_back(1);
+                }
+            } else if (type == 'D') {
+                for (int k=0; k<len; k++) {
+                    bc_windowlength.push_back(1);
+                    bc_windowmatches.push_back(0);
+                    bc_repeatlength.push_back(0);   // deletions do not count towards repeat length
+                }
+            } else if (type == 'S') {
+                // soft clip: edit the repeat start and end
+                if (i == 0) { repeat_start += len; }
+                else { repeat_end -= len; }
+            }
+            i = j + 1;
+        } else {
+            break; // malformed CIGAR string
+        }
     }
+
+    cigar = trimSoftClipsinCigar(cigar, "both");
+    int align_opcount = bc_windowlength.size();  // sums to number of alignment operations
+    vector<double> purities;
+    vector<tuple<int, int>> trim_windows;
+    vector<double> trim_window_purities;
+    int    trim_range_start = -1;
+    double window_purity = 0.0;
+
+    trim_windows.clear();
+    trim_window_purities.clear();
+    for (int i=0; i < align_opcount; i++) {
+        // if (bc_windowmatches[i] == 0) continue;
+        for (int j=i+motif_length; j <= align_opcount; j++) {
+            int length = 0;
+            for (int k = i; k < j; k++) length += bc_windowlength[k];
+            if (length == motif_length) {
+                int matches = 0;
+                for (int k = i; k < j; k++) matches += bc_windowmatches[k];
+                window_purity = (double)matches / (double) (j-i);
+                if (window_purity >= PURITY_THRESHOLD - 0.05) {
+                    if (trim_range_start == -1) {
+                        trim_range_start = i;
+                    }
+                    purities.push_back(window_purity);
+                }
+                else {
+                    if (trim_range_start != -1) {
+                        if (trim_windows.size() > 0) {
+                            int last_tw_end = get<1>(trim_windows.back());
+                            if (trim_range_start <= last_tw_end + motif_length) {
+                                // merge intervals
+                                trim_windows.back() = make_tuple(get<0>(trim_windows.back()), j);
+                                double existing_avg_purity = trim_window_purities.back();
+                                double new_avg_purity = calculateAveragePurity(purities);
+                                trim_window_purities.back() = (existing_avg_purity + new_avg_purity) / 2.0;
+                                purities.clear();
+                            }
+                            else {
+                                trim_windows.emplace_back(trim_range_start, j);
+                                trim_window_purities.push_back(calculateAveragePurity(purities));
+                                purities.clear();
+                            }
+                        }
+                        else {
+                            trim_windows.emplace_back(trim_range_start, j);
+                            trim_window_purities.push_back(calculateAveragePurity(purities));
+                            purities.clear();
+                        }
+                        trim_range_start = -1;
+                    }
+                }
+                break;
+            }
+        }
+    }
+    if (trim_range_start != -1) {
+        if (trim_windows.size() > 0) {
+            int last_tw_end = get<1>(trim_windows.back());
+            if (trim_range_start <= last_tw_end + motif_length) {
+                // merge intervals
+                trim_windows.back() = make_tuple(get<0>(trim_windows.back()), align_opcount);
+                double existing_avg_purity = trim_window_purities.back();
+                double new_avg_purity = calculateAveragePurity(purities);
+                trim_window_purities.back() = (existing_avg_purity + new_avg_purity) / 2.0;
+                purities.clear();
+            }
+            else {
+                trim_windows.emplace_back(trim_range_start, align_opcount);
+                trim_window_purities.push_back(calculateAveragePurity(purities));
+                purities.clear();
+            }
+        }
+        else {
+            trim_windows.emplace_back(trim_range_start, align_opcount);
+            trim_window_purities.push_back(calculateAveragePurity(purities));
+            purities.clear();
+        }
+    }
+
+    vector<tuple<int, int, string, double>> tw_repeat_loci;
+    int idx = 0;
+    int limit = trim_windows.size();
+    while (idx < limit) {
+        int tw_start = get<0>(trim_windows[idx]);
+        int tw_end   = get<1>(trim_windows[idx]);
+        int tw_rstart = repeat_start, tw_rend = repeat_end;
+
+        for (int _ = 0; _ < tw_start; _++)  tw_rstart += bc_repeatlength[_];
+        for (int _ = tw_end; _ < align_opcount; _++) tw_rend -= bc_repeatlength[_];
+
+        pair<int, int> trimmed_locus = make_pair(tw_rstart, tw_rend);
+        seed_repeat_loci.push_back(trimmed_locus);
+        string tw_cigar = trimCigarAlignOp(cigar, tw_start, align_opcount - tw_end);
+        int tw_alignment_length = getAlignmentLength(tw_cigar);
+        double tw_purity = (double)getMatches(tw_cigar) / (double)tw_alignment_length;
+        double tw_motif_purity = trim_window_purities[idx];
+
+        tuple<int, int, string, double> tw_repeat = make_tuple(tw_rstart, tw_rend, tw_cigar, tw_purity);
+        tw_repeat_loci.push_back(tw_repeat);
+        idx += 1;
+    }
+
+    return tw_repeat_loci;
 }

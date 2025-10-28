@@ -12,7 +12,7 @@ SRC_SSW    = src/ssw.c src/ssw_cpp.cpp
 
 # list of ribbit source files
 SRC_RIBBIT = src/global_variables.cpp src/concatenate_output.cpp src/binomial_thresholds.cpp src/cigar_utils.cpp src/output_utils.cpp \
-             src/process_cigar.cpp src/parse_seed.cpp src/parse_smallmotif_seed.cpp src/merge_types.cpp \
+             src/process_cigar.cpp src/parse_seed.cpp src/parse_smallmotif_seed.cpp src/largeseq_align.cpp src/merge_types.cpp \
 			 src/parse_anchored_shiftxor.cpp src/parse_substitute_shiftxor.cpp src/parse_perfect_shiftxor.cpp src/seed_utils.cpp \
 			 src/bitseq_utils.cpp src/fasta_utils.cpp
 

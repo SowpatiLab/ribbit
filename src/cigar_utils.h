@@ -40,3 +40,4 @@ int getMatches(vector<int> &clens, vector<char> &ctypes);
 
 tuple<vector<int>, vector<char>> cigarSplit(string cigar);
 
+string trimSoftClipsinCigar(const std::string cigar, string direction);
