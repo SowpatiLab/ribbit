@@ -2,9 +2,9 @@
     <img src="./lib/logo_rounded.png" alt="ribbit-logo" style="width:180px; border-radius: 20%"/>
 </p>
 
-[!IMPORTANT]
-Ribbit is under active development. Please refer to <a href="#change-log">Change log</a> and make sure to get the latest
-version of the repository. 
+> [!IMPORTANT]
+> Ribbit is under active development. Please refer to <a href="#change-log">Change log</a> and make sure to get the latest
+> version of the repository. 
 
 <h1 align=left style="font-size: 38px; padding-left: 10px; padding-bottom: 0px">ribbit</h1>
 
