@@ -161,6 +161,13 @@ void processSeed(tuple<int, int, int, int, int, int, int> &seed, int sequence_le
     // process seed if it is alteast the size of the motif length
     processed_seeds += 1;
 
+    for (int i=o_end; i < o_end + o_mlen; i++) {
+        if (i > sequence_length) { break; }
+        if (N_bset[sequence_length - 1 - i]) {
+            o_end = i - o_mlen; break;
+        }
+    }
+
     if (o_mlen <= SMALL_MLEN_LIMIT) {
         processSmallMotifSeed(tuple<int, int>{o_start, o_end}, chunk_start, o_mlen, o_type, sequence_id,
                                 sequence, sequence_length, lshift_xor_bsets[o_mlen - MINIMUM_SHIFT], left_bset, right_bset,

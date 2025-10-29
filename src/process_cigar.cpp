@@ -1024,23 +1024,28 @@ vector<tuple<int, int, string, double>> processLargeCigar(int &repeat_start, int
     vector<double> trim_window_purities;
     int    trim_range_start = -1;
     double window_purity = 0.0;
+    int window_end = -1;
 
     trim_windows.clear();
     trim_window_purities.clear();
     for (int i=0; i < align_opcount; i++) {
         // if (bc_windowmatches[i] == 0) continue;
+        if (i + motif_length >= align_opcount) break;
         for (int j=i+motif_length; j <= align_opcount; j++) {
             int length = 0;
-            for (int k = i; k < j; k++) length += bc_windowlength[k];
+            for (int k = i; k < j; k++) {
+                length += bc_windowlength[k];
+                if (bc_windowmatches[k] == 1) window_end = k;
+            }
             if (length == motif_length) {
                 int matches = 0;
                 for (int k = i; k < j; k++) matches += bc_windowmatches[k];
                 window_purity = (double)matches / (double) (j-i);
                 if (window_purity >= PURITY_THRESHOLD - 0.05) {
                     if (trim_range_start == -1) {
-                        trim_range_start = i;
+                        if (bc_windowmatches[i] != 0) trim_range_start = i;
                     }
-                    purities.push_back(window_purity);
+                    if (trim_range_start != -1) purities.push_back(window_purity);
                 }
                 else {
                     if (trim_range_start != -1) {
@@ -1048,20 +1053,20 @@ vector<tuple<int, int, string, double>> processLargeCigar(int &repeat_start, int
                             int last_tw_end = get<1>(trim_windows.back());
                             if (trim_range_start <= last_tw_end + motif_length) {
                                 // merge intervals
-                                trim_windows.back() = make_tuple(get<0>(trim_windows.back()), j);
+                                trim_windows.back() = make_tuple(get<0>(trim_windows.back()), window_end);
                                 double existing_avg_purity = trim_window_purities.back();
                                 double new_avg_purity = calculateAveragePurity(purities);
                                 trim_window_purities.back() = (existing_avg_purity + new_avg_purity) / 2.0;
                                 purities.clear();
                             }
                             else {
-                                trim_windows.emplace_back(trim_range_start, j);
+                                trim_windows.emplace_back(trim_range_start, window_end);
                                 trim_window_purities.push_back(calculateAveragePurity(purities));
                                 purities.clear();
                             }
                         }
                         else {
-                            trim_windows.emplace_back(trim_range_start, j);
+                            trim_windows.emplace_back(trim_range_start, window_end);
                             trim_window_purities.push_back(calculateAveragePurity(purities));
                             purities.clear();
                         }
@@ -1077,20 +1082,20 @@ vector<tuple<int, int, string, double>> processLargeCigar(int &repeat_start, int
             int last_tw_end = get<1>(trim_windows.back());
             if (trim_range_start <= last_tw_end + motif_length) {
                 // merge intervals
-                trim_windows.back() = make_tuple(get<0>(trim_windows.back()), align_opcount);
+                trim_windows.back() = make_tuple(get<0>(trim_windows.back()), window_end);
                 double existing_avg_purity = trim_window_purities.back();
                 double new_avg_purity = calculateAveragePurity(purities);
                 trim_window_purities.back() = (existing_avg_purity + new_avg_purity) / 2.0;
                 purities.clear();
             }
             else {
-                trim_windows.emplace_back(trim_range_start, align_opcount);
+                trim_windows.emplace_back(trim_range_start, window_end);
                 trim_window_purities.push_back(calculateAveragePurity(purities));
                 purities.clear();
             }
         }
         else {
-            trim_windows.emplace_back(trim_range_start, align_opcount);
+            trim_windows.emplace_back(trim_range_start, window_end);
             trim_window_purities.push_back(calculateAveragePurity(purities));
             purities.clear();
         }
@@ -1107,8 +1112,9 @@ vector<tuple<int, int, string, double>> processLargeCigar(int &repeat_start, int
         for (int _ = 0; _ < tw_start; _++)  tw_rstart += bc_repeatlength[_];
         for (int _ = tw_end; _ < align_opcount; _++) tw_rend -= bc_repeatlength[_];
 
-        pair<int, int> trimmed_locus = make_pair(tw_rstart, tw_rend);
+        pair<int, int> trimmed_locus = make_pair(tw_rstart, tw_rend - motif_length);
         seed_repeat_loci.push_back(trimmed_locus);
+        
         string tw_cigar = trimCigarAlignOp(cigar, tw_start, align_opcount - tw_end);
         int tw_alignment_length = getAlignmentLength(tw_cigar);
         double tw_purity = (double)getMatches(tw_cigar) / (double)tw_alignment_length;

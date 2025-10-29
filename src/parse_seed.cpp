@@ -395,7 +395,7 @@ void processLargeMotifSeed(tuple<int, int> seed_position, int chunk_start, int &
     if (seed_sequence_length > 10000) {
         repeat_start = seed_start; repeat_end = seed_end + motif_length;
         vector<tuple<int, int, string, double>> largecigar_repeats = processLargeCigar(repeat_start, repeat_end, atomicity,
-                                                                                       pruned_cigar,seed_repeat_loci);
+                                                                                       pruned_cigar, seed_repeat_loci);
 
         for (auto &lcr : largecigar_repeats) {
             repeat_start = get<0>(lcr); repeat_end = get<1>(lcr);
