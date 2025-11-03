@@ -4,6 +4,8 @@
 using namespace std;
 using namespace boost;
 
+void adjustEndBasedonN(boost::dynamic_bitset<> &N_bset, int &current_end, int motif_length);
+
 void filterPerfectSeeds(vector<tuple<int,int,int,int,int,int,int>> &seed_positions_perfect,
                         vector<tuple<int,int,int,int,int,int,int>> &seed_positions_substut);
 

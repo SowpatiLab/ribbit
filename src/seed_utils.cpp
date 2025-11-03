@@ -3,6 +3,31 @@
 using namespace std;
 using namespace boost;
 
+void adjustEndBasedonN(boost::dynamic_bitset<> &N_bset, int &current_end, int motif_length) {
+    /*
+     *  adjusts the end position of a seed based on the presence of N bases
+     *  @param N_bset bitset with information of N positions
+     *  @param current_end the current end position of the seed
+     *  @param bset_size the total size of a shift XOR bitset
+     *  @return void modifies current_end in place
+     */
+
+    int bset_size = N_bset.size();
+    if (current_end + motif_length >= bset_size) {
+        current_end = bset_size - motif_length;
+        return;
+    }
+    int limit = current_end + motif_length;
+    if (limit > bset_size) { limit = bset_size; }
+    for (int pos = current_end; pos <= limit; pos++) {
+        if (N_bset[bset_size - 1 - pos] == 1) {
+            current_end = pos - motif_length;
+            return;
+        }
+    }
+}
+
+
 void filterPerfectSeeds(vector<tuple<int,int,int,int,int,int,int>> &seed_positions_perfect,
                         vector<tuple<int,int,int,int,int,int,int>> &seed_positions_substut) {
     /*

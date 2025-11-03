@@ -212,6 +212,9 @@ If you found ribbit useful, we would appreciate it if you could cite our manuscr
 
 ## Change log
 
+### version 1.0.3 - 11-04-2025
+- Removed bug to exclude N at the end of the repeat.
+
 ### version 1.0.2 - 28-10-2025
 - Optimized alignment for seeds larger than 10kb.
 

@@ -3,7 +3,7 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-string RIBBIT_VERSION = "1.0.2";
+string RIBBIT_VERSION = "1.0.3";
 
 // Define rclasses matrix
 uint32_t **REPEAT_CLASSES = nullptr;

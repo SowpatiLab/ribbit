@@ -21,7 +21,7 @@ SRC_MAIN = src/ribbit.cpp
 # Identify the operating system
 OS := $(shell uname -s)
 ifeq ($(OS),Darwin)
-	CXXFLAGS      = -O3 -std=c++1z -w -lz
+	CXXFLAGS      = -O3 -std=c++1z -w
 	BOOST_VERSION = $(shell ls /opt/homebrew/Cellar/boost/ | tail -n 1)
 	BOOST_LIB     = -L/opt/homebrew/Cellar/boost/$(BOOST_VERSION)/lib	# boost library path
 	INCLUDE       = -I/opt/homebrew/Cellar/boost/$(BOOST_VERSION)/include/  # boost include path

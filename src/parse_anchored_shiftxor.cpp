@@ -417,6 +417,7 @@ vector<tuple<int,int,int,int,int,int,int>> processShiftXORsAnchored(vector<boost
 
     int xor_idx = 0;
     int window_position = -1*minimum_window_length;
+    int valid_end;
     for (xor_idx = bset_size-1; xor_idx >= 0; xor_idx--) {
         window_position += 1;
 
@@ -424,13 +425,15 @@ vector<tuple<int,int,int,int,int,int,int>> processShiftXORsAnchored(vector<boost
             // N is present at this position reset the window
             for (int midx=min_idx; midx < NMLENS+min_idx; midx++) {
                 didx = midx-min_idx; motif_length = MINIMUM_SHIFT + midx;
+                valid_end = (bset_size - (xor_idx + 1)) - motif_length;
+                valid_end = (valid_end < bset_size - motif_length) ? valid_end : bset_size - motif_length;
 
                 // handling the records after the end of the sequence
                 if (last_ends[didx] == -1) {
                     if (current_starts[didx] != -1) {
                         // presently not scanning through a passed window ~ save last record
-                        if ((bset_size - (xor_idx + 1)) - current_starts[didx] >= seedlen_cutoffs[didx]) {
-                            addSeedToSeedPositionsAnchored(current_starts[didx], (bset_size - (xor_idx + 1)), motif_length, seed_positions_perfect,
+                        if (valid_end - current_starts[didx] >= seedlen_cutoffs[didx]) {
+                            addSeedToSeedPositionsAnchored(current_starts[didx], valid_end, motif_length, seed_positions_perfect,
                                                            seed_positions_substut, seed_positions_anchored, seedlen_cutoffs,
                                                            lshift_xor_bsets, N_bset, lsxor_perfect_bsets, lsxor_anchored_bsets, bset_size,
                                                            from_indices, RANK_A, chunk_start, threshold_bits);
@@ -450,11 +453,12 @@ vector<tuple<int,int,int,int,int,int,int>> processShiftXORsAnchored(vector<boost
                     }
 
                     else {
-                        overlap_distance = max({0.1*(last_ends[didx]-last_starts[didx]), 0.1*((bset_size - (xor_idx + 1)) - current_starts[didx])});
+                        overlap_distance = max({0.1*(last_ends[didx]-last_starts[didx]), 0.1*(valid_end - current_starts[didx])});
                         overlap_distance = min({overlap_distance, motif_length/2});
                         if (last_ends[didx] >= current_starts[didx] - overlap_distance) { 
                             // current passed window overlaps with last record ~ merge both and save
-                            last_ends[didx] = bset_size - (xor_idx + 1); // reassign end
+                            adjustEndBasedonN(N_bset, valid_end, motif_length);
+                            last_ends[didx] = valid_end; // reassign end
                             if (last_ends[didx] - last_starts[didx] >= seedlen_cutoffs[didx]) {
                                 addSeedToSeedPositionsAnchored(last_starts[didx], last_ends[didx], motif_length, seed_positions_perfect,
                                                                seed_positions_substut, seed_positions_anchored, seedlen_cutoffs,
@@ -472,8 +476,8 @@ vector<tuple<int,int,int,int,int,int,int>> processShiftXORsAnchored(vector<boost
                                                                               from_indices, RANK_A, chunk_start, threshold_bits);
                             }
 
-                            if ((bset_size - (xor_idx + 1)) - current_starts[didx] >= seedlen_cutoffs[didx]) {
-                                addSeedToSeedPositionsAnchored(current_starts[didx], (bset_size - (xor_idx + 1)), motif_length, seed_positions_perfect,
+                            if (valid_end - current_starts[didx] >= seedlen_cutoffs[didx]) {
+                                addSeedToSeedPositionsAnchored(current_starts[didx], valid_end, motif_length, seed_positions_perfect,
                                                                seed_positions_substut, seed_positions_anchored, seedlen_cutoffs,
                                                                lshift_xor_bsets, N_bset, lsxor_perfect_bsets, lsxor_anchored_bsets, bset_size,
                                                                from_indices, RANK_A, chunk_start, threshold_bits);
@@ -555,7 +559,9 @@ vector<tuple<int,int,int,int,int,int,int>> processShiftXORsAnchored(vector<boost
                                     if (lsxor_anchored_bsets[didx][x] == 1) { break; }
                                     offset += 1;
                                 }
-                                last_ends[didx] = window_position + minimum_window_length - offset; // end is exclusive
+                                valid_end = (window_position + minimum_window_length - offset < bset_size - motif_length) ? window_position + minimum_window_length - offset : bset_size - motif_length;
+                                adjustEndBasedonN(N_bset, valid_end, motif_length);
+                                last_ends[didx] = valid_end; // end is exclusive
                             }
 
                             else {
@@ -567,7 +573,9 @@ vector<tuple<int,int,int,int,int,int,int>> processShiftXORsAnchored(vector<boost
                                     if (lsxor_anchored_bsets[didx][x] == 1) { break; }
                                     offset += 1;
                                 }
-                                last_ends[didx] = window_position + minimum_window_length - offset; // reassign end
+                                valid_end = (window_position + minimum_window_length - offset < bset_size - motif_length) ? window_position + minimum_window_length - offset : bset_size - motif_length;
+                                adjustEndBasedonN(N_bset, valid_end, motif_length);
+                                last_ends[didx] = valid_end; // end is exclusive
                             }
 
                             current_starts[didx] = -1;
@@ -605,7 +613,9 @@ vector<tuple<int,int,int,int,int,int,int>> processShiftXORsAnchored(vector<boost
             if (current_starts[didx] != -1) {
                 // presently not scanning through a passed window ~ save last record
                 if ((bset_size - (xor_idx + 1)) - current_starts[didx] >= seedlen_cutoffs[didx]) {
-                    addSeedToSeedPositionsAnchored(current_starts[didx], (bset_size - (xor_idx + 1)), motif_length, seed_positions_perfect,
+                    valid_end = ((bset_size - (xor_idx + 1)) < bset_size - motif_length) ? (bset_size - (xor_idx + 1)) : bset_size - motif_length;
+                    adjustEndBasedonN(N_bset, valid_end, motif_length);
+                    addSeedToSeedPositionsAnchored(current_starts[didx], valid_end, motif_length, seed_positions_perfect,
                                                    seed_positions_substut, seed_positions_anchored, seedlen_cutoffs,
                                                    lshift_xor_bsets, N_bset, lsxor_perfect_bsets, lsxor_anchored_bsets, bset_size,
                                                    from_indices, RANK_A, chunk_start, threshold_bits);
@@ -629,7 +639,9 @@ vector<tuple<int,int,int,int,int,int,int>> processShiftXORsAnchored(vector<boost
                 overlap_distance = min({ overlap_distance, motif_length });
                 if (last_ends[didx] >= current_starts[didx] - overlap_distance) {
                     // current passed window overlaps with last record ~ merge both and save
-                    last_ends[didx] = bset_size - (xor_idx + 1); // reassign end
+                    valid_end = ((bset_size - (xor_idx + 1)) < bset_size - motif_length) ? (bset_size - (xor_idx + 1)) : bset_size - motif_length;
+                    adjustEndBasedonN(N_bset, valid_end, motif_length);
+                    last_ends[didx] = valid_end; // reassign end
                     if (last_ends[didx] - last_starts[didx] >= seedlen_cutoffs[didx]) {
                         addSeedToSeedPositionsAnchored(last_starts[didx], last_ends[didx], motif_length, seed_positions_perfect,
                                                        seed_positions_substut, seed_positions_anchored, seedlen_cutoffs,
@@ -648,7 +660,9 @@ vector<tuple<int,int,int,int,int,int,int>> processShiftXORsAnchored(vector<boost
                     }
 
                     if ((bset_size - (xor_idx + 1)) - current_starts[didx] >= seedlen_cutoffs[didx]) {
-                        addSeedToSeedPositionsAnchored(current_starts[didx], (bset_size - (xor_idx + 1)), motif_length, seed_positions_perfect,
+                        valid_end = ((bset_size - (xor_idx + 1)) < bset_size - motif_length) ? (bset_size - (xor_idx + 1)) : bset_size - motif_length;
+                        adjustEndBasedonN(N_bset, valid_end, motif_length);
+                        addSeedToSeedPositionsAnchored(current_starts[didx], valid_end, motif_length, seed_positions_perfect,
                                                        seed_positions_substut, seed_positions_anchored, seedlen_cutoffs,
                                                        lshift_xor_bsets, N_bset, lsxor_perfect_bsets, lsxor_anchored_bsets, bset_size,
                                                        from_indices, RANK_A, chunk_start, threshold_bits);

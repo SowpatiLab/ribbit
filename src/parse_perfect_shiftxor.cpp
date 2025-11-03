@@ -226,11 +226,12 @@ vector<tuple<int,int,int,int,int,int,int>> processShiftXORsPerfect(vector<boost:
     int last_ends[NMLENS];       // stores the end of the previous seed
     int current_starts[NMLENS];  // stores the current seed start
     int seedlen_cutoffs[NMLENS];
+    int valid_end;
 
     for (int _=0; _<NMLENS; _++) {
         last_starts[_] = -1; last_ends[_] = -1; current_starts[_] = -1;
 
-        if      (_+MINIMUM_MLEN <= 5) seedlen_cutoffs[_] = 12 - (_+MINIMUM_MLEN);
+        if      (_+MINIMUM_MLEN <= 6) seedlen_cutoffs[_] = 12 - (_+MINIMUM_MLEN);
         else if (_+MINIMUM_MLEN < 20) seedlen_cutoffs[_] = (_+MINIMUM_MLEN);
         else seedlen_cutoffs[_] = 0.8*(_+MINIMUM_MLEN);
     }
@@ -247,10 +248,10 @@ vector<tuple<int,int,int,int,int,int,int>> processShiftXORsPerfect(vector<boost:
                 if (last_starts[didx] != -1) {
                     if (window_position - last_starts[didx] >= seedlen_cutoffs[motif_length-MINIMUM_MLEN]) {
                         if (PURITY_THRESHOLD == 1) {
-                            addPerfectRepeatPositions(last_starts[didx], window_position, motif_length, bset_size, seed_positions);
+                            addPerfectRepeatPositions(last_starts[didx], window_position - motif_length, motif_length, bset_size, seed_positions);
                         }
                         else {
-                            addSeedToSeedPositionsPerfect(last_starts[didx], window_position, motif_length, bset_size, seed_positions);
+                            addSeedToSeedPositionsPerfect(last_starts[didx], window_position - motif_length, motif_length, bset_size, seed_positions);
                         }
                     }
                     last_starts[didx] = -1;
@@ -270,11 +271,13 @@ vector<tuple<int,int,int,int,int,int,int>> processShiftXORsPerfect(vector<boost:
                 else {
                     if (last_starts[didx] != -1) {
                         if (window_position - last_starts[didx] >= seedlen_cutoffs[motif_length-MINIMUM_MLEN]) {
+                            valid_end = (window_position < bset_size - motif_length) ? window_position : bset_size - motif_length;
+                            adjustEndBasedonN(N_bset, valid_end, motif_length);
                             if (PURITY_THRESHOLD == 1) {
-                                addPerfectRepeatPositions(last_starts[didx], window_position, motif_length, bset_size, seed_positions);
+                                addPerfectRepeatPositions(last_starts[didx], valid_end, motif_length, bset_size, seed_positions);
                             }
                             else {
-                                addSeedToSeedPositionsPerfect(last_starts[didx], window_position, motif_length, bset_size, seed_positions);
+                                addSeedToSeedPositionsPerfect(last_starts[didx], valid_end, motif_length, bset_size, seed_positions);
                             }
                         }
                     }
@@ -287,14 +290,15 @@ vector<tuple<int,int,int,int,int,int,int>> processShiftXORsPerfect(vector<boost:
     }
 
     // handling the repeat at the end of the sequence
-    window_position -= 1;
     for (int midx=min_idx; midx < min_idx+NMLENS; midx++) {
         didx = midx-min_idx; motif_length = MINIMUM_SHIFT + midx;
         if (last_starts[didx] != -1) {
+            valid_end = (window_position < bset_size - motif_length) ? window_position : bset_size - motif_length;
+            adjustEndBasedonN(N_bset, valid_end, motif_length);
             if (window_position - last_starts[didx] >= seedlen_cutoffs[motif_length-MINIMUM_MLEN]) {
-                if (PURITY_THRESHOLD == 1) { addPerfectRepeatPositions(last_starts[didx], window_position, motif_length, bset_size, seed_positions); }
+                if (PURITY_THRESHOLD == 1) { addPerfectRepeatPositions(last_starts[didx], valid_end, motif_length, bset_size, seed_positions); }
                 else {
-                    addSeedToSeedPositionsPerfect(last_starts[didx], window_position, motif_length, bset_size, seed_positions);
+                    addSeedToSeedPositionsPerfect(last_starts[didx], valid_end, motif_length, bset_size, seed_positions);
                 }
             }
             last_starts[didx] = -1;

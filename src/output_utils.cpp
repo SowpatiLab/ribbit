@@ -945,10 +945,7 @@ bool handleNestedParentRelation(int repeat_start, int repeat_end, string motif, 
             }
         }
 
-        else {
-            // handled in overlap function
-        }
-
+        else { } // handled in overlap function
     }
 
     return true;

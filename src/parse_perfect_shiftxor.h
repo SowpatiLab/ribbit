@@ -1,6 +1,7 @@
 #include <boost/dynamic_bitset.hpp>
 
 #include "global_variables.h"
+#include "seed_utils.h"
 
 using namespace std;
 
