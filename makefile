@@ -23,9 +23,9 @@ OS := $(shell uname -s)
 ifeq ($(OS),Darwin)
 	CXXFLAGS      = -O3 -std=c++1z -w
 	BOOST_VERSION = $(shell ls /opt/homebrew/Cellar/boost/ | tail -n 1)
-	BOOST_LIB     = -L/opt/homebrew/Cellar/boost/$(BOOST_VERSION)/lib	# boost library path
+	BOOST_LIB     = -L/opt/homebrew/Cellar/boost/$(BOOST_VERSION)/lib/	# boost library path
 	INCLUDE       = -I/opt/homebrew/Cellar/boost/$(BOOST_VERSION)/include/  # boost include path
-	PROFILER_LIB  = -L$(shell brew --prefix gperftools)/lib  -I$(shell brew --prefix gperftools)/include -lprofiler
+	PROFILER_LIB  = -L$(shell brew --prefix gperftools)/lib/  -I$(shell brew --prefix gperftools)/include/ -lprofiler
 	BOOST_AUXLIBS = -lboost_program_options -lboost_filesystem		#i boost program options library path
 endif
 
