@@ -110,7 +110,7 @@ boost::dynamic_bitset<> retainContinuousBitOp(boost::dynamic_bitset<> &bset, int
      */
 
     int bset_size = bset.size();
-    
+
     boost::dynamic_bitset<> anchor_bset(bset_size, 0ull);
     boost::dynamic_bitset<> atleast_anchor = bset;
     for (int i = 1; i < x; i++) {
@@ -202,7 +202,7 @@ bool checkSeedValidity(int seed_start, int seed_end, int motif_length,
     getBitCount(perfect_bsets[motif_length - MINIMUM_SHIFT], seed_start, seed_end, perfect_bitcount);
 
     int seed_length = seed_end - seed_start;
-    
+
     int minimumSuccesses = 0;
     long double probability_of_successes = 0.0;
     int anchor_size = 5;
@@ -211,7 +211,7 @@ bool checkSeedValidity(int seed_start, int seed_end, int motif_length,
 
     if (perfect_bitcount <= 0) { return false; }
     if (motif_bitcount < 0.3*seed_length) { return false; }
-    
+
     long double anchored_probability = 0.9;
     if (seed_length >= 500) anchored_probability = 0.8;
     minimumSuccesses = minimumNumberOfSuccesses(seed_length, anchor_size, anchored_probability);
@@ -307,9 +307,9 @@ tuple<int,int> addSeedToSeedPositionsAnchored(int seed_start, int seed_end, int 
         else if (from_index_substut == seed_positions_substut.size() - 1) { break; }
         else { from_index_substut += 1;  }
     }
-    
+
     if (seed_end-seed_start < seedlen_cutoffs[motif_length-MINIMUM_MLEN]) { return tuple<int,int>{from_index_perfect, from_index_substut}; }
-    
+
     vector<int> last_types, last_indices;
     mergeAllLists(seed_positions_perfect, seed_positions_substut, from_index_perfect, from_index_substut, last_types, last_indices, seed_start);
     for (int i=0; i < last_indices.size(); i++) {
@@ -321,10 +321,10 @@ tuple<int,int> addSeedToSeedPositionsAnchored(int seed_start, int seed_end, int 
     tuple<int, int> adjusted_positions = adjustSeedPositions(anchored_bsets[motif_length - MINIMUM_MLEN], N_bset, seed_start, seed_end);
     int adjusted_start = get<0>(adjusted_positions);
     int adjusted_end   = get<1>(adjusted_positions);
-    
+
     int seed_length = seed_end - seed_start;
     int seed_rlen   = seed_length + motif_length;
-    
+
     int motif_bitcount = 0, perfect_bitcount = 0, anchored_bitcount = 0;
     getBitCount(anchored_bsets[motif_length - MINIMUM_MLEN], seed_start, seed_end, anchored_bitcount);
     getBitCount(motif_bsets[motif_length - MINIMUM_SHIFT], seed_start, seed_end, motif_bitcount);
@@ -346,11 +346,11 @@ tuple<int,int> addSeedToSeedPositionsAnchored(int seed_start, int seed_end, int 
     probability_of_successes = probabilityOfSuccesses(seed_length, anchor_size, anchored_probability, anchored_bitcount);
 
     bool check = (anchored_bitcount >= minimumSuccesses || (probability_of_successes >= pow(10.0, -1*log10(anchored_bitcount)) * 0.1));
-    
+
     if (check) {
         bool merged = mergeWithPreviousSeed(seed_start, seed_end, motif_length, seed_positions_anchored,
                                             motif_bsets, N_bset, perfect_bsets, anchored_bsets);
-        
+
         if (merged) { return tuple<int,int> { from_index_perfect, from_index_substut}; }
         seed_positions_anchored.push_back(tuple<int,int,int,int,int,int,int> { adjusted_start, adjusted_end, motif_length, seed_type,
                                                                                anchored_bitcount, motif_bitcount, perfect_bitcount });
@@ -410,7 +410,7 @@ vector<tuple<int,int,int,int,int,int,int>> processShiftXORsAnchored(vector<boost
 
     int min_idx = MINIMUM_MLEN-MINIMUM_SHIFT; // the minimum index in motif_bsets to be considered
     int didx; // tracks the index of current starts and last starts; 0 for MINIMUM_MLEN
-    
+
     int last_starts[NMLENS], last_ends[NMLENS];  // initialising a last record
     // initialising all to -1
     for (int _=0; _<NMLENS; _++) { last_starts[_] = -1; last_ends[_] = -1; current_starts[_] = -1;}

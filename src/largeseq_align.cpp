@@ -173,7 +173,7 @@ string alignLargeSequence(string &sequence, string &motif, int motif_length, Str
     while(astart < sequence.length()) {
         alength = (alength < sequence.length() - astart) ? alength : (sequence.length() - astart);
         asequence = sequence.substr(astart, alength);
-        
+
         aligner.Align(asequence.c_str(), ppr_sequence.c_str(), ppr_length, filter, &alignment, 15);
 
         if (itr > 0) {

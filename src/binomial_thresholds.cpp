@@ -61,7 +61,7 @@ int minimumNumberOfSuccesses(int n, int r, long double p) {
      *  p i.e., the probability of success in a trial is the purity threshold of the repeat
      */
 
-        
+
     // For the total number of trials n, we calculated the probability for x number of successes with
     // x ranging from 0 to n with at least one run of continuous successes of length r
     long double sumProb = 0.0;
@@ -100,7 +100,6 @@ long double probabilityOfSuccesses(int n, int r, long double p, int successes) {
      *  @return minimum number of successes required
      */
 
-        
     // For the total number of trials n, we calculated the probability for x number of successes with
     // x ranging from 0 to n with at least one run of continuous successes of length r
     return probWithRunApprox(n, successes, r, p);

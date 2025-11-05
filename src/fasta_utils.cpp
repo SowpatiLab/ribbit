@@ -562,7 +562,7 @@ void parseFasta(string fasta_file, string output_file) {
         }
         gzclose(gzfin);
     }
-    
+
     else {
         istream* fastain_ptr = nullptr;
         ifstream fastain;
@@ -616,5 +616,3 @@ void parseFasta(string fasta_file, string output_file) {
     out->flush();
     if (out_filestream.is_open()) out_filestream.close();
 }
-
-

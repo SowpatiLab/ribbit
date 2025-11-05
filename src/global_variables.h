@@ -68,6 +68,7 @@ extern unordered_map<int, unordered_map<uint256_t, int>> ATOMICITY_MAP; // store
 extern unordered_map<int, unordered_map<uint256_t, string>> MOTIFS_MAP; // Store motif to int32
 
 extern bool LENGTH_CUTOFF_MODE;
+extern bool DEBUG_MODE;
 
 // cutoffs for different measures of purity
 extern double PURITY_THRESHOLD;

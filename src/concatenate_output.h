@@ -3,5 +3,4 @@
 
 using namespace std;
 
-
 void concatenateThreadOutputs(const vector<string> &temp_files, ofstream &out);

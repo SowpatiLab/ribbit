@@ -501,7 +501,7 @@ void compareOverlappingLoci(int &upstart, int &upend, string &upcigar, string &u
     vector<int>  dn_olclens  = get<0> (dn_olseg_cigarvalues);
     vector<char> dn_olctypes = get<1> (dn_olseg_cigarvalues);
 
-    assert(getRepeatLength(up_olseg_cigarvalues) == getRepeatLength(dn_olseg_cigarvalues));
+    if (DEBUG_MODE) assert(getRepeatLength(up_olseg_cigarvalues) == getRepeatLength(dn_olseg_cigarvalues));
 
     if (onlyMatches(up_olctypes) && onlyMatches(dn_olctypes)) {
         // keep both the loci as they are
@@ -692,12 +692,12 @@ bool handleOverlapRelation(string &sequence_id, int repeat_start, int repeat_end
                         compareOverlappingLoci(last_start, last_end, last_cigar, last_motif, last_purity, last_fail, last_update,
                                                repeat_start, repeat_end, cigar_string, motif, purity, fail, update);
                     }
-    
+
                     else if (repeat_start < last_start && last_start < repeat_end) {  // last-repeat is downstream of current repeat
                         compareOverlappingLoci(repeat_start, repeat_end, cigar_string, motif, purity, fail, update,
                                                last_start, last_end, last_cigar, last_motif, last_purity, last_fail, last_update);
                     }
-    
+
                     if (last_update && update) {
                         // if both needs to be updated
                         remove_loci.push_back(i);
@@ -722,7 +722,7 @@ bool handleOverlapRelation(string &sequence_id, int repeat_start, int repeat_end
                         }
                         return false;
                     }
-    
+
                     else if (update & !(last_update)) {
                         // if only current repeat is updated
                         if (last_fail) { remove_loci.push_back(i); }
@@ -736,7 +736,7 @@ bool handleOverlapRelation(string &sequence_id, int repeat_start, int repeat_end
                                          repeat_length, repeat_units, out, repeat_loci, recursion_level, new_repeat_loci);
                         return false;
                     }
-    
+
                     else if (last_update & !(update)) {
                         remove_loci.push_back(i);
                         for (int j: remove_loci) { repeat_loci.erase(repeat_loci.begin() + j, repeat_loci.begin() + j + 1);}
@@ -805,16 +805,17 @@ bool handleOverlapRelation(string &sequence_id, int repeat_start, int repeat_end
 
                     if (uplength * uppurity > dnlength * dnpurity) { merge_motif = upmotif; }
                     else { merge_motif = dnmotif; }
-                    
-                    
+
                     merge_cigar = upcigar + dncigar; // simply concatenate the cigars
                     cleanCigar(merge_cigar);
                     merge_purity = ((double) (getMatches(merge_cigar))) / ((double) (getAlignmentLength(merge_cigar)));
-                    
+
                     merge_start = upstart; merge_end = dnend;
                     merge_length = merge_end - merge_start;
                     merge_units  = merge_length / motif_length;
-                    assert(merge_length == getRepeatLength(merge_cigar));
+
+                    if (DEBUG_MODE) assert(merge_length == getRepeatLength(merge_cigar));
+
                     recursion_level += 1;
                     new_repeat_loci.push_back(make_tuple(sequence_id, merge_start, merge_end, merge_motif, merge_purity,
                                                          merge_cigar, motif_length, merge_length, merge_units));
@@ -918,7 +919,7 @@ bool handleNestedParentRelation(int repeat_start, int repeat_end, string motif, 
                 remove_loci.push_back(i);
 
             }
-            
+
             else {
                 tuple<vector<int>, vector<char>> segment_cigarvalues = extractRegionCigar(last_cigar, repeat_start-last_start, repeat_end-last_start);
                 double segment_purity = ((double) getMatches(segment_cigarvalues)) / ((double) getAlignmentLength(segment_cigarvalues));
@@ -969,7 +970,7 @@ bool checkDuplicateEntry(string sequence_id, int repeat_start, int repeat_end, s
 
         // if the start position of the recorded repeat is less than current repeat, break
         if (get<1> (repeat_loci[i]) < repeat_start) { break; }
-    
+
         // start comparing repeats from the end
         if (get<0> (repeat_loci[i]) != sequence_id) { break; } // if sequence ids are different, break
 
@@ -1003,6 +1004,7 @@ void addLocusToOutput(string sequence_id, int repeat_start, int repeat_end, stri
      */
 
     int recursion_limit = 100;
+    if (DEBUG_MODE) assert(repeat_length == getRepeatLength(cigar_string));
 
     string last_seqid = "";
     if (repeat_loci.size() > 0) { last_seqid = get<0> (repeat_loci[repeat_loci.size()-1]); }

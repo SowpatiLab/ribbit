@@ -56,6 +56,7 @@ unordered_map<int, unordered_map<uint256_t, int>> ATOMICITY_MAP; // store atomic
 unordered_map<int, unordered_map<uint256_t, string>> MOTIFS_MAP; // Store motif to int32
 
 bool LENGTH_CUTOFF_MODE = true;
+bool DEBUG_MODE = false;
 
 // cutoffs for different measures of purity
 double PURITY_THRESHOLD = 0.8;

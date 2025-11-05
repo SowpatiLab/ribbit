@@ -80,7 +80,7 @@ bool parseArguments(int &argc, char *argv[], string &input_file, string &output_
     argparser.add_options()
         ("help,h", "Ribbit detects tandem repeat regions in DNA, accurately resolving complex repeat "
                                       "structures and motif sizes up to 100 bp.")
-        
+
         ("version", "Prints out the version of ribbit.")
 
         ("input-file,i",  po::value<string>(), "Input sequence. Can be a fasta file (optionally gzipped) or '-' for stdin.")

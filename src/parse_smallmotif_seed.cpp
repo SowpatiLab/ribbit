@@ -257,7 +257,7 @@ void orderMotifs(vector<uint32_t> &motifs, vector<int> &starts, vector<int> &end
         motif_end = ends[idx];
         // if the motif is the last one in the list or the motif ends one motif length away from the seed end
         if (_ == sorted_indices.size()-1 || (seed_end - motif_end <= motif_length)) { motif_end = seed_end; }
-        
+
         // if the motif is the first one in the list or the motif starts one motif length away from the seed start
         if (motif_start - seed_start <= motif_length) { motif_start = seed_start; }
 
@@ -355,7 +355,7 @@ void processSmallMotifSeed(tuple<int, int> seed_position, int chunk_start, int &
     int seed_bset_size = seed_end - seed_start;
     int seed_sequence_length = seed_bset_size + motif_length;
     string repeat_sequence = "";
-    
+
     // the shift xor bitset of the complete repeat sequence
     boost::dynamic_bitset<> seed_bset(seed_bset_size, 0ull);
     for (int j = seed_start; j < seed_end; j++) {
@@ -413,7 +413,7 @@ void processSmallMotifSeed(tuple<int, int> seed_position, int chunk_start, int &
     int motif_idx; uint32_t motif_unit;
     for(motif_idx=0; motif_idx < motifs.size(); motif_idx++) {
         motif_unit = motifs[motif_idx];
-        
+
         if (THREADS > 1) MTX.lock();
         atomicity = calculateAtomicity(motif_unit, motif_length);
         motif = calculateMotif(motif_unit, motif_length);
@@ -442,7 +442,7 @@ void processSmallMotifSeed(tuple<int, int> seed_position, int chunk_start, int &
                               repeat_start, repeat_end, alignment_length, cigar_string, purity, substitutions, indels,
                               motifwise_purity, motifwise_indels, avg_matchlen);
         repeat_length = repeat_end - repeat_start;
-        
+
         if (THREADS > 1) MTX.lock();
         match_units = calculateMotifUnits(left_bset, right_bset, repeat_start, repeat_length, atomicity, sequence_length, motif_unit);
         if (THREADS > 1) MTX.unlock();

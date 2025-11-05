@@ -223,13 +223,10 @@ void previouslyIdentifiedMotif(int seed_start, int seed_end, int motif_length, i
     int last_start, last_end, overlap_start, overlap_end, overlap_length;
     if (motif_length > SMALL_MLEN_LIMIT && repeat_loci.size() > 0) {
         for (int _=repeat_loci.size()-1; _ >= 0; _--) {
-            
-            if (_ >= repeat_loci.size()) { _ = repeat_loci.size()-1; }
-            
+            if (_ >= repeat_loci.size()) { _ = repeat_loci.size() - 1; }
             if (get<2>(repeat_loci[_]) < seed_start + chunk_start - distance) return;
-            
             if (motif_length != get<6>(repeat_loci[_])) continue;
-            
+
             // start comparing repeats from the end
             last_start  = get<1> (repeat_loci[_]);
             last_end    = get<2> (repeat_loci[_]);
@@ -289,7 +286,7 @@ void checkAtomicity(vector<tuple<int,int,int,int,int,int,int>> &overlapping_seed
      *  @param anchored_bsets anchored motif bsets of all shift sizes
      *  @return none
      */
-    
+
     sortSeedPositions(overlapping_seeds);
 
     int istart, iend, imlen, islen, itype, iacount, imcount, ipcount, iajump;
@@ -324,7 +321,7 @@ void checkAtomicity(vector<tuple<int,int,int,int,int,int,int>> &overlapping_seed
 
             if (jend <= iend && jmlen != imlen && jslen >= 3*imlen) {
                 // seed j is nested and length of j seed is thrice the motif length of imlen
-                
+
                 int nia_count = 0, nim_count = 0;
                 getBitCount(anchored_bsets[imlen - MINIMUM_MLEN], jstart, jend, nia_count);
                 getBitCount(motif_bsets[imlen - MINIMUM_SHIFT],   jstart, jend, nim_count);
@@ -387,7 +384,7 @@ void filterLowerMatchOverlapSeeds(vector<tuple<int,int,int,int,int,int,int>> &ov
         for (int j=i+1; j<overlapping_seeds.size(); j++) {
             tie(jstart, jend, jmlen, jtype, jacount, jmcount, jpcount) = overlapping_seeds[j];
             jslen = jend - jstart;
-            
+
             // as the seeds are sorted by start position, if the later seed start exceed the current seed end, we break
             if (jstart >= iend) break;
             if (jtype == RANK_N) continue;
@@ -427,7 +424,7 @@ void filterLowerMatchOverlapSeeds(vector<tuple<int,int,int,int,int,int,int>> &ov
                 getBitCount(motif_bsets[imlen - MINIMUM_SHIFT],   jstart, iend, oim_count);
                 getBitCount(anchored_bsets[jmlen - MINIMUM_MLEN], jstart, iend, oja_count);
                 getBitCount(motif_bsets[jmlen - MINIMUM_SHIFT],   jstart, iend, ojm_count);
-                
+
                 sd = sqrt(olength * 0.9 * 0.1);
                 threshold = 5*sd;
                 if (icheck && !jcheck) {
@@ -496,7 +493,7 @@ void filterNearAtomicSeeds(vector<tuple<int,int,int,int,int,int,int>> &overlappi
      *  @param anchored_bsets anchored motif bsets of all shift sizes
      *  @return none
     */
-    
+
     sortSeedPositions(overlapping_seeds);
 
     int istart, iend, imlen, islen, itype, iacount, imcount, ipcount, iajump;
@@ -586,7 +583,7 @@ void filterNearAtomicSeeds(vector<tuple<int,int,int,int,int,int,int>> &overlappi
 void processOverlappingSeeds(vector<tuple<int,int,int,int,int,int,int>> &overlapping_seeds, vector<boost::dynamic_bitset<>> &motif_bsets,
                              vector<boost::dynamic_bitset<>> &perfect_bsets, vector<boost::dynamic_bitset<>> &anchored_bsets, int bset_size,
                              vector<set<int>> &skip_atomicity) {
-    
+
     /*
      *  processes the overlapping seeds to remove redundant seeds
      *  @param overlapping_seeds vector of overlapping seed positions
@@ -604,7 +601,7 @@ void processOverlappingSeeds(vector<tuple<int,int,int,int,int,int,int>> &overlap
     for (size_t i = 0; i < overlapping_seeds.size(); ++i) {
         skip_atomicity[i] = set<int>();
     }
-    
+
     int istart, iend, imlen, islen, itype, imcount, ipcount, iacount, iajump;
     int jstart, jend, jmlen, jslen, jtype, jmcount, jpcount, jacount, jajump;
     int ostart, oend, olength;
@@ -704,10 +701,9 @@ void MergeIdenticalMotifSeeds(vector<tuple<int,int,int,int,int,int,int>> &overla
      *  @param anchored_bsets anchored motif bsets of all shift sizes
      *  @return none
     */
-    
-    
+
     sortSeedPositions(overlapping_seeds);
-    
+
     int istart, iend, imlen, islen, itype, imcount, ipcount, iacount, iajump;
     int jstart, jend, jmlen, jslen, jtype, jmcount, jpcount, jacount, jajump;
 
@@ -717,7 +713,7 @@ void MergeIdenticalMotifSeeds(vector<tuple<int,int,int,int,int,int,int>> &overla
         tie(istart, iend, imlen, itype, iacount, imcount, ipcount) = overlapping_seeds[i];
         islen = iend - istart;
         if (itype == RANK_N) continue;
-        
+
         // marking all the overlapping seeds as invalid
         for (int j=i+1; j<overlapping_seeds.size(); j++) {
             tie(jstart, jend, jmlen, jtype, jacount, jmcount, jpcount) = overlapping_seeds[j];

@@ -385,7 +385,7 @@ void extendTillMatch(string &flank_cigar, string &cigar, int &position, bool end
      *  @param cigar cigar string for the non-overlapping part of the repeat
      *  @param end extend the end of the cigar; if false extends the start of the cigar
     */
-   
+
     string length = "";
     if (end) {
         for (int i = 0; i<flank_cigar.length(); i++) {
@@ -417,7 +417,7 @@ void extendTillMatch(tuple<vector<int>, vector<char>> &flank_cigar, string &ciga
      *  @param cigar cigar string for the non-overlapping part of the repeat
      *  @param end the end position of the repeat
      */
-    
+
     string length = "";
     vector<int> clens = get<0> (flank_cigar);
     vector<char> ctypes = get<1> (flank_cigar);

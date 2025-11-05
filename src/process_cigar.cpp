@@ -1114,7 +1114,7 @@ vector<tuple<int, int, string, double>> processLargeCigar(int &repeat_start, int
 
         pair<int, int> trimmed_locus = make_pair(tw_rstart, tw_rend - motif_length);
         seed_repeat_loci.push_back(trimmed_locus);
-        
+
         string tw_cigar = trimCigarAlignOp(cigar, tw_start, align_opcount - tw_end);
         int tw_alignment_length = getAlignmentLength(tw_cigar);
         double tw_purity = (double)getMatches(tw_cigar) / (double)tw_alignment_length;
